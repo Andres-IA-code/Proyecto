@@ -51,55 +51,65 @@ const QuoteManagement: React.FC = () => {
         return;
       }
 
-      // Fetch quotes for shipments owned by the current user
-      const { data, error: fetchError } = await supabase
+      console.log('Fetching quotes for user:', currentUser.profile.id_Usuario);
+
+      // First, let's try a simpler query to debug
+      const { data: quotesData, error: fetchError } = await supabase
         .from('Cotizaciones')
-        .select(`
-          *,
-          operador:Usuarios!id_Operador(
-            Nombre,
-            Apellido,
-            Tipo_Persona,
-            Telefono,
-            Correo
-          ),
-          envio:General!id_Envio(
-            Origen,
-            Destino,
-            Tipo_Carga,
-            Distancia,
-            Peso,
-            Parada_Programada,
-            Fecha_Retiro
-          )
-        `)
+        .select('*')
         .eq('id_Usuario', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
         console.error('Error fetching quotes:', fetchError);
-        setError('Error al cargar las cotizaciones');
+        setError(`Error al cargar las cotizaciones: ${fetchError.message}`);
         return;
       }
 
-      // Transform the data to flatten the nested objects
-      const transformedQuotes = (data || []).map(quote => ({
-        ...quote,
-        operador_nombre: quote.operador?.Nombre,
-        operador_apellido: quote.operador?.Apellido,
-        operador_tipo_persona: quote.operador?.Tipo_Persona,
-        operador_telefono: quote.operador?.Telefono,
-        operador_correo: quote.operador?.Correo,
-        envio_origen: quote.envio?.Origen,
-        envio_destino: quote.envio?.Destino,
-        envio_tipo_carga: quote.envio?.Tipo_Carga,
-        envio_distancia: quote.envio?.Distancia,
-        envio_peso: quote.envio?.Peso,
-        envio_parada_programada: quote.envio?.Parada_Programada,
-        envio_fecha_retiro: quote.envio?.Fecha_Retiro,
-      }));
+      console.log('Quotes found:', quotesData?.length || 0);
 
-      setQuotes(transformedQuotes);
+      if (!quotesData || quotesData.length === 0) {
+        setQuotes([]);
+        return;
+      }
+
+      // Now fetch related data for each quote
+      const quotesWithDetails = await Promise.all(
+        quotesData.map(async (quote) => {
+          // Fetch operator details
+          const { data: operatorData } = await supabase
+            .from('Usuarios')
+            .select('Nombre, Apellido, Tipo_Persona, Telefono, Correo')
+            .eq('id_Usuario', quote.id_Operador)
+            .single();
+
+          // Fetch shipment details
+          const { data: shipmentData } = await supabase
+            .from('General')
+            .select('Origen, Destino, Tipo_Carga, Distancia, Peso, Parada_Programada, Fecha_Retiro')
+            .eq('id_Envio', quote.id_Envio)
+            .single();
+
+          return {
+            ...quote,
+            operador_nombre: operatorData?.Nombre,
+            operador_apellido: operatorData?.Apellido,
+            operador_tipo_persona: operatorData?.Tipo_Persona,
+            operador_telefono: operatorData?.Telefono,
+            operador_correo: operatorData?.Correo,
+            envio_origen: shipmentData?.Origen,
+            envio_destino: shipmentData?.Destino,
+            envio_tipo_carga: shipmentData?.Tipo_Carga,
+            envio_distancia: shipmentData?.Distancia,
+            envio_peso: shipmentData?.Peso,
+            envio_parada_programada: shipmentData?.Parada_Programada,
+            envio_fecha_retiro: shipmentData?.Fecha_Retiro,
+          };
+        })
+      );
+
+      console.log('Quotes with details:', quotesWithDetails);
+      setQuotes(quotesWithDetails);
     } catch (err) {
       console.error('Error:', err);
       setError('Error inesperado al cargar las cotizaciones');
@@ -417,10 +427,18 @@ const QuoteManagement: React.FC = () => {
             </h3>
             <p className="text-gray-500 mb-6">
               {filterStatus === 'all' 
-                ? 'No has recibido cotizaciones aún. Los operadores logísticos podrán enviar cotizaciones para tus envíos.'
+                ? 'No has recibido cotizaciones aún. Cuando los operadores logísticos envíen cotizaciones para tus envíos, aparecerán aquí.'
                 : `No hay cotizaciones con estado "${filterStatus}".`
               }
             </p>
+            <div className="text-sm text-gray-400 mb-4">
+              <p>Para recibir cotizaciones:</p>
+              <ol className="list-decimal list-inside mt-2 space-y-1">
+                <li>Crea una solicitud de envío</li>
+                <li>Los operadores verán tu solicitud</li>
+                <li>Recibirás cotizaciones aquí</li>
+              </ol>
+            </div>
             <button
               onClick={fetchQuotes}
               className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
