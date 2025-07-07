@@ -72,6 +72,12 @@ const OperadorOportunidades: React.FC = () => {
         return;
       }
 
+      // Check if user has a valid id_Usuario
+      if (!currentUser.id_Usuario || currentUser.id_Usuario === undefined) {
+        setError('Perfil de usuario incompleto. Por favor, complete su perfil antes de continuar.');
+        return;
+      }
+
       // Fetch opportunities from General table where Estado is 'Pendiente' or similar
       const { data, error: fetchError } = await supabase
         .from('General')
