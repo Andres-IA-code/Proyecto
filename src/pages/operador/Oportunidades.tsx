@@ -286,18 +286,6 @@ const OperadorOportunidades: React.FC = () => {
         {/* Search and Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex flex-col lg:flex-row gap-4 mb-4">
-            {/* Search Bar */}
-            <div className="flex-1 relative">
-              <Search size={20} className="absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar por origen, destino, tipo de carga o dador..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
             {/* Cargo Type Filter Dropdown */}
             <select
               value={filterCargoType}
@@ -564,8 +552,6 @@ const OperadorOportunidades: React.FC = () => {
               onClick={() => {
                 if (showAdvancedSearch) {
                   clearAdvancedSearch();
-                } else {
-                  setSearchTerm('');
                 }
                 setFilterCargoType('all');
               }}
