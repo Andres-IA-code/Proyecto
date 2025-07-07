@@ -112,7 +112,7 @@ const Sidebar: React.FC = () => {
     { name: 'Inicio', path: '/app', icon: <Home size={20} /> },
     { name: 'Solicitar Viaje', path: '/app/quote-request', icon: <Truck size={20} /> },
     { name: 'Cotizaciones', path: '/app/quotes', icon: <Package size={20} /> },
-    { name: 'Seguimientos', path: '/app/history', icon: <History size={20} /> },
+    { name: 'Historial', path: '/app/history', icon: <History size={20} /> },
     { name: 'Perfil', path: '/app/profile', icon: <User size={20} /> },
   ];
 
