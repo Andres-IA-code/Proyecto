@@ -645,7 +645,6 @@ const QuoteRequest: React.FC = () => {
                 {[
                   { value: 'express', label: 'Express', subtitle: '< 6 días' },
                   { value: 'normal', label: 'Normal', subtitle: '7-15 días' },
-                  { value: 'urgente', label: 'Urgente', subtitle: 'Mismo día' },
                 ].map((shipment) => (
                   <label key={shipment.value} className="relative">
                     <input
