@@ -663,6 +663,9 @@ const QuoteRequest: React.FC = () => {
                   <label className="text-sm text-gray-700">
                     Fecha Flexible
                   </label>
+                  <label className="text-sm font-bold text-gray-700">
+                    Fecha Flexible
+                  </label>
                 </div>
               </div>
               {formData.flexibleDate && (
