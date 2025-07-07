@@ -122,39 +122,7 @@ const OperadorOportunidades: React.FC = () => {
         Oferta: parseFloat(quoteAmount),
         Fecha: new Date().toISOString(),
         Vigencia: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        Estado: 'Pendiente',
-        Scoring: null,
-        
-        // Datos adicionales del envío para referencia
-        Origen: selectedOpportunity.Origen,
-        Destino: selectedOpportunity.Destino,
-        Distancia: selectedOpportunity.Distancia,
-        Tipo_Carga: selectedOpportunity.Tipo_Carga,
-        Tipo_Vehiculo: selectedOpportunity.Tipo_Vehiculo,
-        Tipo_Envio: selectedOpportunity.Tipo_Envio,
-        Peso: selectedOpportunity.Peso,
-        Dimension_Largo: selectedOpportunity.Dimension_Largo,
-        Dimension_Ancho: selectedOpportunity.Dimension_Ancho,
-        Dimension_Alto: selectedOpportunity.Dimension_Alto,
-        Tipo_Carroceria: selectedOpportunity.Tipo_Carroceria,
-        Fecha_Retiro: selectedOpportunity.Fecha_Retiro,
-        Horario_Retiro: selectedOpportunity.Horario_Retiro,
-        Observaciones: selectedOpportunity.Observaciones,
-        Necesidades_Especiales: selectedOpportunity.Necesidades_Especiales,
-        Tiempo_Estimado_Operacion: selectedOpportunity.Tiempo_Estimado_Operacion,
-        Parada_Programada: selectedOpportunity.Parada_Programada,
-        Nombre_Dador: selectedOpportunity.Nombre_Dador,
-        
-        // Datos del operador que cotiza
-        Nombre_Operador: currentUser.profile.Tipo_Persona === 'Física' 
-          ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
-          : currentUser.profile.Nombre,
-        Correo_Operador: currentUser.profile.Correo,
-        Telefono_Operador: currentUser.profile.Telefono,
-        
-        // Metadatos
-        Fecha_Creacion: new Date().toISOString(),
-        Ultima_Actualizacion: new Date().toISOString()
+        Estado: 'Pendiente'
       };
 
       console.log('Guardando cotización con datos completos:', quoteData);
