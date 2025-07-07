@@ -7,7 +7,6 @@ interface Quote {
   id_Usuario: number;
   id_Envio: number;
   id_Operador: number;
-  Valor_Cotizacion?: number;
   Oferta: number;
   Fecha: string;
   Vigencia: string;
@@ -63,7 +62,6 @@ const QuoteManagement: React.FC = () => {
           id_Usuario,
           id_Envio,
           id_Operador,
-          Valor_Cotizacion,
           Oferta,
           Fecha,
           Vigencia,
@@ -248,7 +246,7 @@ const QuoteManagement: React.FC = () => {
   const sortedQuotes = [...filteredQuotes].sort((a, b) => {
     switch (sortBy) {
       case 'precio':
-        return (b.Oferta || b.Valor_Cotizacion || 0) - (a.Oferta || a.Valor_Cotizacion || 0);
+        return (b.Oferta || 0) - (a.Oferta || 0);
       case 'fecha':
         return new Date(b.Fecha).getTime() - new Date(a.Fecha).getTime();
       case 'operador':
@@ -451,7 +449,7 @@ const QuoteManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="bg-green-50 p-3 rounded-lg border border-green-200">
                           <div className="text-lg font-bold text-green-700">
-                            ${(quote.Oferta || quote.Valor_Cotizacion || 0).toLocaleString()}
+                            ${(quote.Oferta || 0).toLocaleString()}
                           </div>
                           <div className="text-xs text-green-600">
                             Valor total
