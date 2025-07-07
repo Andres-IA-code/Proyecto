@@ -91,7 +91,7 @@ const OperadorOportunidades: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [showAllRecords]);
+  };
 
   const handleQuoteOpportunity = (opportunity: Opportunity) => {
     setSelectedOpportunity(opportunity);
