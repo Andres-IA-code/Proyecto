@@ -228,7 +228,6 @@ const QuoteRequest: React.FC = () => {
         Destino: formData.destination.trim(),
         Distancia: formData.estimatedDistance ? parseFloat(formData.estimatedDistance) : null,
         Tipo_Carga: formData.cargoType || null,
-        Tipo_Planificacion: 'Normal', // Default value
         Tipo_Vehiculo: formData.vehicleType || null,
         Tipo_Envio: formData.shipmentType || null,
         Peso: formData.weight.trim(),
