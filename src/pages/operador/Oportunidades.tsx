@@ -584,21 +584,6 @@ const OperadorOportunidades: React.FC = () => {
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
-            <option value="all">Todos los tipos de carga</option>
-            <option value="general">Carga General</option>
-            <option value="refrigerada">Carga Refrigerada</option>
-            <option value="peligrosa">Carga Peligrosa</option>
-            <option value="sobredimensionada">Carga Sobredimensionada</option>
-          </select>
-          <div className="flex items-center bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
-            <input
-              type="checkbox"
-              id="showAll"
-              checked={showAllRecords}
-              onChange={(e) => setShowAllRecords(e.target.checked)}
-              className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="showAll" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Mostrar todos los registros
             </label>
           </div>
