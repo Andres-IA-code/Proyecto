@@ -395,9 +395,35 @@ const OperadorOportunidades: React.FC = () => {
       opportunity.Nombre_Dador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       opportunity.Tipo_Carga?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = 
-      filterType === 'all' || 
-      opportunity.Tipo_Carga?.toLowerCase() === filterType.toLowerCase();
+    const matchesFilter = (() => {
+      if (filterType === 'all') return true;
+      
+      const cargoType = opportunity.Tipo_Carga?.toLowerCase() || '';
+      
+      // Mapear los valores del filtro a posibles variaciones en los datos
+      switch (filterType) {
+        case 'general':
+          return cargoType.includes('general') || cargoType.includes('seca') || cargoType === 'carga general';
+        case 'refrigerada':
+          return cargoType.includes('refrigerad') || cargoType.includes('frio') || cargoType.includes('congelad');
+        case 'peligrosa':
+          return cargoType.includes('peligros') || cargoType.includes('quimic') || cargoType.includes('toxico');
+        case 'sobredimensionada':
+          return cargoType.includes('sobredimension') || cargoType.includes('especial') || cargoType.includes('grande');
+        case 'liquida':
+          return cargoType.includes('liquid') || cargoType.includes('tanque') || cargoType.includes('cisterna');
+        case 'graneles':
+          return cargoType.includes('granel') || cargoType.includes('solido') || cargoType.includes('mineral');
+        case 'contenedores':
+          return cargoType.includes('contenedor') || cargoType.includes('container') || cargoType.includes('fcl') || cargoType.includes('lcl');
+        case 'vehiculos':
+          return cargoType.includes('vehiculo') || cargoType.includes('auto') || cargoType.includes('carro') || cargoType.includes('moto');
+        case 'maquinaria':
+          return cargoType.includes('maquinaria') || cargoType.includes('equipo') || cargoType.includes('industrial');
+        default:
+          return cargoType.includes(filterType.toLowerCase());
+      }
+    })();
 
     return matchesSearch && matchesFilter;
   });
@@ -552,9 +578,15 @@ const OperadorOportunidades: React.FC = () => {
             onChange={(e) => setFilterType(e.target.value)}
           >
             <option value="all">Todos los tipos de carga</option>
-            <option value="carga general">Carga General</option>
-            <option value="carga refrigerada">Carga Refrigerada</option>
-            <option value="carga peligrosa">Carga Peligrosa</option>
+            <option value="general">Carga General</option>
+            <option value="refrigerada">Carga Refrigerada</option>
+            <option value="peligrosa">Carga Peligrosa</option>
+            <option value="sobredimensionada">Carga Sobredimensionada</option>
+            <option value="liquida">Carga Líquida</option>
+            <option value="graneles">Graneles</option>
+            <option value="contenedores">Contenedores</option>
+            <option value="vehiculos">Vehículos</option>
+            <option value="maquinaria">Maquinaria</option>
           </select>
           <div className="flex items-center bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
             <input
