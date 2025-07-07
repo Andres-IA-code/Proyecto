@@ -36,7 +36,7 @@ const OperadorOportunidades: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [filterCargoType, setFilterCargoType] = useState('all');
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
@@ -184,10 +184,9 @@ const OperadorOportunidades: React.FC = () => {
       (opportunity.Tipo_Carga?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (opportunity.Nombre_Dador?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    // Filter type
-    const matchesFilter = filterType === 'all' || 
-      (filterType === 'urgente' && opportunity.Estado === 'Urgente') ||
-      (filterType === 'normal' && opportunity.Estado !== 'Urgente');
+    // Filter by cargo type
+    const matchesFilter = filterCargoType === 'all' || 
+      opportunity.Tipo_Carga?.toLowerCase() === filterCargoType.toLowerCase();
 
     // Advanced filters
     let matchesAdvanced = true;
@@ -299,15 +298,17 @@ const OperadorOportunidades: React.FC = () => {
               />
             </div>
 
-            {/* Filter Dropdown */}
+            {/* Cargo Type Filter Dropdown */}
             <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              value={filterCargoType}
+              onChange={(e) => setFilterCargoType(e.target.value)}
               className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="all">Todos los envíos</option>
-              <option value="urgente">Urgentes</option>
-              <option value="normal">Normales</option>
+              <option value="all">Todos los tipos de carga</option>
+              <option value="general">General</option>
+              <option value="refrigerada">Refrigerada</option>
+              <option value="sobredimensionada">Sobredimensionada</option>
+              <option value="peligrosa">Peligrosa</option>
             </select>
 
             {/* Advanced Search Toggle */}
@@ -566,7 +567,7 @@ const OperadorOportunidades: React.FC = () => {
                 } else {
                   setSearchTerm('');
                 }
-                setFilterType('all');
+                setFilterCargoType('all');
               }}
               className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
