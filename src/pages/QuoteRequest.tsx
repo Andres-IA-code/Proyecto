@@ -684,23 +684,6 @@ const QuoteRequest: React.FC = () => {
               />
             </div>
 
-            {/* Décima fila: Documentación */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Documentación
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-600 mb-2">Adjunta y sube las imágenes aquí o haz clic para seleccionar</p>
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Seleccionar Archivos
-                </button>
-              </div>
-            </div>
-
             {/* Error Message */}
             {submitError && (
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
