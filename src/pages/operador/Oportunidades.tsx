@@ -204,22 +204,13 @@ const OperadorOportunidades: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Oportunidades de Negocio
-              </h1>
-              <p className="text-gray-600">
-                Encuentra y cotiza envíos disponibles en el marketplace
-              </p>
-            </div>
-            <button
-              onClick={fetchOpportunities}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <RefreshCw size={20} className="mr-2" />
-              Actualizar
-            </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Oportunidades de Negocio
+            </h1>
+            <p className="text-gray-600">
+              Encuentra y cotiza envíos disponibles en el marketplace
+            </p>
           </div>
         </div>
 
