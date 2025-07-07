@@ -389,9 +389,18 @@ const OperadorOportunidades: React.FC = () => {
   };
 
   const filteredOpportunities = opportunities.filter(opportunity => {
-    const matchesSearch = 
-      opportunity.Origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      opportunity.Destino?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (() => {
+      if (!searchTerm.trim()) return true;
+      
+      const searchWords = searchTerm.toLowerCase().trim().split(/\s+/);
+      const origen = opportunity.Origen?.toLowerCase() || '';
+      const destino = opportunity.Destino?.toLowerCase() || '';
+      
+      // Buscar si alguna de las palabras de búsqueda está contenida en origen o destino
+      return searchWords.some(word => 
+        origen.includes(word) || destino.includes(word)
+      );
+    })();
 
     const matchesFilter = (() => {
       if (filterType === 'all') return true;
@@ -563,7 +572,7 @@ const OperadorOportunidades: React.FC = () => {
           <div className="flex-1 relative">
             <input
               type="text"
-              placeholder="Buscar por origen o destino..."
+              placeholder="Buscar por palabras en origen o destino (ej: Buenos, Aires, CDMX)..."
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -766,7 +775,7 @@ const OperadorOportunidades: React.FC = () => {
             No se encontraron resultados
           </h3>
           <p className="text-gray-500 mb-6">
-            No hay registros que coincidan con la búsqueda por origen/destino o filtros aplicados.
+            No hay registros que contengan las palabras buscadas en origen o destino.
           </p>
           <button
             onClick={() => {
