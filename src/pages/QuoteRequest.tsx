@@ -493,7 +493,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Largo
+                  Largo(cm)
                 </label>
                 <input
                   type="number"
@@ -507,7 +507,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ancho
+                  Ancho(cm)
                 </label>
                 <input
                   type="number"
@@ -521,7 +521,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alto
+                  Alto(cm)
                 </label>
                 <input
                   type="number"
