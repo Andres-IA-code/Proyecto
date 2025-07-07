@@ -665,7 +665,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
-                  { value: 'express', label: 'Express', subtitle: '< 7 días' },
+                  { value: 'express', label: 'Express', subtitle: '< 3 días' },
                   { value: 'normal', label: 'Normal', subtitle: '7-15 días' },
                 ].map((shipment) => (
                   <label key={shipment.value} className="relative">
