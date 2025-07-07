@@ -185,6 +185,12 @@ const QuoteRequest: React.FC = () => {
     setSubmitError('');
 
     try {
+      // Check if Supabase is properly configured
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        setSubmitError('La base de datos no está configurada. Por favor contacta al administrador del sistema.');
+        return;
+      }
+
       // Get current user
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -255,7 +261,17 @@ const QuoteRequest: React.FC = () => {
 
       if (error) {
         console.error('Error al guardar el envío:', error);
-        setSubmitError(`Error al guardar el envío: ${error.message}`);
+        
+        // Handle specific database errors
+        if (error.message?.includes('JWT')) {
+          setSubmitError('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        } else if (error.message?.includes('permission')) {
+          setSubmitError('No tienes permisos para realizar esta acción. Contacta al administrador.');
+        } else if (error.message?.includes('connection')) {
+          setSubmitError('Error de conexión con la base de datos. Verifica tu conexión a internet.');
+        } else {
+          setSubmitError('Error al guardar el envío. Por favor intenta nuevamente o contacta al administrador.');
+        }
         return;
       }
 
@@ -292,7 +308,15 @@ const QuoteRequest: React.FC = () => {
 
     } catch (error: any) {
       console.error('Error inesperado:', error);
-      setSubmitError(`Error inesperado: ${error.message}`);
+      
+      // Handle different types of errors
+      if (error.message?.includes('Base de datos no configurada')) {
+        setSubmitError('La aplicación no está configurada correctamente. Por favor contacta al administrador del sistema.');
+      } else if (error.message?.includes('Network')) {
+        setSubmitError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
+      } else {
+        setSubmitError('Error inesperado. Por favor intenta nuevamente o contacta al administrador.');
+      }
     } finally {
       setIsSubmitting(false);
     }
