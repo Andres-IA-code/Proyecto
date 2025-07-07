@@ -37,25 +37,12 @@ const OperadorOportunidades: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCargoType, setFilterCargoType] = useState('all');
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [showAllRecords, setShowAllRecords] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [quoteAmount, setQuoteAmount] = useState('');
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
 
-  // Advanced search filters
-  const [advancedFilters, setAdvancedFilters] = useState({
-    origen: '',
-    destino: '',
-    tipoCarga: '',
-    tipoVehiculo: '',
-    pesoMin: '',
-    pesoMax: '',
-    distanciaMin: '',
-    distanciaMax: '',
-    fechaDesde: '',
-    fechaHasta: ''
-  });
 
   useEffect(() => {
     fetchOpportunities();
@@ -79,12 +66,17 @@ const OperadorOportunidades: React.FC = () => {
       }
 
       // Fetch opportunities from General table where Estado is 'Pendiente' or similar
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('General')
         .select('*')
-        .neq('id_Usuario', currentUser.profile.id_Usuario) // Exclude own shipments
-        .in('Estado', ['Pendiente', 'Activo', 'Disponible'])
-        .order('Fecha_Retiro', { ascending: true });
+        .neq('id_Usuario', currentUser.profile.id_Usuario); // Exclude own shipments
+      
+      // If not showing all records, filter by specific states
+      if (!showAllRecords) {
+        query = query.in('Estado', ['Pendiente', 'Activo', 'Disponible']);
+      }
+      
+      const { data, error: fetchError } = await query.order('Fecha_Retiro', { ascending: true });
 
       if (fetchError) {
         console.error('Error fetching opportunities:', fetchError);
@@ -99,7 +91,7 @@ const OperadorOportunidades: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showAllRecords]);
 
   const handleQuoteOpportunity = (opportunity: Opportunity) => {
     setSelectedOpportunity(opportunity);
@@ -161,20 +153,6 @@ const OperadorOportunidades: React.FC = () => {
     setQuoteAmount('');
   };
 
-  const clearAdvancedSearch = () => {
-    setAdvancedFilters({
-      origen: '',
-      destino: '',
-      tipoCarga: '',
-      tipoVehiculo: '',
-      pesoMin: '',
-      pesoMax: '',
-      distanciaMin: '',
-      distanciaMax: '',
-      fechaDesde: '',
-      fechaHasta: ''
-    });
-  };
 
   const filteredOpportunities = opportunities.filter(opportunity => {
     // Basic search
@@ -188,46 +166,8 @@ const OperadorOportunidades: React.FC = () => {
     const matchesFilter = filterCargoType === 'all' || 
       opportunity.Tipo_Carga?.toLowerCase() === filterCargoType.toLowerCase();
 
-    // Advanced filters
-    let matchesAdvanced = true;
-    if (showAdvancedSearch) {
-      if (advancedFilters.origen && !opportunity.Origen?.toLowerCase().includes(advancedFilters.origen.toLowerCase())) {
-        matchesAdvanced = false;
-      }
-      if (advancedFilters.destino && !opportunity.Destino?.toLowerCase().includes(advancedFilters.destino.toLowerCase())) {
-        matchesAdvanced = false;
-      }
-      if (advancedFilters.tipoCarga && !opportunity.Tipo_Carga?.toLowerCase().includes(advancedFilters.tipoCarga.toLowerCase())) {
-        matchesAdvanced = false;
-      }
-      if (advancedFilters.tipoVehiculo && !opportunity.Tipo_Vehiculo?.toLowerCase().includes(advancedFilters.tipoVehiculo.toLowerCase())) {
-        matchesAdvanced = false;
-      }
-      if (advancedFilters.pesoMin && opportunity.Peso) {
-        const peso = parseFloat(opportunity.Peso);
-        if (peso < parseFloat(advancedFilters.pesoMin)) {
-          matchesAdvanced = false;
-        }
-      }
-      if (advancedFilters.pesoMax && opportunity.Peso) {
-        const peso = parseFloat(opportunity.Peso);
-        if (peso > parseFloat(advancedFilters.pesoMax)) {
-          matchesAdvanced = false;
-        }
-      }
-      if (advancedFilters.distanciaMin && opportunity.Distancia) {
-        if (opportunity.Distancia < parseFloat(advancedFilters.distanciaMin)) {
-          matchesAdvanced = false;
-        }
-      }
-      if (advancedFilters.distanciaMax && opportunity.Distancia) {
-        if (opportunity.Distancia > parseFloat(advancedFilters.distanciaMax)) {
-          matchesAdvanced = false;
-        }
-      }
-    }
 
-    return matchesSearch && matchesFilter && matchesAdvanced;
+    return matchesSearch && matchesFilter;
   });
 
   if (loading) {
@@ -299,115 +239,21 @@ const OperadorOportunidades: React.FC = () => {
               <option value="peligrosa">Peligrosa</option>
             </select>
 
-            {/* Advanced Search Toggle */}
-            <button
-              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                showAdvancedSearch
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Filter size={20} className="inline mr-2" />
-              Filtros Avanzados
-            </button>
+            {/* Show All Records Checkbox */}
+            <div className="flex items-center bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
+              <input
+                type="checkbox"
+                id="showAllRecords"
+                checked={showAllRecords}
+                onChange={(e) => setShowAllRecords(e.target.checked)}
+                className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="showAllRecords" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Mostrar todos los registros
+              </label>
+            </div>
           </div>
 
-          {/* Advanced Search Panel */}
-          {showAdvancedSearch && (
-            <div className="border-t border-gray-200 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Origen</label>
-                  <input
-                    type="text"
-                    value={advancedFilters.origen}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, origen: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ciudad de origen"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Destino</label>
-                  <input
-                    type="text"
-                    value={advancedFilters.destino}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, destino: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ciudad de destino"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Carga</label>
-                  <input
-                    type="text"
-                    value={advancedFilters.tipoCarga}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, tipoCarga: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej: Granos, Combustible"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Vehículo</label>
-                  <input
-                    type="text"
-                    value={advancedFilters.tipoVehiculo}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, tipoVehiculo: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej: Camión, Trailer"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Peso Mín. (Tn)</label>
-                  <input
-                    type="number"
-                    value={advancedFilters.pesoMin}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, pesoMin: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Peso Máx. (Tn)</label>
-                  <input
-                    type="number"
-                    value={advancedFilters.pesoMax}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, pesoMax: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Distancia Mín. (km)</label>
-                  <input
-                    type="number"
-                    value={advancedFilters.distanciaMin}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, distanciaMin: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Distancia Máx. (km)</label>
-                  <input
-                    type="number"
-                    value={advancedFilters.distanciaMax}
-                    onChange={(e) => setAdvancedFilters({...advancedFilters, distanciaMax: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="1000"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={clearAdvancedSearch}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                >
-                  Limpiar filtros
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Results Summary */}
@@ -550,9 +396,6 @@ const OperadorOportunidades: React.FC = () => {
             </p>
             <button
               onClick={() => {
-                if (showAdvancedSearch) {
-                  clearAdvancedSearch();
-                }
                 setFilterCargoType('all');
               }}
               className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
