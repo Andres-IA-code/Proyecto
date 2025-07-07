@@ -321,6 +321,13 @@ const OperadorOportunidades: React.FC = () => {
                         <span>{opportunity.Tipo_Vehiculo}</span>
                       </div>
                     )}
+                    {opportunity.Tipo_Carroceria && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Truck size={16} className="mr-2 text-gray-400" />
+                        <span className="font-medium">Carrocería:</span>
+                        <span className="ml-1">{opportunity.Tipo_Carroceria}</span>
+                      </div>
+                    )}
                     {opportunity.Fecha_Retiro && (
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar size={16} className="mr-2 text-gray-400" />
@@ -332,6 +339,21 @@ const OperadorOportunidades: React.FC = () => {
                             a las {opportunity.Horario_Retiro}
                           </span>
                         )}
+                      </div>
+                    )}
+                    {opportunity.Parada_Programada && (
+                      <div className="flex items-start text-sm text-gray-600">
+                        <MapPin size={16} className="mr-2 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium">Paradas:</span>
+                          <div className="ml-1 space-y-1">
+                            {opportunity.Parada_Programada.split('\n').map((parada, index) => (
+                              <div key={index} className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                {parada.trim()}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
