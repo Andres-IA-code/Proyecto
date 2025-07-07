@@ -21,6 +21,7 @@ interface FormData {
   pickupDate: string;
   pickupTime: string;
   shipmentType: string;
+  bodyType: string;
   observations: string;
   scheduledStops: Array<{
     address: string;
@@ -51,6 +52,7 @@ const QuoteRequest: React.FC = () => {
     pickupDate: '',
     pickupTime: '',
     shipmentType: '',
+    bodyType: '',
     observations: '',
     scheduledStops: [],
   });
@@ -220,6 +222,7 @@ const QuoteRequest: React.FC = () => {
         Dimension_Largo: formData.dimensions.length ? parseInt(formData.dimensions.length) : null,
         Dimension_Ancho: formData.dimensions.width ? parseInt(formData.dimensions.width) : null,
         Dimension_Alto: formData.dimensions.height ? parseInt(formData.dimensions.height) : null,
+        Tipo_Carroceria: formData.bodyType || null,
         Fecha_Retiro: formData.pickupDate && formData.pickupTime 
           ? `${formData.pickupDate}T${formData.pickupTime}:00+00:00` 
           : null,
@@ -268,6 +271,7 @@ const QuoteRequest: React.FC = () => {
         pickupDate: '',
         pickupTime: '',
         shipmentType: '',
+        bodyType: '',
         observations: '',
         scheduledStops: [],
       });
@@ -567,6 +571,39 @@ const QuoteRequest: React.FC = () => {
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* Tipo de Carrocería */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Carrocería
+              </label>
+              <select
+                name="bodyType"
+                value={formData.bodyType}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Seleccionar tipo de carrocería</option>
+                <option value="BATAN CERRADO">BATAN CERRADO</option>
+                <option value="CAJA ABIERTA">CAJA ABIERTA</option>
+                <option value="CARGA REFRIGERADA">CARGA REFRIGERADA</option>
+                <option value="CON BARANDAS">CON BARANDAS</option>
+                <option value="DOLLY">DOLLY</option>
+                <option value="ESTANQUE">ESTANQUE</option>
+                <option value="FURGÓN">FURGÓN</option>
+                <option value="PLAYO">PLAYO</option>
+                <option value="PORTA CONTENEDOR">PORTA CONTENEDOR</option>
+                <option value="SIDER">SIDER</option>
+                <option value="TANQUE/CISTERNA">TANQUE/CISTERNA</option>
+                <option value="TANQUE ABIERTA">TANQUE ABIERTA</option>
+                <option value="TOLVA">TOLVA</option>
+                <option value="VOLCADOR">VOLCADOR</option>
+                <option value="EXTENSIBLE">EXTENSIBLE</option>
+                <option value="GRANELERO">GRANELERO</option>
+                <option value="JAULA">JAULA</option>
+                <option value="SILO">SILO</option>
+              </select>
             </div>
 
             {/* Séptima fila: Fecha y Hora de Retiro */}
