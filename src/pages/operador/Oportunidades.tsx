@@ -76,6 +76,10 @@ const OperadorOportunidades: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [workingTableName, setWorkingTableName] = useState<string>('');
   const [tableColumns, setTableColumns] = useState<string[]>([]);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [quoteAmount, setQuoteAmount] = useState('');
+  const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
 
   useEffect(() => {
     loadOpportunities();
@@ -572,8 +576,59 @@ const OperadorOportunidades: React.FC = () => {
   };
 
   const handleQuoteOpportunity = (opportunityId: number) => {
-    console.log('Cotizar oportunidad:', opportunityId);
-    alert(`Funcionalidad de cotización para envío #${opportunityId} - En desarrollo`);
+    const opportunity = opportunities.find(opp => 
+      (opp.id_Envio || opp.id_envio || opp.id) === opportunityId
+    );
+    
+    if (opportunity) {
+      setSelectedOpportunity(opportunity);
+      setQuoteAmount('');
+      setShowQuoteModal(true);
+    }
+  };
+
+  const handleSubmitQuote = async () => {
+    if (!selectedOpportunity || !quoteAmount.trim()) {
+      alert('Por favor ingrese un monto para la cotización');
+      return;
+    }
+
+    const amount = parseFloat(quoteAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Por favor ingrese un monto válido');
+      return;
+    }
+
+    setIsSubmittingQuote(true);
+
+    try {
+      // Aquí puedes agregar la lógica para enviar la cotización a la base de datos
+      console.log('Enviando cotización:', {
+        opportunityId: selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id,
+        amount: amount,
+        opportunity: selectedOpportunity
+      });
+
+      // Simular envío de cotización
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      alert(`¡Cotización enviada exitosamente!\n\nEnvío: #${selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id}\nMonto: $${amount.toLocaleString()}\nDador: ${selectedOpportunity.Nombre_Dador || 'No especificado'}`);
+      
+      setShowQuoteModal(false);
+      setSelectedOpportunity(null);
+      setQuoteAmount('');
+    } catch (error) {
+      console.error('Error enviando cotización:', error);
+      alert('Error al enviar la cotización. Por favor intente nuevamente.');
+    } finally {
+      setIsSubmittingQuote(false);
+    }
+  };
+
+  const handleCancelQuote = () => {
+    setShowQuoteModal(false);
+    setSelectedOpportunity(null);
+    setQuoteAmount('');
   };
 
   if (loading) {
@@ -929,6 +984,83 @@ const OperadorOportunidades: React.FC = () => {
           >
             Limpiar filtros
           </button>
+        </div>
+
+      {/* Quote Modal */}
+      {showQuoteModal && selectedOpportunity && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Enviar Cotización
+              </h3>
+              
+              {/* Opportunity Details */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 className="font-medium text-gray-800 mb-2">Detalles del Envío</h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div><strong>ID:</strong> #{selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id}</div>
+                  <div><strong>Dador:</strong> {selectedOpportunity.Nombre_Dador || 'No especificado'}</div>
+                  <div><strong>Ruta:</strong> {selectedOpportunity.Origen || 'No especificado'} → {selectedOpportunity.Destino || 'No especificado'}</div>
+                  <div><strong>Tipo de Carga:</strong> {selectedOpportunity.Tipo_Carga || 'No especificado'}</div>
+                  {selectedOpportunity.Peso && (
+                    <div><strong>Peso:</strong> {selectedOpportunity.Peso} Tn</div>
+                  )}
+                  {selectedOpportunity.Distancia && (
+                    <div><strong>Distancia:</strong> {selectedOpportunity.Distancia} km</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quote Amount Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Monto de la Cotización *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    value={quoteAmount}
+                    onChange={(e) => setQuoteAmount(e.target.value)}
+                    className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    disabled={isSubmittingQuote}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Ingrese el monto total de su cotización en pesos
+                </p>
+              </div>
+      )}
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCancelQuote}
+                  disabled={isSubmittingQuote}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSubmitQuote}
+                  disabled={isSubmittingQuote || !quoteAmount.trim()}
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                >
+                  {isSubmittingQuote ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    'Enviar Cotización'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
