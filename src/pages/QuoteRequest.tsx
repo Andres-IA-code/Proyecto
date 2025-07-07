@@ -22,6 +22,7 @@ interface FormData {
   pickupTime: string;
   shipmentType: string;
   bodyType: string;
+  flexibleDate: boolean;
   observations: string;
   scheduledStops: Array<{
     address: string;
@@ -53,6 +54,7 @@ const QuoteRequest: React.FC = () => {
     pickupTime: '',
     shipmentType: '',
     bodyType: '',
+    flexibleDate: false,
     observations: '',
     scheduledStops: [],
   });
@@ -121,6 +123,11 @@ const QuoteRequest: React.FC = () => {
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleAddressChange = (field: 'origin' | 'destination') => (
@@ -272,6 +279,7 @@ const QuoteRequest: React.FC = () => {
         pickupTime: '',
         shipmentType: '',
         bodyType: '',
+        flexibleDate: false,
         observations: '',
         scheduledStops: [],
       });
@@ -638,10 +646,24 @@ const QuoteRequest: React.FC = () => {
 
             {/* Octava fila: Tipo de Envío */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Tipo de Envío
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex justify-between items-center mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Tipo de Envío
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="flexibleDate"
+                    checked={formData.flexibleDate}
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
+                  />
+                  <label className="text-sm text-gray-700">
+                    Fecha flexible
+                  </label>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   { value: 'express', label: 'Express', subtitle: '< 6 días' },
                   { value: 'normal', label: 'Normal', subtitle: '7-15 días' },
