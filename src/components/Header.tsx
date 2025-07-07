@@ -70,12 +70,6 @@ const Header: React.FC = () => {
         <p className="text-gray-500 mt-1">{subtitle}</p>
       </div>
       <div className="flex items-center space-x-4">
-        <button className="relative p-1 rounded-full hover:bg-gray-100 transition-colors">
-          <Bell size={20} className="text-gray-500" />
-          <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
-            3
-          </span>
-        </button>
       </div>
     </header>
   );
