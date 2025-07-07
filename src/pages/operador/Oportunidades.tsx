@@ -72,8 +72,8 @@ const OperadorOportunidades: React.FC = () => {
         return;
       }
 
-      // Check if user has a valid id_Usuario
-      if (!currentUser.id_Usuario || currentUser.id_Usuario === undefined) {
+      // Check if user has a valid id_Usuario from profile
+      if (!currentUser.profile?.id_Usuario || currentUser.profile.id_Usuario === undefined) {
         setError('Perfil de usuario incompleto. Por favor, complete su perfil antes de continuar.');
         return;
       }
@@ -82,7 +82,7 @@ const OperadorOportunidades: React.FC = () => {
       const { data, error: fetchError } = await supabase
         .from('General')
         .select('*')
-        .neq('id_Usuario', currentUser.id_Usuario) // Exclude own shipments
+        .neq('id_Usuario', currentUser.profile.id_Usuario) // Exclude own shipments
         .in('Estado', ['Pendiente', 'Activo', 'Disponible'])
         .order('Fecha_Retiro', { ascending: true });
 
@@ -120,7 +120,7 @@ const OperadorOportunidades: React.FC = () => {
       }
 
       const quoteData = {
-        id_Usuario: currentUser.id_Usuario,
+        id_Usuario: currentUser.profile.id_Usuario,
         id_Envio: selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id,
         Oferta: parseFloat(quoteAmount),
         Fecha: new Date().toISOString(),
