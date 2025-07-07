@@ -64,7 +64,6 @@ const OperadorOportunidades: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState('all'); // 'all', 'origin', 'destination', 'shipper'
   const [filterType, setFilterType] = useState('all');
   const [showAllRecords, setShowAllRecords] = useState(true);
   const [insertingTestData, setInsertingTestData] = useState(false);
@@ -390,28 +389,11 @@ const OperadorOportunidades: React.FC = () => {
   };
 
   const filteredOpportunities = opportunities.filter(opportunity => {
-    const searchLower = searchTerm.toLowerCase();
-    
-    const matchesSearch = (() => {
-      if (!searchTerm.trim()) return true;
-      
-      switch (searchType) {
-        case 'origin':
-          return opportunity.Origen?.toLowerCase().includes(searchLower) || false;
-        case 'destination':
-          return opportunity.Destino?.toLowerCase().includes(searchLower) || false;
-        case 'shipper':
-          return opportunity.Nombre_Dador?.toLowerCase().includes(searchLower) || false;
-        case 'all':
-        default:
-          return (
-            opportunity.Origen?.toLowerCase().includes(searchLower) ||
-            opportunity.Destino?.toLowerCase().includes(searchLower) ||
-            opportunity.Nombre_Dador?.toLowerCase().includes(searchLower) ||
-            opportunity.Tipo_Carga?.toLowerCase().includes(searchLower)
-          ) || false;
-      }
-    })();
+    const matchesSearch = 
+      opportunity.Origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opportunity.Destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opportunity.Nombre_Dador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opportunity.Tipo_Carga?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter = (() => {
       if (filterType === 'all') return true;
@@ -580,32 +562,15 @@ const OperadorOportunidades: React.FC = () => {
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 flex gap-2">
-            <select
-              className="px-3 py-3 border border-gray-300 rounded-lg text-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[140px]"
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value)}
-            >
-              <option value="all">Buscar en todo</option>
-              <option value="origin">Solo Origen</option>
-              <option value="destination">Solo Destino</option>
-              <option value="shipper">Solo Dador</option>
-            </select>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder={
-                  searchType === 'origin' ? "Buscar por origen..." :
-                  searchType === 'destination' ? "Buscar por destino..." :
-                  searchType === 'shipper' ? "Buscar por dador de carga..." :
-                  "Buscar por origen, destino, dador o tipo de carga..."
-                }
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
-            </div>
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="Buscar por origen, destino, dador o tipo de carga..."
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
           </div>
           <select
             className="px-4 py-3 border border-gray-300 rounded-lg text-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[200px]"
@@ -808,7 +773,6 @@ const OperadorOportunidades: React.FC = () => {
           <button
             onClick={() => {
               setSearchTerm('');
-              setSearchType('all');
               setFilterType('all');
             }}
             className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
