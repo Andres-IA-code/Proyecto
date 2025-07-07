@@ -66,6 +66,12 @@ const OperadorOportunidades: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showAllRecords, setShowAllRecords] = useState(true);
+  const [searchCriteria, setSearchCriteria] = useState({
+    origen: '',
+    destino: '',
+    dadorCarga: ''
+  });
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [insertingTestData, setInsertingTestData] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [workingTableName, setWorkingTableName] = useState<string>('');
@@ -389,17 +395,55 @@ const OperadorOportunidades: React.FC = () => {
   };
 
   const filteredOpportunities = opportunities.filter(opportunity => {
-    const matchesSearch = (() => {
-      if (!searchTerm.trim()) return true;
+    // Búsqueda simple (barra de búsqueda principal)
+    const matchesSimpleSearch = (() => {
+      if (!searchTerm.trim() && !showAdvancedSearch) return true;
+      if (showAdvancedSearch) return true; // Si está activa la búsqueda avanzada, ignorar la simple
       
       const searchWords = searchTerm.toLowerCase().trim().split(/\s+/);
       const origen = opportunity.Origen?.toLowerCase() || '';
       const destino = opportunity.Destino?.toLowerCase() || '';
       
-      // Buscar si alguna de las palabras de búsqueda está contenida en origen o destino
       return searchWords.some(word => 
         origen.includes(word) || destino.includes(word)
       );
+    })();
+
+    // Búsqueda avanzada (criterios específicos)
+    const matchesAdvancedSearch = (() => {
+      if (!showAdvancedSearch) return true;
+      
+      const { origen, destino, dadorCarga } = searchCriteria;
+      
+      // Si no hay criterios de búsqueda avanzada, mostrar todos
+      if (!origen.trim() && !destino.trim() && !dadorCarga.trim()) {
+        return true;
+      }
+      
+      let matches = false;
+      
+      // Verificar coincidencia exacta en Origen
+      if (origen.trim()) {
+        const origenData = opportunity.Origen?.toLowerCase() || '';
+        const origenSearch = origen.toLowerCase().trim();
+        matches = matches || origenData.includes(origenSearch);
+      }
+      
+      // Verificar coincidencia exacta en Destino
+      if (destino.trim()) {
+        const destinoData = opportunity.Destino?.toLowerCase() || '';
+        const destinoSearch = destino.toLowerCase().trim();
+        matches = matches || destinoData.includes(destinoSearch);
+      }
+      
+      // Verificar coincidencia exacta en Nombre del Dador
+      if (dadorCarga.trim()) {
+        const dadorData = opportunity.Nombre_Dador?.toLowerCase() || '';
+        const dadorSearch = dadorCarga.toLowerCase().trim();
+        matches = matches || dadorData.includes(dadorSearch);
+      }
+      
+      return matches;
     })();
 
     const matchesFilter = (() => {
@@ -432,8 +476,32 @@ const OperadorOportunidades: React.FC = () => {
       }
     })();
 
-    return matchesSearch && matchesFilter;
+    return (showAdvancedSearch ? matchesAdvancedSearch : matchesSimpleSearch) && matchesFilter;
   });
+
+  const handleAdvancedSearchChange = (field: keyof typeof searchCriteria, value: string) => {
+    setSearchCriteria(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const clearAdvancedSearch = () => {
+    setSearchCriteria({
+      origen: '',
+      destino: '',
+      dadorCarga: ''
+    });
+  };
+
+  const toggleAdvancedSearch = () => {
+    setShowAdvancedSearch(!showAdvancedSearch);
+    if (!showAdvancedSearch) {
+      setSearchTerm(''); // Limpiar búsqueda simple al activar avanzada
+    } else {
+      clearAdvancedSearch(); // Limpiar búsqueda avanzada al desactivar
+    }
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'No especificada';
@@ -568,24 +636,132 @@ const OperadorOportunidades: React.FC = () => {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Buscar por palabras en origen o destino (ej: Buenos, Aires, CDMX)..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+        <div className="space-y-4">
+          {/* Toggle para búsqueda avanzada */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900">Filtros de Búsqueda</h3>
+            <button
+              onClick={toggleAdvancedSearch}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showAdvancedSearch
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {showAdvancedSearch ? 'Búsqueda Simple' : 'Búsqueda Avanzada'}
+            </button>
           </div>
-          <select
-            className="px-4 py-3 border border-gray-300 rounded-lg text-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[200px]"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-              Mostrar todos los registros
-            </label>
+
+          {/* Búsqueda Simple */}
+          {!showAdvancedSearch && (
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Buscar por palabras en origen o destino (ej: Buenos, Aires, CDMX)..."
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+              </div>
+            </div>
+          )}
+
+          {/* Búsqueda Avanzada */}
+          {showAdvancedSearch && (
+            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+              <h4 className="text-md font-medium text-gray-800 mb-4">Búsqueda Detallada por Criterios Específicos</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lugar de Origen
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ej: Buenos Aires, CDMX..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      value={searchCriteria.origen}
+                      onChange={(e) => handleAdvancedSearchChange('origen', e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-3.5 text-gray-400" size={16} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lugar de Destino
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ej: Guadalajara, Monterrey..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      value={searchCriteria.destino}
+                      onChange={(e) => handleAdvancedSearchChange('destino', e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-3.5 text-gray-400" size={16} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre del Dador de Carga
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ej: Empresa ABC, Juan Pérez..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      value={searchCriteria.dadorCarga}
+                      onChange={(e) => handleAdvancedSearchChange('dadorCarga', e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-3.5 text-gray-400" size={16} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600">
+                  <strong>Nota:</strong> Se mostrarán registros que coincidan con al menos uno de los criterios especificados
+                </p>
+                <button
+                  onClick={clearAdvancedSearch}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Limpiar Filtros
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Filtros comunes */}
+          <div className="flex flex-col lg:flex-row gap-4">
+            <select
+              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[200px]"
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <option value="all">Todos los tipos de carga</option>
+              <option value="general">Carga General</option>
+              <option value="refrigerada">Carga Refrigerada</option>
+              <option value="peligrosa">Carga Peligrosa</option>
+              <option value="sobredimensionada">Carga Sobredimensionada</option>
+            </select>
+            <div className="flex items-center bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
+              <input
+                type="checkbox"
+                id="showAll"
+                checked={showAllRecords}
+                onChange={(e) => setShowAllRecords(e.target.checked)}
+                className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="showAll" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Mostrar todos los registros
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -760,11 +936,15 @@ const OperadorOportunidades: React.FC = () => {
             No se encontraron resultados
           </h3>
           <p className="text-gray-500 mb-6">
-            No hay registros que contengan las palabras buscadas en origen o destino.
+            No hay registros que coincidan con los criterios de búsqueda especificados.
           </p>
           <button
             onClick={() => {
-              setSearchTerm('');
+              if (showAdvancedSearch) {
+                clearAdvancedSearch();
+              } else {
+                setSearchTerm('');
+              }
               setFilterType('all');
             }}
             className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
