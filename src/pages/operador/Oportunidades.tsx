@@ -727,11 +727,6 @@ const OperadorOportunidades: React.FC = () => {
               <option value="refrigerada">Carga Refrigerada</option>
               <option value="peligrosa">Carga Peligrosa</option>
               <option value="sobredimensionada">Sobredimensionada</option>
-              <option value="liquida">Carga Líquida</option>
-              <option value="graneles">Graneles</option>
-              <option value="contenedores">Contenedores</option>
-              <option value="vehiculos">Vehículos</option>
-              <option value="maquinaria">Maquinaria</option>
             </select>
             <div className="flex items-center">
               <input
