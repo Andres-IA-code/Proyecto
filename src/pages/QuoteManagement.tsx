@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, ChevronDown, Star, User, MapPin, Package, Calendar, Clock, Truck, DollarSign, AlertCircle, RefreshCw } from 'lucide-react';
+import { Filter, ChevronDown, Star, User, MapPin, Package, Calendar, Clock, Truck, DollarSign, AlertCircle, RefreshCw, Database, Eye, BarChart3 } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
 
 interface Quote {
@@ -7,11 +7,15 @@ interface Quote {
   id_Usuario: number;
   id_Envio: number;
   id_Operador: number;
-  Oferta: number;
-  Fecha: string;
-  Vigencia: string;
-  Estado: string;
+  Eficiencia?: string;
+  Comunicacion?: string;
+  Estado_Unidad?: string;
+  Oferta?: number;
+  Fecha?: string;
+  Vigencia?: string;
+  Estado?: string;
   Scoring?: number;
+  Valor_Cotizacion?: number;
   // Datos del operador
   operador_nombre?: string;
   operador_apellido?: string;
@@ -36,6 +40,7 @@ const QuoteManagement: React.FC = () => {
   const [sortBy, setSortBy] = useState('fecha');
   const [filterStatus, setFilterStatus] = useState('all');
   const [processingQuoteId, setProcessingQuoteId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   useEffect(() => {
     fetchQuotes();
@@ -62,11 +67,15 @@ const QuoteManagement: React.FC = () => {
           id_Usuario,
           id_Envio,
           id_Operador,
+          Eficiencia,
+          Comunicacion,
+          Estado_Unidad,
           Oferta,
           Fecha,
           Vigencia,
           Estado,
-          Scoring
+          Scoring,
+          Valor_Cotizacion
         `)
         .eq('id_Usuario', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
@@ -177,7 +186,8 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No especificada';
     try {
       return new Date(dateString).toLocaleDateString('es-ES', {
         day: '2-digit',
@@ -189,7 +199,8 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return 'No especificada';
     try {
       return new Date(dateString).toLocaleString('es-ES', {
         day: '2-digit',
@@ -203,7 +214,9 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-gray-100 text-gray-800 border border-gray-200';
+    
     switch (status.toLowerCase()) {
       case 'pendiente':
         return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
@@ -216,7 +229,8 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const isQuoteExpired = (vigenciaString: string) => {
+  const isQuoteExpired = (vigenciaString?: string) => {
+    if (!vigenciaString) return false;
     try {
       const vigencia = new Date(vigenciaString);
       const now = new Date();
@@ -226,7 +240,8 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const getDaysUntilExpiry = (vigenciaString: string) => {
+  const getDaysUntilExpiry = (vigenciaString?: string) => {
+    if (!vigenciaString) return 0;
     try {
       const vigencia = new Date(vigenciaString);
       const now = new Date();
@@ -240,7 +255,7 @@ const QuoteManagement: React.FC = () => {
 
   const filteredQuotes = quotes.filter(quote => {
     if (filterStatus === 'all') return true;
-    return quote.Estado.toLowerCase() === filterStatus.toLowerCase();
+    return quote.Estado?.toLowerCase() === filterStatus.toLowerCase();
   });
 
   const sortedQuotes = [...filteredQuotes].sort((a, b) => {
@@ -248,6 +263,9 @@ const QuoteManagement: React.FC = () => {
       case 'precio':
         return (b.Oferta || 0) - (a.Oferta || 0);
       case 'fecha':
+        if (!a.Fecha && !b.Fecha) return 0;
+        if (!a.Fecha) return 1;
+        if (!b.Fecha) return -1;
         return new Date(b.Fecha).getTime() - new Date(a.Fecha).getTime();
       case 'operador':
         return getOperatorDisplayName(a).localeCompare(getOperatorDisplayName(b));
@@ -300,8 +318,9 @@ const QuoteManagement: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Cotizaciones Recibidas</h1>
-            <p className="text-gray-500 mt-1">
-              Campos de la tabla Cotizaciones: Fecha, Vigencia, Estado y Oferta
+            <p className="text-gray-500 mt-1 flex items-center">
+              <Database className="h-4 w-4 mr-2" />
+              Todos los campos de la tabla Cotizaciones
             </p>
           </div>
           <div className="flex space-x-2">
@@ -312,6 +331,30 @@ const QuoteManagement: React.FC = () => {
               <RefreshCw size={16} className="mr-2" />
               Actualizar
             </button>
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  viewMode === 'table' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <BarChart3 size={16} className="mr-1 inline" />
+                Tabla
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  viewMode === 'cards' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Eye size={16} className="mr-1 inline" />
+                Tarjetas
+              </button>
+            </div>
             <div className="relative">
               <select
                 value={filterStatus}
@@ -338,195 +381,411 @@ const QuoteManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabla de campos específicos solicitados */}
-        {sortedQuotes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                Campos de la tabla Cotizaciones
-              </h3>
-              <p className="text-blue-700 text-sm">
-                Mostrando los campos específicos solicitados: <strong>Fecha</strong>, <strong>Vigencia</strong>, <strong>Estado</strong> y <strong>Oferta</strong>
-              </p>
+        {/* Schema Info */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+            <Database className="h-5 w-5 mr-2" />
+            Esquema completo de la tabla Cotizaciones
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-blue-700">id_Cotizaciones</span>
+              <div className="text-xs text-gray-600">bigint (PK)</div>
             </div>
-            
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                      <span className="text-blue-600 font-bold">Fecha</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-orange-600" />
-                      <span className="text-orange-600 font-bold">Vigencia</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <span className="text-purple-600 font-bold">Estado</span>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                      <span className="text-green-600 font-bold">Oferta</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Operador
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ruta
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedQuotes.map((quote) => {
-                  const isExpired = isQuoteExpired(quote.Vigencia);
-                  const daysUntilExpiry = getDaysUntilExpiry(quote.Vigencia);
-                  
-                  return (
-                    <tr key={quote.id_Cotizaciones} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : ''}`}>
-                      {/* FECHA - Campo solicitado */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                          <div className="text-sm text-blue-900 font-bold">
-                            {formatDate(quote.Fecha)}
-                          </div>
-                          <div className="text-xs text-blue-700">
-                            {formatDateTime(quote.Fecha).split(' ')[1]}
-                          </div>
-                          <div className="text-xs text-blue-600 mt-1">
-                            Campo: Fecha
-                          </div>
-                        </div>
-                      </td>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-green-700">id_Usuario</span>
+              <div className="text-xs text-gray-600">integer (FK)</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-purple-700">id_Envio</span>
+              <div className="text-xs text-gray-600">integer (FK)</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-orange-700">id_Operador</span>
+              <div className="text-xs text-gray-600">integer (FK)</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-red-700">Eficiencia</span>
+              <div className="text-xs text-gray-600">text</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-indigo-700">Comunicacion</span>
+              <div className="text-xs text-gray-600">text</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-pink-700">Estado_Unidad</span>
+              <div className="text-xs text-gray-600">text</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-yellow-700">Oferta</span>
+              <div className="text-xs text-gray-600">numeric</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-teal-700">Fecha</span>
+              <div className="text-xs text-gray-600">timestamptz</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-cyan-700">Vigencia</span>
+              <div className="text-xs text-gray-600">timestamptz</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-lime-700">Estado</span>
+              <div className="text-xs text-gray-600">text</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-amber-700">Scoring</span>
+              <div className="text-xs text-gray-600">integer</div>
+            </div>
+            <div className="bg-white p-2 rounded border">
+              <span className="font-bold text-emerald-700">Valor_Cotizacion</span>
+              <div className="text-xs text-gray-600">integer</div>
+            </div>
+          </div>
+        </div>
 
-                      {/* VIGENCIA - Campo solicitado */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                          <div className={`text-sm font-bold ${isExpired ? 'text-red-600' : 'text-orange-900'}`}>
-                            {formatDate(quote.Vigencia)}
+        {/* Contenido principal */}
+        {sortedQuotes.length > 0 ? (
+          viewMode === 'table' ? (
+            /* Vista de tabla completa */
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-blue-700 font-bold">ID</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-green-700 font-bold">Usuario</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-purple-700 font-bold">Envío</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-orange-700 font-bold">Operador</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-red-700 font-bold">Eficiencia</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-indigo-700 font-bold">Comunicación</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-pink-700 font-bold">Estado Unidad</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-yellow-700 font-bold">Oferta</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-teal-700 font-bold">Fecha</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-cyan-700 font-bold">Vigencia</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-lime-700 font-bold">Estado</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-amber-700 font-bold">Scoring</span>
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-emerald-700 font-bold">Valor</span>
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedQuotes.map((quote) => {
+                    const isExpired = isQuoteExpired(quote.Vigencia);
+                    
+                    return (
+                      <tr key={quote.id_Cotizaciones} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : ''}`}>
+                        {/* ID Cotizaciones */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="font-bold text-blue-700">
+                            #{quote.id_Cotizaciones}
                           </div>
-                          <div className={`text-xs ${isExpired ? 'text-red-500' : daysUntilExpiry <= 2 ? 'text-orange-600' : 'text-orange-700'}`}>
-                            {isExpired ? (
-                              <div className="flex items-center">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Expirada
-                              </div>
-                            ) : daysUntilExpiry === 0 ? (
-                              'Expira hoy'
-                            ) : daysUntilExpiry === 1 ? (
-                              'Expira mañana'
-                            ) : (
-                              `${daysUntilExpiry} días restantes`
-                            )}
-                          </div>
-                          <div className="text-xs text-orange-600 mt-1">
-                            Campo: Vigencia
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* ESTADO - Campo solicitado */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                          <span className={`px-3 py-1 text-xs rounded-full font-bold ${getStatusColor(quote.Estado)}`}>
-                            {quote.Estado}
-                          </span>
-                          <div className="text-xs text-purple-600 mt-2">
-                            Campo: Estado
+                        {/* ID Usuario */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-green-700 font-medium">
+                            {quote.id_Usuario}
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* OFERTA - Campo solicitado */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                          <div className="text-lg font-bold text-green-700">
+                        {/* ID Envío */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-purple-700 font-medium">
+                            #{quote.id_Envio}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {quote.envio_origen} → {quote.envio_destino}
+                          </div>
+                        </td>
+
+                        {/* ID Operador */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-orange-700 font-medium">
+                            {quote.id_Operador}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {getOperatorDisplayName(quote)}
+                          </div>
+                        </td>
+
+                        {/* Eficiencia */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-red-700">
+                            {quote.Eficiencia || 'N/A'}
+                          </div>
+                        </td>
+
+                        {/* Comunicación */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-indigo-700">
+                            {quote.Comunicacion || 'N/A'}
+                          </div>
+                        </td>
+
+                        {/* Estado Unidad */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-pink-700">
+                            {quote.Estado_Unidad || 'N/A'}
+                          </div>
+                        </td>
+
+                        {/* Oferta */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-yellow-700 font-bold">
                             ${(quote.Oferta || 0).toLocaleString()}
                           </div>
-                          <div className="text-xs text-green-600">
-                            Valor total
-                          </div>
-                          <div className="text-xs text-green-600 mt-1">
-                            Campo: Oferta
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Operador - Información adicional */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
-                            <User className="h-4 w-4 text-white" />
+                        {/* Fecha */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-teal-700 font-medium">
+                            {formatDate(quote.Fecha)}
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {getOperatorDisplayName(quote)}
+                          <div className="text-xs text-gray-500">
+                            {quote.Fecha ? formatDateTime(quote.Fecha).split(' ')[1] : ''}
+                          </div>
+                        </td>
+
+                        {/* Vigencia */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className={`font-medium ${isExpired ? 'text-red-600' : 'text-cyan-700'}`}>
+                            {formatDate(quote.Vigencia)}
+                          </div>
+                          <div className={`text-xs ${isExpired ? 'text-red-500' : 'text-gray-500'}`}>
+                            {isExpired ? 'Expirada' : `${getDaysUntilExpiry(quote.Vigencia)} días`}
+                          </div>
+                        </td>
+
+                        {/* Estado */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(quote.Estado)}`}>
+                            {quote.Estado || 'Sin estado'}
+                          </span>
+                        </td>
+
+                        {/* Scoring */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-amber-700 font-medium">
+                            {quote.Scoring ? (
+                              <div className="flex items-center">
+                                <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                                {quote.Scoring}
+                              </div>
+                            ) : (
+                              'N/A'
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Valor Cotización */}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="text-emerald-700 font-bold">
+                            {quote.Valor_Cotizacion ? `$${quote.Valor_Cotizacion.toLocaleString()}` : 'N/A'}
+                          </div>
+                        </td>
+
+                        {/* Acciones */}
+                        <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {quote.Estado?.toLowerCase() === 'pendiente' && !isExpired ? (
+                            <div className="flex space-x-1 justify-end">
+                              <button 
+                                onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'aceptar')}
+                                disabled={processingQuoteId === quote.id_Cotizaciones}
+                                className="px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Aceptar'}
+                              </button>
+                              <button 
+                                onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'rechazar')}
+                                disabled={processingQuoteId === quote.id_Cotizaciones}
+                                className="px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Rechazar'}
+                              </button>
                             </div>
+                          ) : (
                             <div className="text-xs text-gray-500">
-                              {quote.operador_tipo_persona === 'Física' ? 'Persona Física' : 'Empresa'}
+                              {isExpired ? 'Expirada' : `Cotización ${quote.Estado?.toLowerCase() || 'sin estado'}`}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* Vista de tarjetas */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sortedQuotes.map((quote) => {
+                const isExpired = isQuoteExpired(quote.Vigencia);
+                
+                return (
+                  <div key={quote.id_Cotizaciones} className={`bg-white border rounded-xl shadow-sm hover:shadow-md transition-shadow ${isExpired ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>
+                    <div className="p-6">
+                      {/* Header */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-blue-700">
+                            Cotización #{quote.id_Cotizaciones}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Envío #{quote.id_Envio} • Operador {quote.id_Operador}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(quote.Estado)}`}>
+                          {quote.Estado || 'Sin estado'}
+                        </span>
+                      </div>
+
+                      {/* Campos principales */}
+                      <div className="space-y-3 mb-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                            <div className="text-xs font-medium text-yellow-700 mb-1">OFERTA</div>
+                            <div className="text-lg font-bold text-yellow-800">
+                              ${(quote.Oferta || 0).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                            <div className="text-xs font-medium text-emerald-700 mb-1">VALOR</div>
+                            <div className="text-lg font-bold text-emerald-800">
+                              {quote.Valor_Cotizacion ? `$${quote.Valor_Cotizacion.toLocaleString()}` : 'N/A'}
                             </div>
                           </div>
                         </div>
-                      </td>
 
-                      {/* Ruta - Información adicional */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 text-green-500 mr-1" />
-                            <span className="font-medium">{quote.envio_origen || 'No especificado'}</span>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-teal-50 p-3 rounded-lg border border-teal-200">
+                            <div className="text-xs font-medium text-teal-700 mb-1">FECHA</div>
+                            <div className="text-sm font-medium text-teal-800">
+                              {formatDate(quote.Fecha)}
+                            </div>
                           </div>
-                          <div className="flex items-center mt-1">
-                            <MapPin className="h-4 w-4 text-red-500 mr-1" />
-                            <span className="font-medium">{quote.envio_destino || 'No especificado'}</span>
+                          <div className={`p-3 rounded-lg border ${isExpired ? 'bg-red-100 border-red-300' : 'bg-cyan-50 border-cyan-200'}`}>
+                            <div className={`text-xs font-medium mb-1 ${isExpired ? 'text-red-700' : 'text-cyan-700'}`}>VIGENCIA</div>
+                            <div className={`text-sm font-medium ${isExpired ? 'text-red-800' : 'text-cyan-800'}`}>
+                              {formatDate(quote.Vigencia)}
+                            </div>
+                            <div className={`text-xs ${isExpired ? 'text-red-600' : 'text-cyan-600'}`}>
+                              {isExpired ? 'Expirada' : `${getDaysUntilExpiry(quote.Vigencia)} días restantes`}
+                            </div>
                           </div>
                         </div>
-                        {quote.envio_distancia && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {quote.envio_distancia} km
+
+                        {/* Campos adicionales */}
+                        <div className="space-y-2">
+                          {quote.Eficiencia && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-red-700 font-medium">Eficiencia:</span>
+                              <span className="text-gray-900">{quote.Eficiencia}</span>
+                            </div>
+                          )}
+                          {quote.Comunicacion && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-indigo-700 font-medium">Comunicación:</span>
+                              <span className="text-gray-900">{quote.Comunicacion}</span>
+                            </div>
+                          )}
+                          {quote.Estado_Unidad && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-pink-700 font-medium">Estado Unidad:</span>
+                              <span className="text-gray-900">{quote.Estado_Unidad}</span>
+                            </div>
+                          )}
+                          {quote.Scoring && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-amber-700 font-medium">Scoring:</span>
+                              <div className="flex items-center">
+                                <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                                <span className="text-gray-900">{quote.Scoring}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Información del operador */}
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-xs font-medium text-gray-700 mb-1">OPERADOR</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {getOperatorDisplayName(quote)}
                           </div>
-                        )}
-                      </td>
+                          <div className="text-xs text-gray-600">
+                            {quote.operador_tipo_persona === 'Física' ? 'Persona Física' : 'Empresa'}
+                          </div>
+                        </div>
+
+                        {/* Información del envío */}
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-xs font-medium text-gray-700 mb-1">RUTA</div>
+                          <div className="text-sm text-gray-900">
+                            {quote.envio_origen || 'No especificado'} → {quote.envio_destino || 'No especificado'}
+                          </div>
+                          {quote.envio_distancia && (
+                            <div className="text-xs text-gray-600">
+                              {quote.envio_distancia} km
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
                       {/* Acciones */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {quote.Estado.toLowerCase() === 'pendiente' && !isExpired ? (
-                          <div className="flex space-x-2 justify-end">
-                            <button 
-                              onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'aceptar')}
-                              disabled={processingQuoteId === quote.id_Cotizaciones}
-                              className="px-3 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Aceptar'}
-                            </button>
-                            <button 
-                              onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'rechazar')}
-                              disabled={processingQuoteId === quote.id_Cotizaciones}
-                              className="px-3 py-1 border border-transparent rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Rechazar'}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            {isExpired ? 'Expirada' : `Cotización ${quote.Estado.toLowerCase()}`}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      {quote.Estado?.toLowerCase() === 'pendiente' && !isExpired ? (
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'aceptar')}
+                            disabled={processingQuoteId === quote.id_Cotizaciones}
+                            className="flex-1 px-3 py-2 border border-transparent rounded text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Aceptar'}
+                          </button>
+                          <button 
+                            onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'rechazar')}
+                            disabled={processingQuoteId === quote.id_Cotizaciones}
+                            className="flex-1 px-3 py-2 border border-transparent rounded text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Rechazar'}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                          {isExpired ? 'Cotización expirada' : `Cotización ${quote.Estado?.toLowerCase() || 'sin estado'}`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         ) : (
           <div className="text-center py-12">
             <Package size={64} className="mx-auto text-gray-300 mb-6" />
