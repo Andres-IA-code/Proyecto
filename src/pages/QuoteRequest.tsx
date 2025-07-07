@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Package, Truck, FileText, Plus, X, Upload } from 'lucide-react';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import { calculateDistance } from '../utils/distanceCalculator';
+import { supabase, getCurrentUser } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface FormData {
   origin: string;
@@ -32,6 +34,7 @@ interface Coordinates {
 }
 
 const QuoteRequest: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
     origin: '',
     destination: '',
@@ -58,6 +61,8 @@ const QuoteRequest: React.FC = () => {
   }>({});
 
   const [newStop, setNewStop] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>('');
 
   // Effect to calculate total distance including stops
   useEffect(() => {
@@ -165,10 +170,120 @@ const QuoteRequest: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    console.log('Coordinates:', coordinates);
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      // Get current user
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        setSubmitError('No se pudo obtener la información del usuario. Por favor, inicia sesión nuevamente.');
+        return;
+      }
+
+      // Validate required fields
+      if (!formData.origin.trim()) {
+        setSubmitError('El origen es obligatorio');
+        return;
+      }
+      if (!formData.destination.trim()) {
+        setSubmitError('El destino es obligatorio');
+        return;
+      }
+      if (!formData.weight.trim()) {
+        setSubmitError('El peso es obligatorio');
+        return;
+      }
+      if (!formData.pickupDate) {
+        setSubmitError('La fecha de retiro es obligatoria');
+        return;
+      }
+      if (!formData.pickupTime) {
+        setSubmitError('La hora de retiro es obligatoria');
+        return;
+      }
+
+      // Prepare data for insertion
+      const shipmentData = {
+        id_Usuario: currentUser.profile.id_Usuario,
+        Estado: 'Solicitado',
+        Origen: formData.origin.trim(),
+        Destino: formData.destination.trim(),
+        Distancia: formData.estimatedDistance ? parseFloat(formData.estimatedDistance) : null,
+        Tipo_Carga: formData.cargoType || null,
+        Tipo_Planificacion: 'Normal', // Default value
+        Tipo_Vehiculo: formData.vehicleType || null,
+        Tipo_Envio: formData.shipmentType || null,
+        Peso: formData.weight.trim(),
+        Dimension_Largo: formData.dimensions.length ? parseInt(formData.dimensions.length) : null,
+        Dimension_Ancho: formData.dimensions.width ? parseInt(formData.dimensions.width) : null,
+        Dimension_Alto: formData.dimensions.height ? parseInt(formData.dimensions.height) : null,
+        Fecha_Retiro: formData.pickupDate && formData.pickupTime 
+          ? `${formData.pickupDate}T${formData.pickupTime}:00+00:00` 
+          : null,
+        Horario_Retiro: formData.pickupTime || null,
+        Observaciones: formData.observations.trim() || null,
+        Tiempo_Estimado_Operacion: formData.estimatedTime.trim() || null,
+        Parada_Programada: formData.scheduledStops.length > 0 
+          ? formData.scheduledStops.map(stop => stop.address).join('\n') 
+          : null,
+        Nombre_Dador: currentUser.profile.Tipo_Persona === 'Física' 
+          ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+          : currentUser.profile.Nombre
+      };
+
+      console.log('Guardando datos del envío:', shipmentData);
+
+      // Insert into General table
+      const { data, error } = await supabase
+        .from('General')
+        .insert([shipmentData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error al guardar el envío:', error);
+        setSubmitError(`Error al guardar el envío: ${error.message}`);
+        return;
+      }
+
+      console.log('Envío guardado exitosamente:', data);
+
+      // Reset form
+      setFormData({
+        origin: '',
+        destination: '',
+        estimatedDistance: '',
+        estimatedTime: '',
+        cargoType: '',
+        weight: '',
+        dimensions: {
+          length: '',
+          width: '',
+          height: '',
+        },
+        vehicleType: '',
+        pickupDate: '',
+        pickupTime: '',
+        shipmentType: '',
+        observations: '',
+        scheduledStops: [],
+      });
+      setCoordinates({});
+      setNewStop('');
+
+      // Show success message and redirect
+      alert('¡Solicitud de envío creada exitosamente! Serás redirigido a la página de cotizaciones.');
+      navigate('/app/quotes');
+
+    } catch (error: any) {
+      console.error('Error inesperado:', error);
+      setSubmitError(`Error inesperado: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStopsCount = () => {
@@ -549,19 +664,44 @@ const QuoteRequest: React.FC = () => {
               </div>
             </div>
 
+            {/* Error Message */}
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <X className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-red-800">
+                      {submitError}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Botones */}
             <div className="flex justify-end space-x-4 pt-6 border-t">
               <button
                 type="button"
                 className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isSubmitting}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Enviar
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  'Enviar'
+                )}
               </button>
             </div>
           </form>
