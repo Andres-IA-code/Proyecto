@@ -303,7 +303,11 @@ const QuoteRequest: React.FC = () => {
 
       // Show success message and redirect
       alert('¡Solicitud de envío creada exitosamente! Serás redirigido a la página de cotizaciones.');
-      navigate('/app/quotes');
+      
+      // Use setTimeout to ensure the alert is shown before navigation
+      setTimeout(() => {
+        navigate('/app/quotes', { replace: true });
+      }, 1000);
 
     } catch (error: any) {
       console.error('Error inesperado:', error);
