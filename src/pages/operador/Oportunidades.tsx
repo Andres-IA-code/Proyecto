@@ -641,17 +641,8 @@ const OperadorOportunidades: React.FC = () => {
 
           {/* Búsqueda Simple */}
           {!showAdvancedSearch && (
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  placeholder="Buscar por palabras en origen o destino (ej: Buenos, Aires, CDMX)..."
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
-              </div>
+            <div className="text-sm text-gray-500">
+              Use los filtros de tipo de carga y la opción "Mostrar todos los registros" para encontrar oportunidades.
             </div>
           )}
 
