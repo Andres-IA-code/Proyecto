@@ -391,9 +391,7 @@ const OperadorOportunidades: React.FC = () => {
   const filteredOpportunities = opportunities.filter(opportunity => {
     const matchesSearch = 
       opportunity.Origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      opportunity.Destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      opportunity.Nombre_Dador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      opportunity.Tipo_Carga?.toLowerCase().includes(searchTerm.toLowerCase());
+      opportunity.Destino?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter = (() => {
       if (filterType === 'all') return true;
@@ -565,7 +563,7 @@ const OperadorOportunidades: React.FC = () => {
           <div className="flex-1 relative">
             <input
               type="text"
-              placeholder="Buscar por origen, destino, dador o tipo de carga..."
+              placeholder="Buscar por origen o destino..."
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -768,7 +766,7 @@ const OperadorOportunidades: React.FC = () => {
             No se encontraron resultados
           </h3>
           <p className="text-gray-500 mb-6">
-            No hay registros que coincidan con los filtros aplicados.
+            No hay registros que coincidan con la búsqueda por origen/destino o filtros aplicados.
           </p>
           <button
             onClick={() => {
