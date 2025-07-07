@@ -663,31 +663,33 @@ const QuoteRequest: React.FC = () => {
                   </label>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  { value: 'express', label: 'Express', subtitle: 'hasta 3 dias' },
-                  { value: 'normal', label: 'Normal', subtitle: 'entre 3 y 7 dias' },
-                ].map((shipment) => (
-                  <label key={shipment.value} className="relative">
-                    <input
-                      type="radio"
-                      name="shipmentType"
-                      value={shipment.value}
-                      checked={formData.shipmentType === shipment.value}
-                      onChange={handleInputChange}
-                      className="sr-only"
-                    />
-                    <div className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all ${
-                      formData.shipmentType === shipment.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}>
-                      <div className="font-medium text-sm">{shipment.label}</div>
-                      <div className="text-xs text-gray-500">{shipment.subtitle}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
+              {formData.flexibleDate && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { value: 'express', label: 'Express', subtitle: 'hasta 3 dias' },
+                    { value: 'normal', label: 'Normal', subtitle: 'entre 3 y 7 dias' },
+                  ].map((shipment) => (
+                    <label key={shipment.value} className="relative">
+                      <input
+                        type="radio"
+                        name="shipmentType"
+                        value={shipment.value}
+                        checked={formData.shipmentType === shipment.value}
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                      <div className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all ${
+                        formData.shipmentType === shipment.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}>
+                        <div className="font-medium text-sm">{shipment.label}</div>
+                        <div className="text-xs text-gray-500">{shipment.subtitle}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Novena fila: Observaciones */}
