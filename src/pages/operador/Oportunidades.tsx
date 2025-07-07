@@ -637,20 +637,7 @@ const OperadorOportunidades: React.FC = () => {
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="space-y-4">
-          {/* Toggle para búsqueda avanzada */}
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900">Filtros de Búsqueda</h3>
-            <button
-              onClick={toggleAdvancedSearch}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                showAdvancedSearch
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {showAdvancedSearch ? 'Búsqueda Simple' : 'Búsqueda Avanzada'}
-            </button>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900">Filtros de Búsqueda</h3>
 
           {/* Búsqueda Simple */}
           {!showAdvancedSearch && (
