@@ -111,23 +111,60 @@ const OperadorOportunidades: React.FC = () => {
         return;
       }
 
+      // Preparar todos los datos posibles para la cotización
       const quoteData = {
+        // IDs y referencias principales
         id_Usuario: currentUser.profile.id_Usuario,
         id_Envio: selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id,
+        id_Operador: currentUser.profile.id_Usuario, // El operador que cotiza
+        
+        // Datos de la cotización
         Oferta: parseFloat(quoteAmount),
         Fecha: new Date().toISOString(),
         Vigencia: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         Estado: 'Pendiente',
-        Scoring: null
+        Scoring: null,
+        
+        // Datos adicionales del envío para referencia
+        Origen: selectedOpportunity.Origen,
+        Destino: selectedOpportunity.Destino,
+        Distancia: selectedOpportunity.Distancia,
+        Tipo_Carga: selectedOpportunity.Tipo_Carga,
+        Tipo_Vehiculo: selectedOpportunity.Tipo_Vehiculo,
+        Tipo_Envio: selectedOpportunity.Tipo_Envio,
+        Peso: selectedOpportunity.Peso,
+        Dimension_Largo: selectedOpportunity.Dimension_Largo,
+        Dimension_Ancho: selectedOpportunity.Dimension_Ancho,
+        Dimension_Alto: selectedOpportunity.Dimension_Alto,
+        Tipo_Carroceria: selectedOpportunity.Tipo_Carroceria,
+        Fecha_Retiro: selectedOpportunity.Fecha_Retiro,
+        Horario_Retiro: selectedOpportunity.Horario_Retiro,
+        Observaciones: selectedOpportunity.Observaciones,
+        Necesidades_Especiales: selectedOpportunity.Necesidades_Especiales,
+        Tiempo_Estimado_Operacion: selectedOpportunity.Tiempo_Estimado_Operacion,
+        Parada_Programada: selectedOpportunity.Parada_Programada,
+        Nombre_Dador: selectedOpportunity.Nombre_Dador,
+        
+        // Datos del operador que cotiza
+        Nombre_Operador: currentUser.profile.Tipo_Persona === 'Física' 
+          ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+          : currentUser.profile.Nombre,
+        Correo_Operador: currentUser.profile.Correo,
+        Telefono_Operador: currentUser.profile.Telefono,
+        
+        // Metadatos
+        Fecha_Creacion: new Date().toISOString(),
+        Ultima_Actualizacion: new Date().toISOString()
       };
 
+      console.log('Guardando cotización con datos completos:', quoteData);
       const { error: insertError } = await supabase
         .from('Cotizaciones')
         .insert([quoteData]);
 
       if (insertError) {
         console.error('Error submitting quote:', insertError);
-        setError('Error al enviar la cotización');
+        setError(`Error al enviar la cotización: ${insertError.message}`);
         return;
       }
 
@@ -136,8 +173,8 @@ const OperadorOportunidades: React.FC = () => {
       setSelectedOpportunity(null);
       setQuoteAmount('');
       
-      // Show success message (you might want to add a toast notification here)
-      alert('Cotización enviada exitosamente');
+      // Show success message with more details
+      alert(`¡Cotización enviada exitosamente!\n\nMonto: $${parseFloat(quoteAmount).toLocaleString()}\nEnvío: ${selectedOpportunity.Origen} → ${selectedOpportunity.Destino}\nVigencia: 7 días`);
       
     } catch (err) {
       console.error('Error:', err);
