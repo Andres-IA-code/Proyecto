@@ -647,9 +647,9 @@ const QuoteRequest: React.FC = () => {
             {/* Octava fila: Tipo de Envío */}
             <div>
               <div className="flex justify-between items-center mb-3">
-                <label className="block text-sm font-medium text-gray-700">
+                <div className="block text-sm font-medium text-gray-700">
                   Tipo de Envío
-                </label>
+                </div>
                 <div className="flex items-center">
                   <input
                     type="checkbox"
