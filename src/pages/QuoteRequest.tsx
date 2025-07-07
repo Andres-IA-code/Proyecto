@@ -663,7 +663,6 @@ const QuoteRequest: React.FC = () => {
                   </label>
                 </div>
               </div>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   { value: 'express', label: 'Express', subtitle: 'hasta 3 dias' },
