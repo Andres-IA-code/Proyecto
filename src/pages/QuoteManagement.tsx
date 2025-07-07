@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, ChevronDown, Star, User, MapPin, Package, Calendar, Clock, Truck } from 'lucide-react';
+import { Filter, ChevronDown, Star, User, MapPin, Package, Calendar, Clock, Truck, DollarSign, AlertCircle } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
 
 interface Quote {
@@ -206,17 +206,25 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const calculateExpirationDate = (fechaCotizacion: string) => {
+  const isQuoteExpired = (vigenciaString: string) => {
     try {
-      const fecha = new Date(fechaCotizacion);
-      fecha.setDate(fecha.getDate() + 1); // Agregar 1 día
-      return fecha.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+      const vigencia = new Date(vigenciaString);
+      const now = new Date();
+      return vigencia < now;
     } catch {
-      return 'No disponible';
+      return false;
+    }
+  };
+
+  const getDaysUntilExpiry = (vigenciaString: string) => {
+    try {
+      const vigencia = new Date(vigenciaString);
+      const now = new Date();
+      const diffTime = vigencia.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    } catch {
+      return 0;
     }
   };
 
@@ -277,9 +285,11 @@ const QuoteManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header con filtros */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
+            <h1 className="text-2xl font-bold text-gray-900">Cotizaciones Recibidas</h1>
             <p className="text-gray-500 mt-1">
               Gestiona las cotizaciones de los operadores logísticos
             </p>
@@ -311,208 +321,165 @@ const QuoteManagement: React.FC = () => {
           </div>
         </div>
 
+        {/* Tabla de campos específicos */}
         {sortedQuotes.length > 0 ? (
-          <div className="space-y-6">
-            {sortedQuotes.map((quote) => (
-              <div 
-                key={quote.id_Cotizaciones}
-                className="border rounded-xl overflow-hidden hover:shadow-lg transition-shadow bg-gradient-to-r from-white to-gray-50"
-              >
-                <div className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Operador Logístico Info */}
-                    <div className="lg:col-span-3">
-                      <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-                        Operador Logístico
-                      </h4>
-                      <div className="flex items-center mb-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3 shadow-md">
-                          <User className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm">
-                            {getOperatorDisplayName(quote)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {quote.operador_tipo_persona === 'Física' ? 'Persona Física' : 'Empresa'}
-                          </div>
-                        </div>
-                      </div>
-                      {quote.operador_correo && (
-                        <div className="text-xs text-gray-600 mb-1 flex items-center">
-                          <span className="mr-1">📧</span>
-                          {quote.operador_correo}
-                        </div>
-                      )}
-                      {quote.operador_telefono && (
-                        <div className="text-xs text-gray-600 flex items-center">
-                          <span className="mr-1">📞</span>
-                          {quote.operador_telefono}
-                        </div>
-                      )}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Fecha
                     </div>
-                    
-                    {/* Detalles del Viaje */}
-                    <div className="lg:col-span-4">
-                      <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-                        Detalles del Viaje
-                      </h4>
-                      <div className="space-y-3">
-                        {/* Origen y Destino */}
-                        <div className="bg-white rounded-lg p-3 border border-gray-100">
-                          <div className="flex items-center text-sm text-gray-600 mb-2">
-                            <MapPin size={16} className="mr-2 text-green-600" />
-                            <span className="font-medium">Origen:</span>
-                            <span className="ml-1 text-gray-900">{quote.envio_origen || 'No especificado'}</span>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2" />
+                      Vigencia
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Oferta
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Operador
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ruta
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedQuotes.map((quote) => {
+                  const isExpired = isQuoteExpired(quote.Vigencia);
+                  const daysUntilExpiry = getDaysUntilExpiry(quote.Vigencia);
+                  
+                  return (
+                    <tr key={quote.id_Cotizaciones} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : ''}`}>
+                      {/* Fecha */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 font-medium">
+                          {formatDate(quote.Fecha)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatDateTime(quote.Fecha).split(' ')[1]}
+                        </div>
+                      </td>
+
+                      {/* Vigencia */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className={`text-sm font-medium ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                          {formatDate(quote.Vigencia)}
+                        </div>
+                        <div className={`text-xs ${isExpired ? 'text-red-500' : daysUntilExpiry <= 2 ? 'text-orange-500' : 'text-gray-500'}`}>
+                          {isExpired ? (
+                            <div className="flex items-center">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Expirada
+                            </div>
+                          ) : daysUntilExpiry === 0 ? (
+                            'Expira hoy'
+                          ) : daysUntilExpiry === 1 ? (
+                            'Expira mañana'
+                          ) : (
+                            `${daysUntilExpiry} días restantes`
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Estado */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusColor(quote.Estado)}`}>
+                          {quote.Estado}
+                        </span>
+                      </td>
+
+                      {/* Oferta */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-lg font-bold text-green-600">
+                          ${(quote.Oferta || quote.Valor_Cotizacion || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Valor total
+                        </div>
+                      </td>
+
+                      {/* Operador */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
+                            <User className="h-4 w-4 text-white" />
                           </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <MapPin size={16} className="mr-2 text-red-600" />
-                            <span className="font-medium">Destino:</span>
-                            <span className="ml-1 text-gray-900">{quote.envio_destino || 'No especificado'}</span>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {getOperatorDisplayName(quote)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {quote.operador_tipo_persona === 'Física' ? 'Persona Física' : 'Empresa'}
+                            </div>
                           </div>
                         </div>
+                      </td>
 
-                        {/* Tipo de Carga y Detalles */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="text-xs">
-                            <span className="font-medium text-gray-500">Tipo de Carga:</span>
-                            <div className="text-gray-900 font-medium">{quote.envio_tipo_carga || 'No especificado'}</div>
+                      {/* Ruta */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 text-green-500 mr-1" />
+                            <span className="font-medium">{quote.envio_origen || 'No especificado'}</span>
                           </div>
-                          {quote.envio_distancia && (
-                            <div className="text-xs">
-                              <span className="font-medium text-gray-500">Distancia:</span>
-                              <div className="text-gray-900 font-medium">{quote.envio_distancia} km</div>
-                            </div>
-                          )}
-                          {quote.envio_peso && (
-                            <div className="text-xs">
-                              <span className="font-medium text-gray-500">Peso:</span>
-                              <div className="text-gray-900 font-medium">{quote.envio_peso} Tn</div>
-                            </div>
-                          )}
-                          {quote.envio_nombre_dador && (
-                            <div className="text-xs">
-                              <span className="font-medium text-gray-500">Dador:</span>
-                              <div className="text-gray-900 font-medium">{quote.envio_nombre_dador}</div>
-                            </div>
-                          )}
+                          <div className="flex items-center mt-1">
+                            <MapPin className="h-4 w-4 text-red-500 mr-1" />
+                            <span className="font-medium">{quote.envio_destino || 'No especificado'}</span>
+                          </div>
                         </div>
-
-                        {/* Paradas Programadas */}
-                        {quote.envio_parada_programada && (
-                          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                            <span className="font-medium text-blue-800 text-xs">Paradas Programadas:</span>
-                            <div className="mt-1 space-y-1">
-                              {quote.envio_parada_programada.split('\n').map((parada, index) => (
-                                <div key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center">
-                                  <MapPin size={10} className="mr-1" />
-                                  {parada.trim()}
-                                </div>
-                              ))}
-                            </div>
+                        {quote.envio_distancia && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {quote.envio_distancia} km
                           </div>
                         )}
-                      </div>
-                    </div>
-                    
-                    {/* Información de la Cotización */}
-                    <div className="lg:col-span-3">
-                      <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-                        Información de Cotización
-                      </h4>
-                      <div className="space-y-3">
-                        {/* Oferta */}
-                        <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-green-700">
-                              ${(quote.Oferta || quote.Valor_Cotizacion || 0).toLocaleString()}
-                            </div>
-                            <div className="text-xs text-green-600 font-medium">Valor de la Oferta</div>
-                          </div>
-                        </div>
+                      </td>
 
-                        {/* Fechas */}
-                        <div className="space-y-2">
-                          <div className="flex items-center text-xs text-gray-600">
-                            <Calendar size={14} className="mr-2 text-blue-500" />
-                            <div>
-                              <span className="font-medium">Fecha:</span>
-                              <div className="text-gray-900">{formatDate(quote.Fecha)}</div>
-                            </div>
+                      {/* Acciones */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {quote.Estado.toLowerCase() === 'pendiente' && !isExpired ? (
+                          <div className="flex space-x-2 justify-end">
+                            <button 
+                              onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'aceptar')}
+                              disabled={processingQuoteId === quote.id_Cotizaciones}
+                              className="px-3 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Aceptar'}
+                            </button>
+                            <button 
+                              onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'rechazar')}
+                              disabled={processingQuoteId === quote.id_Cotizaciones}
+                              className="px-3 py-1 border border-transparent rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {processingQuoteId === quote.id_Cotizaciones ? 'Procesando...' : 'Rechazar'}
+                            </button>
                           </div>
-                          <div className="flex items-center text-xs text-gray-600">
-                            <Clock size={14} className="mr-2 text-orange-500" />
-                            <div>
-                              <span className="font-medium">Vigencia:</span>
-                              <div className="text-gray-900">{formatDate(quote.Vigencia)}</div>
-                            </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">
+                            {isExpired ? 'Expirada' : `Cotización ${quote.Estado.toLowerCase()}`}
                           </div>
-                          <div className="flex items-center text-xs text-gray-600">
-                            <Clock size={14} className="mr-2 text-red-500" />
-                            <div>
-                              <span className="font-medium">Expira:</span>
-                              <div className="text-gray-900">{calculateExpirationDate(quote.Fecha)}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Estado */}
-                        <div className="text-center">
-                          <span className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusColor(quote.Estado)}`}>
-                            {quote.Estado}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Acciones */}
-                    <div className="lg:col-span-2">
-                      <h4 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-                        Acciones
-                      </h4>
-                      {quote.Estado.toLowerCase() === 'pendiente' ? (
-                        <div className="space-y-3">
-                          <button 
-                            onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'aceptar')}
-                            disabled={processingQuoteId === quote.id_Cotizaciones}
-                            className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
-                          >
-                            {processingQuoteId === quote.id_Cotizaciones ? (
-                              <div className="flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Procesando...
-                              </div>
-                            ) : (
-                              'Aceptar'
-                            )}
-                          </button>
-                          <button 
-                            onClick={() => handleQuoteAction(quote.id_Cotizaciones, 'rechazar')}
-                            disabled={processingQuoteId === quote.id_Cotizaciones}
-                            className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
-                          >
-                            {processingQuoteId === quote.id_Cotizaciones ? (
-                              <div className="flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Procesando...
-                              </div>
-                            ) : (
-                              'Rechazar'
-                            )}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="text-sm text-gray-500 bg-gray-100 rounded-lg p-3">
-                            Cotización {quote.Estado.toLowerCase()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="text-center py-12">
