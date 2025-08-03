@@ -111,6 +111,11 @@ const OperadorOportunidades: React.FC = () => {
         return;
       }
 
+      // Construir el nombre del operador según el tipo de persona
+      const nombreOperador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
+
       // Preparar todos los datos posibles para la cotización
       const quoteData = {
         // IDs y referencias principales
@@ -122,7 +127,8 @@ const OperadorOportunidades: React.FC = () => {
         Oferta: parseFloat(quoteAmount),
         Fecha: new Date().toISOString(),
         Vigencia: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        Estado: 'Pendiente'
+        Estado: 'Pendiente',
+        Nombre_Operador: nombreOperador // Guardar el nombre del operador
       };
 
       console.log('Guardando cotización con datos completos:', quoteData);
