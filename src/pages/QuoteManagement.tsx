@@ -38,7 +38,7 @@ const QuoteManagement: React.FC = () => {
       setError('');
       setDebugInfo(null);
       
-      console.log('=== INICIANDO BÚSQUEDA DE COTIZACIONES ===');
+      console.log('=== INICIANDO BÚSQUEDA DE COTIZACIONES POR NOMBRE_DADOR ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -54,79 +54,60 @@ const QuoteManagement: React.FC = () => {
         rol: currentUser.profile.Rol_Operativo
       });
 
-      // PASO 1: Verificar envíos del usuario en tabla General
-      console.log('📦 PASO 1: Buscando envíos del usuario...');
-      const { data: userShipments, error: shipmentsError } = await supabase
-        .from('General')
-        .select('id_Envio, Origen, Destino, Estado, Nombre_Dador')
-        .eq('id_Usuario', currentUser.profile.id_Usuario);
+      // Construir el nombre del dador según el tipo de persona
+      const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
 
+      console.log('👤 Nombre del dador a buscar:', nombreDador);
 
-      if (shipmentsError) {
-        console.error('❌ Error en PASO 1:', shipmentsError);
-        setError(`Error al cargar los envíos: ${shipmentsError.message}`);
-        return;
-      }
-
-      console.log('✅ PASO 1 completado:', {
-        totalEnvios: userShipments?.length || 0,
-        envios: userShipments
-      });
-      
-      if (!userShipments || userShipments.length === 0) {
-        console.log('⚠️ RESULTADO: No hay envíos para este usuario');
-        setDebugInfo({
-          step: 'PASO 1',
-          userId: currentUser.profile.id_Usuario,
-          userName: currentUser.profile.Nombre,
-          userShipments: [],
-          totalShipments: 0,
-          message: 'No se encontraron envíos para este usuario. Debe crear un envío primero.'
-        });
-        setQuotes([]);
-        return;
-      }
-
-      const shipmentIds = userShipments.map(s => s.id_Envio);
-      console.log('🔍 IDs de envíos extraídos:', shipmentIds);
-
-      // PASO 2: Buscar TODAS las cotizaciones para estos envíos (sin joins complejos)
-      console.log('💰 PASO 2: Buscando cotizaciones para estos envíos...');
+      // PASO 1: Buscar cotizaciones directamente por Nombre_Dador usando JOIN
+      console.log('💰 PASO 1: Buscando cotizaciones por Nombre_Dador...');
       const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
-        .select('*')
-        .in('id_Envio', shipmentIds);
+        .select(`
+          *,
+          General!inner(
+            id_Envio,
+            Origen,
+            Destino,
+            Nombre_Dador,
+            Estado,
+            Tipo_Carga,
+            Peso
+          )
+        `)
+        .eq('General.Nombre_Dador', nombreDador)
+        .order('Fecha', { ascending: false });
 
       if (quotesError) {
-        console.error('❌ Error en PASO 2:', quotesError);
+        console.error('❌ Error en PASO 1:', quotesError);
         setError(`Error al cargar las cotizaciones: ${quotesError.message}`);
         return;
       }
 
-      console.log('✅ PASO 2 completado:', {
+      console.log('✅ PASO 1 completado:', {
         totalCotizaciones: quotesData?.length || 0,
         cotizaciones: quotesData
       });
 
       if (!quotesData || quotesData.length === 0) {
-        console.log('⚠️ RESULTADO: No hay cotizaciones para estos envíos');
+        console.log('⚠️ RESULTADO: No hay cotizaciones para este dador');
         setDebugInfo({
-          step: 'PASO 2',
+          step: 'PASO 1',
           userId: currentUser.profile.id_Usuario,
           userName: currentUser.profile.Nombre,
-          userShipments,
-          totalShipments: userShipments.length,
-          shipmentIds,
+          nombreDador: nombreDador,
           quotesData: [],
           totalQuotes: 0,
-          message: 'Se encontraron envíos pero no hay cotizaciones para ellos. Los operadores aún no han cotizado.'
+          message: `No se encontraron cotizaciones para el dador "${nombreDador}". Los operadores aún no han cotizado para este dador.`
         });
         setQuotes([]);
         return;
       }
 
-      // PASO 3: Obtener información adicional del operador para cada cotización
-      console.log('👥 PASO 3: Obteniendo información de operadores...');
+      // PASO 2: Obtener información adicional del operador para cada cotización
+      console.log('👥 PASO 2: Obteniendo información de operadores...');
       const quotesWithOperatorInfo = await Promise.all(
         quotesData.map(async (quote) => {
           // Buscar información del operador
@@ -136,22 +117,19 @@ const QuoteManagement: React.FC = () => {
             .eq('id_Usuario', quote.id_Operador)
             .single();
 
-          // Buscar información del envío
-          const envioInfo = userShipments.find(envio => envio.id_Envio === quote.id_Envio);
-
           return {
             ...quote,
             operador_nombre: operatorData?.Nombre,
             operador_apellido: operatorData?.Apellido,
             operador_tipo_persona: operatorData?.Tipo_Persona,
-            envio_origen: envioInfo?.Origen,
-            envio_destino: envioInfo?.Destino,
-            envio_nombre_dador: envioInfo?.Nombre_Dador
+            envio_origen: quote.General?.Origen,
+            envio_destino: quote.General?.Destino,
+            envio_nombre_dador: quote.General?.Nombre_Dador
           };
         })
       );
 
-      console.log('✅ PASO 3 completado:', {
+      console.log('✅ PASO 2 completado:', {
         cotizacionesConInfo: quotesWithOperatorInfo.length
       });
 
@@ -161,13 +139,11 @@ const QuoteManagement: React.FC = () => {
         userId: currentUser.profile.id_Usuario,
         userName: currentUser.profile.Nombre,
         userRole: currentUser.profile.Rol_Operativo,
-        userShipments,
-        totalShipments: userShipments.length,
-        shipmentIds,
+        nombreDador: nombreDador,
         quotesData,
         totalQuotes: quotesData.length,
         quotesWithOperatorInfo,
-        message: `Se encontraron ${quotesData.length} cotizaciones para ${userShipments.length} envíos`
+        message: `Se encontraron ${quotesData.length} cotizaciones para el dador "${nombreDador}"`
       });
 
       setQuotes(quotesWithOperatorInfo);
