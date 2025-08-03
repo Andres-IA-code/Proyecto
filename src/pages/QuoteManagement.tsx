@@ -278,18 +278,18 @@ const QuoteManagement: React.FC = () => {
                       Oferta
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Operador Logístico
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ruta del Envío
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ID Envío
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ID Operador
                     </th>
                   </tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Operador Logístico
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ruta del Envío
-                  </th>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredQuotes.map((quote) => {
@@ -356,25 +356,25 @@ const QuoteManagement: React.FC = () => {
                           </div>
                         </td>
 
-                         {/* Operador Logístico */}
-                         <td className="px-6 py-4 whitespace-nowrap">
-                           <div className="text-sm font-medium text-gray-900">
-                             {getOperatorName(quote)}
-                           </div>
-                           <div className="text-xs text-gray-500">
-                             ID: #{quote.id_Operador}
-                           </div>
-                         </td>
+                        {/* Operador Logístico */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {quote.Nombre_Operador || 'Operador no especificado'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ID: #{quote.id_Operador}
+                          </div>
+                        </td>
 
-                         {/* Ruta del Envío */}
-                         <td className="px-6 py-4 whitespace-nowrap">
-                           <div className="text-sm text-gray-900">
-                             {quote.envio_origen || 'N/A'} → {quote.envio_destino || 'N/A'}
-                           </div>
-                           <div className="text-xs text-gray-500">
-                             Envío #{quote.id_Envio}
-                           </div>
-                         </td>
+                        {/* Ruta del Envío */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {quote.envio_origen || 'N/A'} → {quote.envio_destino || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Envío #{quote.id_Envio}
+                          </div>
+                        </td>
 
                         {/* ID Envío */}
                         <td className="px-6 py-4 whitespace-nowrap">
