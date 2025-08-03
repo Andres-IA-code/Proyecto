@@ -128,7 +128,8 @@ const OperadorOportunidades: React.FC = () => {
         Fecha: new Date().toISOString(),
         Vigencia: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         Estado: 'Pendiente',
-        Nombre_Operador: nombreOperador // Guardar el nombre del operador
+        Nombre_Operador: nombreOperador, // Guardar el nombre del operador
+        Nombre_Dador: selectedOpportunity.Nombre_Dador // Guardar el nombre del dador de carga
       };
 
       console.log('Guardando cotización con datos completos:', quoteData);
