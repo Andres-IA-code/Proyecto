@@ -7,12 +7,11 @@ interface Quote {
   id_Usuario: number;
   id_Envio: number;
   id_Operador: number;
-  Oferta?: number;
+  Oferta: number;
   Fecha?: string;
   Vigencia?: string;
   Estado?: string;
   Scoring?: number;
-  Valor_Cotizacion?: number;
   // Datos del operador
   operador_nombre?: string;
   operador_apellido?: string;
@@ -63,12 +62,11 @@ const QuoteManagement: React.FC = () => {
           id_Usuario,
           id_Envio,
           id_Operador,
-          Oferta,
           Fecha,
           Vigencia,
           Estado,
           Scoring,
-          Valor_Cotizacion
+          Oferta
         `)
         .eq('id_Usuario', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
@@ -343,38 +341,20 @@ const QuoteManagement: React.FC = () => {
         {/* Tabla de campos específicos solicitados */}
         {sortedQuotes.length > 0 ? (
           <div className="overflow-x-auto">
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                Campos de la tabla Cotizaciones
-              </h3>
-              <p className="text-blue-700 text-sm">
-                Mostrando los campos específicos solicitados: <strong>Fecha</strong>, <strong>Vigencia</strong>, <strong>Estado</strong> y <strong>Oferta</strong>
-              </p>
-            </div>
-            
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                      <span className="text-blue-600 font-bold">Fecha</span>
-                    </div>
+                    Fecha
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-orange-600" />
-                      <span className="text-orange-600 font-bold">Vigencia</span>
-                    </div>
+                    Vigencia
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <span className="text-purple-600 font-bold">Estado</span>
+                    Estado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                      <span className="text-green-600 font-bold">Oferta</span>
-                    </div>
+                    Oferta
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Operador
@@ -394,75 +374,55 @@ const QuoteManagement: React.FC = () => {
                   
                   return (
                     <tr key={quote.id_Cotizaciones} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : ''}`}>
-                      {/* FECHA - Campo solicitado */}
+                      {/* Fecha */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                          <div className="text-sm text-blue-900 font-bold">
-                            {formatDate(quote.Fecha)}
-                          </div>
-                          <div className="text-xs text-blue-700">
-                            {formatDateTime(quote.Fecha).split(' ')[1]}
-                          </div>
-                          <div className="text-xs text-blue-600 mt-1">
-                            Campo: Fecha
-                          </div>
+                        <div className="text-sm text-gray-900">
+                          {formatDate(quote.Fecha)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatDateTime(quote.Fecha).split(' ')[1]}
                         </div>
                       </td>
 
-                      {/* VIGENCIA - Campo solicitado */}
+                      {/* Vigencia */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                          <div className={`text-sm font-bold ${isExpired ? 'text-red-600' : 'text-orange-900'}`}>
-                            {formatDate(quote.Vigencia)}
-                          </div>
-                          <div className={`text-xs ${isExpired ? 'text-red-500' : daysUntilExpiry <= 2 ? 'text-orange-600' : 'text-orange-700'}`}>
-                            {isExpired ? (
-                              <div className="flex items-center">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Expirada
-                              </div>
-                            ) : daysUntilExpiry === 0 ? (
-                              'Expira hoy'
-                            ) : daysUntilExpiry === 1 ? (
-                              'Expira mañana'
-                            ) : (
-                              `${daysUntilExpiry} días restantes`
-                            )}
-                          </div>
-                          <div className="text-xs text-orange-600 mt-1">
-                            Campo: Vigencia
-                          </div>
+                        <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                          {formatDate(quote.Vigencia)}
+                        </div>
+                        <div className={`text-xs ${isExpired ? 'text-red-500' : daysUntilExpiry <= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
+                          {isExpired ? (
+                            <div className="flex items-center">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Expirada
+                            </div>
+                          ) : daysUntilExpiry === 0 ? (
+                            'Expira hoy'
+                          ) : daysUntilExpiry === 1 ? (
+                            'Expira mañana'
+                          ) : (
+                            `${daysUntilExpiry} días restantes`
+                          )}
                         </div>
                       </td>
 
-                      {/* ESTADO - Campo solicitado */}
+                      {/* Estado */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                          <span className={`px-3 py-1 text-xs rounded-full font-bold ${getStatusColor(quote.Estado)}`}>
-                            {quote.Estado}
-                          </span>
-                          <div className="text-xs text-purple-600 mt-2">
-                            Campo: Estado
-                          </div>
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(quote.Estado)}`}>
+                          {quote.Estado}
+                        </span>
+                      </td>
+
+                      {/* Oferta */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          ${(quote.Oferta || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Valor total
                         </div>
                       </td>
 
-                      {/* OFERTA - Campo solicitado */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                          <div className="text-lg font-bold text-green-700">
-                            ${(quote.Oferta || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-green-600">
-                            Valor total
-                          </div>
-                          <div className="text-xs text-green-600 mt-1">
-                            Campo: Oferta
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Operador - Información adicional */}
+                      {/* Operador */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
@@ -479,7 +439,7 @@ const QuoteManagement: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Ruta - Información adicional */}
+                      {/* Ruta */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           <div className="flex items-center">
@@ -541,14 +501,6 @@ const QuoteManagement: React.FC = () => {
                 : `No hay cotizaciones con estado "${filterStatus}".`
               }
             </p>
-            <div className="text-sm text-gray-400 mb-4">
-              <p>Para recibir cotizaciones:</p>
-              <ol className="list-decimal list-inside mt-2 space-y-1">
-                <li>Crea una solicitud de envío</li>
-                <li>Los operadores verán tu solicitud</li>
-                <li>Recibirás cotizaciones aquí</li>
-              </ol>
-            </div>
             <button
               onClick={fetchQuotes}
               className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
