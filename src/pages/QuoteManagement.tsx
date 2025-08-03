@@ -25,6 +25,8 @@ const QuoteManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     fetchQuotes();
@@ -34,6 +36,7 @@ const QuoteManagement: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setDebugInfo(null);
       
       console.log('=== BUSCANDO COTIZACIONES PARA EL DADOR ===');
 
@@ -51,6 +54,14 @@ const QuoteManagement: React.FC = () => {
         tipoPersona: currentUser.profile.Tipo_Persona
       });
 
+      // Debug: Verificar datos del usuario
+      const userDebugInfo = {
+        userId: currentUser.profile.id_Usuario,
+        userName: currentUser.profile.Nombre,
+        userType: currentUser.profile.Tipo_Persona,
+        userRole: currentUser.profile.Rol_Operativo
+      };
+
       // Buscar cotizaciones para los envíos de este usuario
       console.log('💰 Buscando cotizaciones para envíos del usuario...');
       
@@ -67,15 +78,30 @@ const QuoteManagement: React.FC = () => {
       }
 
       console.log('📦 Envíos del usuario encontrados:', userShipments?.length || 0);
+      console.log('📋 Detalles de envíos:', userShipments);
       
       if (!userShipments || userShipments.length === 0) {
         console.log('⚠️ No se encontraron envíos para este usuario');
+        setDebugInfo({
+          ...userDebugInfo,
+          userShipments: [],
+          totalShipments: 0,
+          message: 'No se encontraron envíos para este usuario'
+        });
         setQuotes([]);
         return;
       }
 
       const shipmentIds = userShipments.map(s => s.id_Envio);
       console.log('🔍 IDs de envíos:', shipmentIds);
+
+      // Debug: Verificar si existen cotizaciones para estos envíos
+      const { data: allQuotesForShipments, error: allQuotesError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .in('id_Envio', shipmentIds);
+
+      console.log('🔍 Todas las cotizaciones para estos envíos:', allQuotesForShipments);
 
       // Ahora buscar cotizaciones para esos envíos
       const { data: quotesData, error: quotesError } = await supabase
@@ -96,6 +122,17 @@ const QuoteManagement: React.FC = () => {
 
       console.log('✅ Cotizaciones encontradas:', quotesData?.length || 0);
       console.log('📋 Datos de cotizaciones:', quotesData);
+
+      // Guardar información de debug
+      setDebugInfo({
+        ...userDebugInfo,
+        userShipments,
+        totalShipments: userShipments.length,
+        shipmentIds,
+        allQuotesForShipments,
+        quotesData,
+        totalQuotes: quotesData?.length || 0
+      });
 
       // Procesar los datos para incluir información del operador
       const processedQuotes = (quotesData || []).map(quote => ({
@@ -441,6 +478,14 @@ const QuoteManagement: React.FC = () => {
                 <li>2. Los operadores verán tu solicitud</li>
                 <li>3. Recibirás cotizaciones aquí</li>
               </ol>
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm mr-2"
+                >
+                  {showDebug ? 'Ocultar' : 'Mostrar'} Info Debug
+                </button>
+              </div>
               <button
                 onClick={fetchQuotes}
                 className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -448,6 +493,40 @@ const QuoteManagement: React.FC = () => {
                 Actualizar Lista
               </button>
             </div>
+            
+            {/* Debug Information */}
+            {showDebug && debugInfo && (
+              <div className="mt-6 bg-gray-100 border border-gray-300 rounded-lg p-4 text-left">
+                <h4 className="font-bold text-gray-800 mb-3">Información de Debug:</h4>
+                <div className="space-y-2 text-sm">
+                  <div><strong>Usuario ID:</strong> {debugInfo.userId}</div>
+                  <div><strong>Nombre Usuario:</strong> {debugInfo.userName}</div>
+                  <div><strong>Tipo Persona:</strong> {debugInfo.userType}</div>
+                  <div><strong>Rol:</strong> {debugInfo.userRole}</div>
+                  <div><strong>Total Envíos:</strong> {debugInfo.totalShipments}</div>
+                  <div><strong>IDs de Envíos:</strong> {JSON.stringify(debugInfo.shipmentIds)}</div>
+                  <div><strong>Cotizaciones Encontradas:</strong> {debugInfo.totalQuotes}</div>
+                  
+                  {debugInfo.allQuotesForShipments && debugInfo.allQuotesForShipments.length > 0 && (
+                    <div className="mt-4">
+                      <strong>Cotizaciones en BD:</strong>
+                      <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(debugInfo.allQuotesForShipments, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  
+                  {debugInfo.userShipments && debugInfo.userShipments.length > 0 && (
+                    <div className="mt-4">
+                      <strong>Envíos del Usuario:</strong>
+                      <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(debugInfo.userShipments, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
