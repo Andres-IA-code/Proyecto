@@ -28,7 +28,7 @@ const QuoteManagement: React.FC = () => {
       setLoading(true);
       setError('');
       
-      console.log('=== BUSCANDO COTIZACIONES ===');
+      console.log('=== BUSCANDO COTIZACIONES POR NOMBRE_DADOR ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -37,16 +37,41 @@ const QuoteManagement: React.FC = () => {
         return;
       }
 
+      // Construir el nombre del dador según el tipo de persona
+      const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
+
       console.log('✅ Usuario autenticado:', {
         id_Usuario: currentUser.profile.id_Usuario,
-        nombre: currentUser.profile.Nombre
+        nombre: currentUser.profile.Nombre,
+        nombreDador: nombreDador,
+        tipoPersona: currentUser.profile.Tipo_Persona
       });
 
-      // Primero, verificar si hay cotizaciones en la tabla
+      // Primero, buscar envíos del usuario en la tabla General
+      console.log('🔍 Buscando envíos del usuario en tabla General...');
+      const { data: userShipments, error: shipmentsError } = await supabase
+        .from('General')
+        .select('id_Envio, Nombre_Dador, Origen, Destino')
+        .eq('Nombre_Dador', nombreDador);
+
+      if (shipmentsError) {
+        console.error('❌ Error al buscar envíos:', shipmentsError);
+      } else {
+        console.log('📦 Envíos encontrados para este dador:', userShipments?.length || 0);
+        console.log('📋 Detalles de envíos:', userShipments);
+      }
+
+      // Obtener los IDs de envíos del usuario
+      const shipmentIds = userShipments?.map(s => s.id_Envio) || [];
+      console.log('🎯 IDs de envíos del usuario:', shipmentIds);
+
+      // Verificar todas las cotizaciones en la tabla
       console.log('🔍 Verificando todas las cotizaciones en la tabla...');
       const { data: allQuotes, error: allQuotesError } = await supabase
         .from('Cotizaciones')
-        .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta')
+        .select('*')
         .limit(10);
 
       if (allQuotesError) {
@@ -54,42 +79,31 @@ const QuoteManagement: React.FC = () => {
       } else {
         console.log('📊 Total de cotizaciones en la tabla:', allQuotes?.length || 0);
         console.log('📋 Primeras cotizaciones encontradas:', allQuotes);
-        
-        // Mostrar qué id_Usuario tienen las cotizaciones
-        const userIds = [...new Set(allQuotes?.map(q => q.id_Usuario) || [])];
-        console.log('👥 IDs de usuarios con cotizaciones:', userIds);
+        console.log('📦 IDs de envíos en cotizaciones:', [...new Set(allQuotes?.map(q => q.id_Envio) || [])]);
       }
-      // Ahora buscar cotizaciones específicas para este usuario
-      console.log(`🎯 Buscando cotizaciones para id_Usuario: ${currentUser.profile.id_Usuario}`);
+
+      // Buscar cotizaciones para los envíos de este usuario
+      if (shipmentIds.length === 0) {
+        console.log('⚠️ No se encontraron envíos para este usuario');
+        setQuotes([]);
+        return;
+      }
+
+      console.log(`🎯 Buscando cotizaciones para envíos: ${shipmentIds.join(', ')}`);
       const { data: quotesData, error: fetchError } = await supabase
         .from('Cotizaciones')
-        .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta')
-        .eq('id_Usuario', currentUser.profile.id_Usuario)
+        .select('*')
+        .in('id_Envio', shipmentIds)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
-        console.error('❌ Error al buscar cotizaciones:', fetchError);
+        console.error('❌ Error al buscar cotizaciones para envíos:', fetchError);
         setError(`Error al cargar las cotizaciones: ${fetchError.message}`);
         return;
       }
 
-      console.log('✅ Cotizaciones encontradas para este usuario:', quotesData?.length || 0);
-      console.log('📋 Datos de cotizaciones del usuario:', quotesData);
-
-      // También buscar cotizaciones donde este usuario sea el operador
-      console.log(`🚛 Buscando cotizaciones donde el usuario sea operador (id_Operador: ${currentUser.profile.id_Usuario})`);
-      const { data: operatorQuotes, error: operatorError } = await supabase
-        .from('Cotizaciones')
-        .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta')
-        .eq('id_Operador', currentUser.profile.id_Usuario)
-        .order('Fecha', { ascending: false });
-
-      if (operatorError) {
-        console.error('❌ Error al buscar cotizaciones como operador:', operatorError);
-      } else {
-        console.log('🚛 Cotizaciones como operador:', operatorQuotes?.length || 0);
-        console.log('📋 Datos como operador:', operatorQuotes);
-      }
+      console.log('✅ Cotizaciones encontradas para los envíos del usuario:', quotesData?.length || 0);
+      console.log('📋 Datos de cotizaciones:', quotesData);
 
       setQuotes(quotesData || []);
       
@@ -281,6 +295,9 @@ const QuoteManagement: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             #{quote.id_Cotizaciones}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Envío: #{quote.id_Envio}
                           </div>
                         </td>
 
