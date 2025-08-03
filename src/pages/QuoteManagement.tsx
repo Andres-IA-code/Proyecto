@@ -96,9 +96,9 @@ const QuoteManagement: React.FC = () => {
         .eq('General.Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
-      if (fetchError) {
-        console.error('❌ Error al buscar cotizaciones para envíos:', fetchError);
-        setError(`Error al cargar las cotizaciones: ${fetchError.message}`);
+      if (quotesError) {
+        console.error('❌ Error al buscar cotizaciones:', quotesError);
+        setError(`Error al cargar las cotizaciones: ${quotesError.message}`);
         return;
       }
 
