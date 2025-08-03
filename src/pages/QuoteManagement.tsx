@@ -42,7 +42,25 @@ const QuoteManagement: React.FC = () => {
         nombre: currentUser.profile.Nombre
       });
 
-      // Consulta simple solo con los campos que existen
+      // Primero, verificar si hay cotizaciones en la tabla
+      console.log('🔍 Verificando todas las cotizaciones en la tabla...');
+      const { data: allQuotes, error: allQuotesError } = await supabase
+        .from('Cotizaciones')
+        .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta')
+        .limit(10);
+
+      if (allQuotesError) {
+        console.error('❌ Error al consultar todas las cotizaciones:', allQuotesError);
+      } else {
+        console.log('📊 Total de cotizaciones en la tabla:', allQuotes?.length || 0);
+        console.log('📋 Primeras cotizaciones encontradas:', allQuotes);
+        
+        // Mostrar qué id_Usuario tienen las cotizaciones
+        const userIds = [...new Set(allQuotes?.map(q => q.id_Usuario) || [])];
+        console.log('👥 IDs de usuarios con cotizaciones:', userIds);
+      }
+      // Ahora buscar cotizaciones específicas para este usuario
+      console.log(`🎯 Buscando cotizaciones para id_Usuario: ${currentUser.profile.id_Usuario}`);
       const { data: quotesData, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta')
@@ -55,8 +73,23 @@ const QuoteManagement: React.FC = () => {
         return;
       }
 
-      console.log('✅ Cotizaciones encontradas:', quotesData?.length || 0);
-      console.log('📋 Datos de cotizaciones:', quotesData);
+      console.log('✅ Cotizaciones encontradas para este usuario:', quotesData?.length || 0);
+      console.log('📋 Datos de cotizaciones del usuario:', quotesData);
+
+      // También buscar cotizaciones donde este usuario sea el operador
+      console.log(`🚛 Buscando cotizaciones donde el usuario sea operador (id_Operador: ${currentUser.profile.id_Usuario})`);
+      const { data: operatorQuotes, error: operatorError } = await supabase
+        .from('Cotizaciones')
+        .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta')
+        .eq('id_Operador', currentUser.profile.id_Usuario)
+        .order('Fecha', { ascending: false });
+
+      if (operatorError) {
+        console.error('❌ Error al buscar cotizaciones como operador:', operatorError);
+      } else {
+        console.log('🚛 Cotizaciones como operador:', operatorQuotes?.length || 0);
+        console.log('📋 Datos como operador:', operatorQuotes);
+      }
 
       setQuotes(quotesData || []);
       
