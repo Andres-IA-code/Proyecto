@@ -35,7 +35,7 @@ const QuoteManagement: React.FC = () => {
       setLoading(true);
       setError('');
       
-      console.log('=== BUSCANDO COTIZACIONES POR NOMBRE_DADOR ===');
+      console.log('=== BUSCANDO COTIZACIONES PARA EL DADOR ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -44,37 +44,23 @@ const QuoteManagement: React.FC = () => {
         return;
       }
 
-      // Construir el nombre del dador según el tipo de persona
-      const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
-        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
-        : currentUser.profile.Nombre;
 
       console.log('✅ Usuario autenticado:', {
         id_Usuario: currentUser.profile.id_Usuario,
         nombre: currentUser.profile.Nombre,
-        nombreDador: nombreDador,
         tipoPersona: currentUser.profile.Tipo_Persona
       });
 
-      // Primero, buscar envíos del usuario en la tabla General
-      console.log('🔍 Buscando envíos del usuario en tabla General...');
-      const { data: userShipments, error: shipmentsError } = await supabase
-        .from('General')
-        .select('id_Envio, Nombre_Dador, Origen, Destino')
-        .eq('Nombre_Dador', nombreDador);
-
-      if (shipmentsError) {
-        console.error('❌ Error al buscar envíos:', shipmentsError);
-      } else {
-        console.log('📦 Envíos encontrados para este dador:', userShipments?.length || 0);
-        console.log('📋 Detalles de envíos:', userShipments);
-      }
-      // Hacer una consulta JOIN para obtener cotizaciones con información del operador y envío
-      console.log('💰 Buscando cotizaciones con JOIN...');
+      // Buscar cotizaciones para los envíos de este usuario
+      console.log('💰 Buscando cotizaciones para envíos del usuario...');
       const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
-        .select('*, General(Origen, Destino, Nombre_Dador), Usuarios!Cotizaciones_id_Operador_fkey(Nombre, Apellido, Tipo_Persona)')
-        .eq('General.Nombre_Dador', nombreDador)
+        .select(`
+          *,
+          General!inner(id_Envio, Origen, Destino, Nombre_Dador, id_Usuario),
+          Usuarios!Cotizaciones_id_Operador_fkey(Nombre, Apellido, Tipo_Persona)
+        `)
+        .eq('General.id_Usuario', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
       if (quotesError) {
@@ -83,7 +69,7 @@ const QuoteManagement: React.FC = () => {
         return;
       }
 
-      console.log('✅ Cotizaciones encontradas para los envíos del usuario:', quotesData?.length || 0);
+      console.log('✅ Cotizaciones encontradas:', quotesData?.length || 0);
       console.log('📋 Datos de cotizaciones:', quotesData);
 
       // Procesar los datos para incluir información del operador
