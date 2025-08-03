@@ -53,14 +53,39 @@ const QuoteManagement: React.FC = () => {
 
       // Buscar cotizaciones para los envíos de este usuario
       console.log('💰 Buscando cotizaciones para envíos del usuario...');
+      
+      // Primero obtener los IDs de envíos del usuario
+      const { data: userShipments, error: shipmentsError } = await supabase
+        .from('General')
+        .select('id_Envio')
+        .eq('id_Usuario', currentUser.profile.id_Usuario);
+
+      if (shipmentsError) {
+        console.error('❌ Error al buscar envíos del usuario:', shipmentsError);
+        setError(`Error al cargar los envíos: ${shipmentsError.message}`);
+        return;
+      }
+
+      console.log('📦 Envíos del usuario encontrados:', userShipments?.length || 0);
+      
+      if (!userShipments || userShipments.length === 0) {
+        console.log('⚠️ No se encontraron envíos para este usuario');
+        setQuotes([]);
+        return;
+      }
+
+      const shipmentIds = userShipments.map(s => s.id_Envio);
+      console.log('🔍 IDs de envíos:', shipmentIds);
+
+      // Ahora buscar cotizaciones para esos envíos
       const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          General!inner(id_Envio, Origen, Destino, Nombre_Dador, id_Usuario),
+          General(id_Envio, Origen, Destino, Nombre_Dador),
           Usuarios!Cotizaciones_id_Operador_fkey(Nombre, Apellido, Tipo_Persona)
         `)
-        .eq('General.id_Usuario', currentUser.profile.id_Usuario)
+        .in('id_Envio', shipmentIds)
         .order('Fecha', { ascending: false });
 
       if (quotesError) {
