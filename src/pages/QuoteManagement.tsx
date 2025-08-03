@@ -38,113 +38,139 @@ const QuoteManagement: React.FC = () => {
       setError('');
       setDebugInfo(null);
       
-      console.log('=== BUSCANDO COTIZACIONES PARA EL DADOR ===');
+      console.log('=== INICIANDO BÚSQUEDA DE COTIZACIONES ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
-        console.error('❌ Usuario no autenticado');
+        console.error('❌ No hay usuario autenticado');
         setError('Usuario no autenticado');
         return;
       }
 
-
-      console.log('✅ Usuario autenticado:', {
+      console.log('👤 Usuario autenticado:', {
         id_Usuario: currentUser.profile.id_Usuario,
         nombre: currentUser.profile.Nombre,
-        tipoPersona: currentUser.profile.Tipo_Persona
+        tipoPersona: currentUser.profile.Tipo_Persona,
+        rol: currentUser.profile.Rol_Operativo
       });
 
-      // Debug: Verificar datos del usuario
-      const userDebugInfo = {
-        userId: currentUser.profile.id_Usuario,
-        userName: currentUser.profile.Nombre,
-        userType: currentUser.profile.Tipo_Persona,
-        userRole: currentUser.profile.Rol_Operativo
-      };
-
-      // Buscar cotizaciones para los envíos de este usuario
-      console.log('💰 Buscando cotizaciones para envíos del usuario...');
-      
-      // Primero obtener los IDs de envíos del usuario
+      // PASO 1: Verificar envíos del usuario en tabla General
+      console.log('📦 PASO 1: Buscando envíos del usuario...');
       const { data: userShipments, error: shipmentsError } = await supabase
         .from('General')
-        .select('id_Envio')
+        .select('id_Envio, Origen, Destino, Estado, Nombre_Dador')
         .eq('id_Usuario', currentUser.profile.id_Usuario);
 
+
       if (shipmentsError) {
-        console.error('❌ Error al buscar envíos del usuario:', shipmentsError);
+        console.error('❌ Error en PASO 1:', shipmentsError);
         setError(`Error al cargar los envíos: ${shipmentsError.message}`);
         return;
       }
 
-      console.log('📦 Envíos del usuario encontrados:', userShipments?.length || 0);
-      console.log('📋 Detalles de envíos:', userShipments);
+      console.log('✅ PASO 1 completado:', {
+        totalEnvios: userShipments?.length || 0,
+        envios: userShipments
+      });
       
       if (!userShipments || userShipments.length === 0) {
-        console.log('⚠️ No se encontraron envíos para este usuario');
+        console.log('⚠️ RESULTADO: No hay envíos para este usuario');
         setDebugInfo({
-          ...userDebugInfo,
+          step: 'PASO 1',
+          userId: currentUser.profile.id_Usuario,
+          userName: currentUser.profile.Nombre,
           userShipments: [],
           totalShipments: 0,
-          message: 'No se encontraron envíos para este usuario'
+          message: 'No se encontraron envíos para este usuario. Debe crear un envío primero.'
         });
         setQuotes([]);
         return;
       }
 
       const shipmentIds = userShipments.map(s => s.id_Envio);
-      console.log('🔍 IDs de envíos:', shipmentIds);
+      console.log('🔍 IDs de envíos extraídos:', shipmentIds);
 
-      // Debug: Verificar si existen cotizaciones para estos envíos
-      const { data: allQuotesForShipments, error: allQuotesError } = await supabase
+      // PASO 2: Buscar TODAS las cotizaciones para estos envíos (sin joins complejos)
+      console.log('💰 PASO 2: Buscando cotizaciones para estos envíos...');
+      const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
         .select('*')
         .in('id_Envio', shipmentIds);
 
-      console.log('🔍 Todas las cotizaciones para estos envíos:', allQuotesForShipments);
-
-      // Ahora buscar cotizaciones para esos envíos
-      const { data: quotesData, error: quotesError } = await supabase
-        .from('Cotizaciones')
-        .select(`
-          *,
-          General(id_Envio, Origen, Destino, Nombre_Dador),
-          Usuarios!Cotizaciones_id_Operador_fkey(Nombre, Apellido, Tipo_Persona)
-        `)
-        .in('id_Envio', shipmentIds)
-        .order('Fecha', { ascending: false });
-
       if (quotesError) {
-        console.error('❌ Error al buscar cotizaciones:', quotesError);
+        console.error('❌ Error en PASO 2:', quotesError);
         setError(`Error al cargar las cotizaciones: ${quotesError.message}`);
         return;
       }
 
-      console.log('✅ Cotizaciones encontradas:', quotesData?.length || 0);
-      console.log('📋 Datos de cotizaciones:', quotesData);
+      console.log('✅ PASO 2 completado:', {
+        totalCotizaciones: quotesData?.length || 0,
+        cotizaciones: quotesData
+      });
 
-      // Guardar información de debug
+      if (!quotesData || quotesData.length === 0) {
+        console.log('⚠️ RESULTADO: No hay cotizaciones para estos envíos');
+        setDebugInfo({
+          step: 'PASO 2',
+          userId: currentUser.profile.id_Usuario,
+          userName: currentUser.profile.Nombre,
+          userShipments,
+          totalShipments: userShipments.length,
+          shipmentIds,
+          quotesData: [],
+          totalQuotes: 0,
+          message: 'Se encontraron envíos pero no hay cotizaciones para ellos. Los operadores aún no han cotizado.'
+        });
+        setQuotes([]);
+        return;
+      }
+
+      // PASO 3: Obtener información adicional del operador para cada cotización
+      console.log('👥 PASO 3: Obteniendo información de operadores...');
+      const quotesWithOperatorInfo = await Promise.all(
+        quotesData.map(async (quote) => {
+          // Buscar información del operador
+          const { data: operatorData } = await supabase
+            .from('Usuarios')
+            .select('Nombre, Apellido, Tipo_Persona')
+            .eq('id_Usuario', quote.id_Operador)
+            .single();
+
+          // Buscar información del envío
+          const envioInfo = userShipments.find(envio => envio.id_Envio === quote.id_Envio);
+
+          return {
+            ...quote,
+            operador_nombre: operatorData?.Nombre,
+            operador_apellido: operatorData?.Apellido,
+            operador_tipo_persona: operatorData?.Tipo_Persona,
+            envio_origen: envioInfo?.Origen,
+            envio_destino: envioInfo?.Destino,
+            envio_nombre_dador: envioInfo?.Nombre_Dador
+          };
+        })
+      );
+
+      console.log('✅ PASO 3 completado:', {
+        cotizacionesConInfo: quotesWithOperatorInfo.length
+      });
+
+      // Guardar información completa de debug
       setDebugInfo({
-        ...userDebugInfo,
+        step: 'COMPLETADO',
+        userId: currentUser.profile.id_Usuario,
+        userName: currentUser.profile.Nombre,
+        userRole: currentUser.profile.Rol_Operativo,
         userShipments,
         totalShipments: userShipments.length,
         shipmentIds,
-        allQuotesForShipments,
         quotesData,
-        totalQuotes: quotesData?.length || 0
+        totalQuotes: quotesData.length,
+        quotesWithOperatorInfo,
+        message: `Se encontraron ${quotesData.length} cotizaciones para ${userShipments.length} envíos`
       });
 
-      // Procesar los datos para incluir información del operador
-      const processedQuotes = (quotesData || []).map(quote => ({
-        ...quote,
-        operador_nombre: quote.Usuarios?.Nombre,
-        operador_apellido: quote.Usuarios?.Apellido,
-        operador_tipo_persona: quote.Usuarios?.Tipo_Persona,
-        envio_origen: quote.General?.Origen,
-        envio_destino: quote.General?.Destino
-      }));
-
-      setQuotes(processedQuotes);
+      setQuotes(quotesWithOperatorInfo);
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
@@ -499,19 +525,19 @@ const QuoteManagement: React.FC = () => {
               <div className="mt-6 bg-gray-100 border border-gray-300 rounded-lg p-4 text-left">
                 <h4 className="font-bold text-gray-800 mb-3">Información de Debug:</h4>
                 <div className="space-y-2 text-sm">
+                  <div><strong>Paso Actual:</strong> {debugInfo.step}</div>
                   <div><strong>Usuario ID:</strong> {debugInfo.userId}</div>
                   <div><strong>Nombre Usuario:</strong> {debugInfo.userName}</div>
-                  <div><strong>Tipo Persona:</strong> {debugInfo.userType}</div>
                   <div><strong>Rol:</strong> {debugInfo.userRole}</div>
                   <div><strong>Total Envíos:</strong> {debugInfo.totalShipments}</div>
-                  <div><strong>IDs de Envíos:</strong> {JSON.stringify(debugInfo.shipmentIds)}</div>
                   <div><strong>Cotizaciones Encontradas:</strong> {debugInfo.totalQuotes}</div>
+                  <div><strong>Mensaje:</strong> {debugInfo.message}</div>
                   
-                  {debugInfo.allQuotesForShipments && debugInfo.allQuotesForShipments.length > 0 && (
+                  {debugInfo.shipmentIds && (
                     <div className="mt-4">
-                      <strong>Cotizaciones en BD:</strong>
+                      <strong>IDs de Envíos:</strong>
                       <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(debugInfo.allQuotesForShipments, null, 2)}
+                        {JSON.stringify(debugInfo.shipmentIds, null, 2)}
                       </pre>
                     </div>
                   )}
@@ -521,6 +547,15 @@ const QuoteManagement: React.FC = () => {
                       <strong>Envíos del Usuario:</strong>
                       <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
                         {JSON.stringify(debugInfo.userShipments, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {debugInfo.quotesData && debugInfo.quotesData.length > 0 && (
+                    <div className="mt-4">
+                      <strong>Cotizaciones Encontradas:</strong>
+                      <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(debugInfo.quotesData, null, 2)}
                       </pre>
                     </div>
                   )}
