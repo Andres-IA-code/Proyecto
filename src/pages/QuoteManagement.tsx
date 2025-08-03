@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, Package, Calendar, Clock, DollarSign, AlertCircle } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
 
-interface Quote {
+interface QuoteWithOperator {
   id_Cotizaciones: number;
   id_Usuario: number;
   id_Envio: number;
@@ -11,10 +11,17 @@ interface Quote {
   Vigencia: string;
   Estado: string;
   Oferta: number;
+  // Datos del operador
+  operador_nombre?: string;
+  operador_apellido?: string;
+  operador_tipo_persona?: string;
+  // Datos del envío
+  envio_origen?: string;
+  envio_destino?: string;
 }
 
 const QuoteManagement: React.FC = () => {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotes, setQuotes] = useState<QuoteWithOperator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -62,38 +69,31 @@ const QuoteManagement: React.FC = () => {
         console.log('📦 Envíos encontrados para este dador:', userShipments?.length || 0);
         console.log('📋 Detalles de envíos:', userShipments);
       }
-
-      // Obtener los IDs de envíos del usuario
-      const shipmentIds = userShipments?.map(s => s.id_Envio) || [];
-      console.log('🎯 IDs de envíos del usuario:', shipmentIds);
-
-      // Verificar todas las cotizaciones en la tabla
-      console.log('🔍 Verificando todas las cotizaciones en la tabla...');
-      const { data: allQuotes, error: allQuotesError } = await supabase
+      // Hacer una consulta JOIN para obtener cotizaciones con información del operador y envío
+      console.log('💰 Buscando cotizaciones con JOIN...');
+      const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
-        .select('*')
-        .limit(10);
-
-      if (allQuotesError) {
-        console.error('❌ Error al consultar todas las cotizaciones:', allQuotesError);
-      } else {
-        console.log('📊 Total de cotizaciones en la tabla:', allQuotes?.length || 0);
-        console.log('📋 Primeras cotizaciones encontradas:', allQuotes);
-        console.log('📦 IDs de envíos en cotizaciones:', [...new Set(allQuotes?.map(q => q.id_Envio) || [])]);
-      }
-
-      // Buscar cotizaciones para los envíos de este usuario
-      if (shipmentIds.length === 0) {
-        console.log('⚠️ No se encontraron envíos para este usuario');
-        setQuotes([]);
-        return;
-      }
-
-      console.log(`🎯 Buscando cotizaciones para envíos: ${shipmentIds.join(', ')}`);
-      const { data: quotesData, error: fetchError } = await supabase
-        .from('Cotizaciones')
-        .select('*')
-        .in('id_Envio', shipmentIds)
+        .select(`
+          id_Cotizaciones,
+          id_Usuario,
+          id_Envio,
+          id_Operador,
+          Fecha,
+          Vigencia,
+          Estado,
+          Oferta,
+          General!inner(
+            Nombre_Dador,
+            Origen,
+            Destino
+          ),
+          Usuarios!Cotizaciones_id_Operador_fkey(
+            Nombre,
+            Apellido,
+            Tipo_Persona
+          )
+        `)
+        .eq('General.Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
@@ -105,13 +105,33 @@ const QuoteManagement: React.FC = () => {
       console.log('✅ Cotizaciones encontradas para los envíos del usuario:', quotesData?.length || 0);
       console.log('📋 Datos de cotizaciones:', quotesData);
 
-      setQuotes(quotesData || []);
+      // Procesar los datos para incluir información del operador
+      const processedQuotes = (quotesData || []).map(quote => ({
+        ...quote,
+        operador_nombre: quote.Usuarios?.Nombre,
+        operador_apellido: quote.Usuarios?.Apellido,
+        operador_tipo_persona: quote.Usuarios?.Tipo_Persona,
+        envio_origen: quote.General?.Origen,
+        envio_destino: quote.General?.Destino
+      }));
+
+      setQuotes(processedQuotes);
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
       setError('Error inesperado al cargar las cotizaciones');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getOperatorName = (quote: QuoteWithOperator) => {
+    if (!quote.operador_nombre) return `Operador #${quote.id_Operador}`;
+    
+    if (quote.operador_tipo_persona === 'Física') {
+      return `${quote.operador_nombre} ${quote.operador_apellido || ''}`.trim();
+    } else {
+      return quote.operador_nombre; // Business name for juridical persons
     }
   };
 
@@ -283,6 +303,12 @@ const QuoteManagement: React.FC = () => {
                       ID Operador
                     </th>
                   </tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Operador Logístico
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ruta del Envío
+                  </th>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredQuotes.map((quote) => {
@@ -348,6 +374,26 @@ const QuoteManagement: React.FC = () => {
                             Monto total
                           </div>
                         </td>
+
+                         {/* Operador Logístico */}
+                         <td className="px-6 py-4 whitespace-nowrap">
+                           <div className="text-sm font-medium text-gray-900">
+                             {getOperatorName(quote)}
+                           </div>
+                           <div className="text-xs text-gray-500">
+                             ID: #{quote.id_Operador}
+                           </div>
+                         </td>
+
+                         {/* Ruta del Envío */}
+                         <td className="px-6 py-4 whitespace-nowrap">
+                           <div className="text-sm text-gray-900">
+                             {quote.envio_origen || 'N/A'} → {quote.envio_destino || 'N/A'}
+                           </div>
+                           <div className="text-xs text-gray-500">
+                             Envío #{quote.id_Envio}
+                           </div>
+                         </td>
 
                         {/* ID Envío */}
                         <td className="px-6 py-4 whitespace-nowrap">
