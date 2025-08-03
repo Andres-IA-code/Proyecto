@@ -73,7 +73,7 @@ const QuoteManagement: React.FC = () => {
       console.log('💰 Buscando cotizaciones con JOIN...');
       const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
-        .select('*, General(Origen, Destino, Nombre_Dador), Usuarios(Nombre, Apellido, Tipo_Persona)')
+        .select('*, General(Origen, Destino, Nombre_Dador), Usuarios!Cotizaciones_id_Operador_fkey(Nombre, Apellido, Tipo_Persona)')
         .eq('General.Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
