@@ -38,7 +38,7 @@ const QuoteManagement: React.FC = () => {
       setError('');
       setDebugInfo(null);
       
-      console.log('=== INICIANDO BÚSQUEDA DE COTIZACIONES POR NOMBRE_DADOR ===');
+      console.log('=== INICIANDO BÚSQUEDA COMPREHENSIVA DE COTIZACIONES ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -54,60 +54,137 @@ const QuoteManagement: React.FC = () => {
         rol: currentUser.profile.Rol_Operativo
       });
 
-      // Construir el nombre del dador según el tipo de persona
-      const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
-        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
-        : currentUser.profile.Nombre;
-
-      console.log('👤 Nombre del dador a buscar:', nombreDador);
-
-      // PASO 1: Buscar cotizaciones directamente por Nombre_Dador usando JOIN
-      console.log('💰 PASO 1: Buscando cotizaciones por Nombre_Dador...');
-      const { data: quotesData, error: quotesError } = await supabase
+      // MÉTODO 1: Buscar por id_Usuario del dador
+      console.log('💰 MÉTODO 1: Buscando cotizaciones por id_Usuario...');
+      const { data: quotesByUserId, error: userIdError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          General!inner(
+          General(
             id_Envio,
             Origen,
             Destino,
             Nombre_Dador,
             Estado,
-            Tipo_Carga,
-            Peso
+            id_Usuario
+          )
+        `)
+        .eq('General.id_Usuario', currentUser.profile.id_Usuario)
+        .order('Fecha', { ascending: false });
+
+      console.log('✅ MÉTODO 1 resultado:', {
+        cotizaciones: quotesByUserId?.length || 0,
+        error: userIdError?.message
+      });
+
+      // MÉTODO 2: Buscar por Nombre_Dador
+      const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
+
+      console.log('💰 MÉTODO 2: Buscando cotizaciones por Nombre_Dador:', nombreDador);
+      const { data: quotesByName, error: nameError } = await supabase
+        .from('Cotizaciones')
+        .select(`
+          *,
+          General(
+            id_Envio,
+            Origen,
+            Destino,
+            Nombre_Dador,
+            Estado,
+            id_Usuario
           )
         `)
         .eq('General.Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
-      if (quotesError) {
-        console.error('❌ Error en PASO 1:', quotesError);
-        setError(`Error al cargar las cotizaciones: ${quotesError.message}`);
-        return;
+      console.log('✅ MÉTODO 2 resultado:', {
+        cotizaciones: quotesByName?.length || 0,
+        error: nameError?.message
+      });
+
+      // MÉTODO 3: Buscar TODAS las cotizaciones para debug
+      console.log('💰 MÉTODO 3: Buscando TODAS las cotizaciones...');
+      const { data: allQuotes, error: allError } = await supabase
+        .from('Cotizaciones')
+        .select(`
+          *,
+          General(
+            id_Envio,
+            Origen,
+            Destino,
+            Nombre_Dador,
+            Estado,
+            id_Usuario
+          )
+        `)
+        .order('Fecha', { ascending: false });
+
+      console.log('✅ MÉTODO 3 resultado:', {
+        totalCotizaciones: allQuotes?.length || 0,
+        error: allError?.message
+      });
+
+      // Determinar qué datos usar
+      let quotesData = null;
+      let method = '';
+
+      if (quotesByUserId && quotesByUserId.length > 0) {
+        quotesData = quotesByUserId;
+        method = 'MÉTODO 1 (por id_Usuario)';
+      } else if (quotesByName && quotesByName.length > 0) {
+        quotesData = quotesByName;
+        method = 'MÉTODO 2 (por Nombre_Dador)';
+      } else {
+        quotesData = [];
+        method = 'NINGÚN MÉTODO';
       }
 
-      console.log('✅ PASO 1 completado:', {
-        totalCotizaciones: quotesData?.length || 0,
-        cotizaciones: quotesData
+      console.log('🎯 MÉTODO SELECCIONADO:', method, {
+        cotizacionesEncontradas: quotesData?.length || 0
+      });
+
+      // Guardar información de debug
+      setDebugInfo({
+        userId: currentUser.profile.id_Usuario,
+        userName: currentUser.profile.Nombre,
+        userRole: currentUser.profile.Rol_Operativo,
+        nombreDador: nombreDador,
+        method1_results: quotesByUserId?.length || 0,
+        method1_error: userIdError?.message,
+        method2_results: quotesByName?.length || 0,
+        method2_error: nameError?.message,
+        method3_total: allQuotes?.length || 0,
+        method3_error: allError?.message,
+        selectedMethod: method,
+        finalQuotes: quotesData?.length || 0,
+        allQuotesPreview: allQuotes?.slice(0, 3).map(q => ({
+          id: q.id_Cotizaciones,
+          nombre_dador: q.General?.Nombre_Dador,
+          id_usuario_envio: q.General?.id_Usuario,
+          oferta: q.Oferta
+        }))
       });
 
       if (!quotesData || quotesData.length === 0) {
         console.log('⚠️ RESULTADO: No hay cotizaciones para este dador');
         setDebugInfo({
-          step: 'PASO 1',
+          step: 'COMPLETADO - SIN RESULTADOS',
           userId: currentUser.profile.id_Usuario,
           userName: currentUser.profile.Nombre,
           nombreDador: nombreDador,
-          quotesData: [],
-          totalQuotes: 0,
-          message: `No se encontraron cotizaciones para el dador "${nombreDador}". Los operadores aún no han cotizado para este dador.`
+          method1_results: quotesByUserId?.length || 0,
+          method2_results: quotesByName?.length || 0,
+          method3_total: allQuotes?.length || 0,
+          message: `No se encontraron cotizaciones para el dador "${nombreDador}". Total de cotizaciones en sistema: ${allQuotes?.length || 0}`
         });
         setQuotes([]);
         return;
       }
 
-      // PASO 2: Obtener información adicional del operador para cada cotización
-      console.log('👥 PASO 2: Obteniendo información de operadores...');
+      // Obtener información adicional del operador para cada cotización
+      console.log('👥 Obteniendo información de operadores...');
       const quotesWithOperatorInfo = await Promise.all(
         quotesData.map(async (quote) => {
           // Buscar información del operador
@@ -124,26 +201,30 @@ const QuoteManagement: React.FC = () => {
             operador_tipo_persona: operatorData?.Tipo_Persona,
             envio_origen: quote.General?.Origen,
             envio_destino: quote.General?.Destino,
-            envio_nombre_dador: quote.General?.Nombre_Dador
+            envio_nombre_dador: quote.General?.Nombre_Dador,
+            envio_id_usuario: quote.General?.id_Usuario
           };
         })
       );
 
-      console.log('✅ PASO 2 completado:', {
+      console.log('✅ Información de operadores completada:', {
         cotizacionesConInfo: quotesWithOperatorInfo.length
       });
 
       // Guardar información completa de debug
       setDebugInfo({
-        step: 'COMPLETADO',
+        step: 'COMPLETADO - CON RESULTADOS',
         userId: currentUser.profile.id_Usuario,
         userName: currentUser.profile.Nombre,
         userRole: currentUser.profile.Rol_Operativo,
         nombreDador: nombreDador,
-        quotesData,
-        totalQuotes: quotesData.length,
+        selectedMethod: method,
+        method1_results: quotesByUserId?.length || 0,
+        method2_results: quotesByName?.length || 0,
+        method3_total: allQuotes?.length || 0,
+        finalQuotes: quotesData.length,
         quotesWithOperatorInfo,
-        message: `Se encontraron ${quotesData.length} cotizaciones para el dador "${nombreDador}"`
+        message: `Se encontraron ${quotesData.length} cotizaciones para el dador "${nombreDador}" usando ${method}`
       });
 
       setQuotes(quotesWithOperatorInfo);
