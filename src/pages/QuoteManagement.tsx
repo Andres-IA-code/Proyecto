@@ -109,8 +109,36 @@ const QuoteManagement: React.FC = () => {
          console.log('📋 Registros parciales:', partialSearch);
        }
      }
+      // Si no se encontraron cotizaciones con búsqueda exacta, intentar búsqueda flexible
+      let finalQuotes = quotesData || [];
+      
+      if (finalQuotes.length === 0) {
+        console.log('🔍 Intentando búsqueda flexible por nombre...');
+        
+        // Buscar por nombre solamente (más flexible)
+        const { data: flexibleSearch, error: flexibleError } = await supabase
+          .from('Cotizaciones')
+          .select(`
+            id_Cotizaciones,
+            Fecha,
+            Estado,
+            Oferta,
+            Nombre_Operador,
+            Nombre_Dador,
+            Vigencia,
+            id_Envio
+          `)
+          .ilike('Nombre_Dador', `%${currentUser.profile.Nombre}%`)
+          .order('Fecha', { ascending: false });
+        
+        if (!flexibleError && flexibleSearch) {
+          console.log('✅ Búsqueda flexible encontró:', flexibleSearch.length, 'cotizaciones');
+          finalQuotes = flexibleSearch;
+        }
+      }
+      
       // Establecer las cotizaciones encontradas
-      setQuotes(quotesData || []);
+      setQuotes(finalQuotes);
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
