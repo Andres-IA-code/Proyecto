@@ -38,7 +38,7 @@ const QuoteManagement: React.FC = () => {
       setError('');
       setDebugInfo(null);
       
-      console.log('=== BUSCANDO COTIZACIONES PARA DADOR ACTUAL ===');
+      console.log('=== BUSCANDO COTIZACIONES POR NOMBRE_DADOR ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -51,81 +51,84 @@ const QuoteManagement: React.FC = () => {
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
         : currentUser.profile.Nombre;
 
-      console.log('🔍 Buscando cotizaciones para dador:', nombreDador);
+      console.log('🔍 Buscando cotizaciones para Nombre_Dador:', nombreDador);
 
-      // Buscar cotizaciones directamente por Nombre_Dador
-      const { data: quotesData, error: quotesError } = await supabase
+      // PASO 1: Buscar cotizaciones directamente por Nombre_Dador en la tabla Cotizaciones
+      const { data: cotizacionesData, error: cotizacionesError } = await supabase
         .from('Cotizaciones')
-        .select(`
-          id_Cotizaciones,
-          Fecha,
-          Estado,
-          Oferta,
-          Nombre_Operador,
-          id_Envio,
-          id_Operador,
-          General(
-            Nombre_Dador,
-            Origen,
-            Destino,
-            Tipo_Carga,
-            Peso
-          )
-        `)
-        .eq('General.Nombre_Dador', nombreDador)
+        .select('*')
+        .eq('Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
-      if (quotesError) {
-        console.error('❌ Error en consulta:', quotesError);
-        setError(`Error al consultar cotizaciones: ${quotesError.message}`);
+      if (cotizacionesError) {
+        console.error('❌ Error consultando Cotizaciones:', cotizacionesError);
+        setError(`Error al consultar cotizaciones: ${cotizacionesError.message}`);
         return;
       }
 
-      console.log('✅ Cotizaciones encontradas:', quotesData?.length || 0);
+      console.log('📊 Cotizaciones encontradas:', cotizacionesData?.length || 0);
+      console.log('📋 Datos de cotizaciones:', cotizacionesData);
 
-      if (!quotesData || quotesData.length === 0) {
-        console.log('⚠️ No hay cotizaciones para este dador');
+      if (!cotizacionesData || cotizacionesData.length === 0) {
+        console.log('⚠️ No se encontraron cotizaciones para:', nombreDador);
+        
+        // Verificar si existen cotizaciones con nombres similares
+        const { data: allQuotes } = await supabase
+          .from('Cotizaciones')
+          .select('Nombre_Dador')
+          .not('Nombre_Dador', 'is', null);
+        
+        const uniqueNames = [...new Set(allQuotes?.map(q => q.Nombre_Dador) || [])];
+        
         setDebugInfo({
-          step: 'SIN COTIZACIONES',
-          userId: currentUser.profile.id_Usuario,
-          userName: currentUser.profile.Nombre,
-          nombreDador: nombreDador,
+          step: 'SIN COTIZACIONES ENCONTRADAS',
+          nombreDadorBuscado: nombreDador,
           cotizacionesEncontradas: 0,
-          message: `No se encontraron cotizaciones para el dador "${nombreDador}"`
+          nombresEnSistema: uniqueNames,
+          message: `No se encontraron cotizaciones para "${nombreDador}". Nombres en sistema: ${uniqueNames.join(', ')}`
         });
+        
         setQuotes([]);
         return;
       }
 
-      // Procesar las cotizaciones encontradas
-      const processedQuotes = quotesData.map(quote => ({
-        ...quote,
-        envio_origen: quote.General?.Origen,
-        envio_destino: quote.General?.Destino,
-        envio_tipo_carga: quote.General?.Tipo_Carga,
-        envio_peso: quote.General?.Peso
-      }));
+      // PASO 2: Para cada cotización, obtener información del envío
+      const quotesWithShipmentInfo = await Promise.all(
+        cotizacionesData.map(async (cotizacion) => {
+          const { data: envioData } = await supabase
+            .from('General')
+            .select('Origen, Destino, Tipo_Carga, Peso')
+            .eq('id_Envio', cotizacion.id_Envio)
+            .single();
 
-      console.log('✅ Cotizaciones procesadas:', processedQuotes.length);
+          return {
+            ...cotizacion,
+            envio_origen: envioData?.Origen,
+            envio_destino: envioData?.Destino,
+            envio_tipo_carga: envioData?.Tipo_Carga,
+            envio_peso: envioData?.Peso
+          };
+        })
+      );
+
+      console.log('✅ Cotizaciones con información de envío:', quotesWithShipmentInfo.length);
 
       setDebugInfo({
         step: 'COTIZACIONES ENCONTRADAS',
-        userId: currentUser.profile.id_Usuario,
-        userName: currentUser.profile.Nombre,
-        nombreDador: nombreDador,
-        cotizacionesEncontradas: quotesData.length,
-        cotizaciones: processedQuotes.map(q => ({
-          id: q.id_Cotizaciones,
-          fecha: q.Fecha,
-          estado: q.Estado,
-          oferta: q.Oferta,
-          operador: q.Nombre_Operador,
-          envio: `${q.envio_origen} → ${q.envio_destino}`
+        nombreDadorBuscado: nombreDador,
+        cotizacionesEncontradas: cotizacionesData.length,
+        cotizaciones: cotizacionesData.map(c => ({
+          id: c.id_Cotizaciones,
+          Fecha,
+          Estado: c.Estado,
+          Oferta,
+          Nombre_Operador,
+          Nombre_Dador: c.Nombre_Dador
         })),
-        message: `Se encontraron ${quotesData.length} cotizaciones para "${nombreDador}"`
+        message: `Se encontraron ${cotizacionesData.length} cotizaciones para "${nombreDador}"`
       });
 
-      setQuotes(processedQuotes);
+      setQuotes(quotesWithShipmentInfo);
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
@@ -289,14 +292,15 @@ const QuoteManagement: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <Calendar className="inline h-4 w-4 mr-1" />
+                      ID Cotización
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <DollarSign className="inline h-4 w-4 mr-1" />
                       Oferta
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -304,6 +308,12 @@ const QuoteManagement: React.FC = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Envío
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vigencia
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nombre_Dador
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Acciones
@@ -314,13 +324,17 @@ const QuoteManagement: React.FC = () => {
                   {filteredQuotes.map((quote) => {
                     return (
                       <tr key={quote.id_Cotizaciones} className="hover:bg-gray-50">
+                        {/* ID Cotización */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            #{quote.id_Cotizaciones}
+                          </div>
+                        </td>
+
                         {/* Fecha */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {formatDateTime(quote.Fecha)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ID: #{quote.id_Cotizaciones}
                           </div>
                         </td>
 
@@ -334,17 +348,14 @@ const QuoteManagement: React.FC = () => {
                         {/* Oferta */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-lg font-bold text-green-600">
-                            ${(quote.Oferta || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                            ${(quote.Oferta || 0).toLocaleString('es-AR')}
                           </div>
                         </td>
 
-                        {/* Nombre_Operador */}
+                        {/* Nombre_Operador - Campo directo de tabla Cotizaciones */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {quote.Nombre_Operador || 'Operador no especificado'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            ID Operador: #{quote.id_Operador}
                           </div>
                         </td>
 
@@ -356,6 +367,20 @@ const QuoteManagement: React.FC = () => {
                           <div className="text-xs text-gray-500">
                             {quote.envio_tipo_carga && `${quote.envio_tipo_carga}`}
                             {quote.envio_peso && ` • ${quote.envio_peso} Tn`}
+                          </div>
+                        </td>
+
+                        {/* Vigencia */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDate(quote.Vigencia)}
+                          </div>
+                        </td>
+
+                        {/* Nombre_Dador - Campo directo de tabla Cotizaciones */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-blue-600">
+                            {quote.Nombre_Dador}
                           </div>
                         </td>
 
