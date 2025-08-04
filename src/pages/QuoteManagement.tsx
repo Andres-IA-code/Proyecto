@@ -25,10 +25,63 @@ const QuoteManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [updatingQuote, setUpdatingQuote] = useState<number | null>(null);
 
   useEffect(() => {
     fetchQuotes();
   }, []);
+
+  const handleAcceptQuote = async (quoteId: number) => {
+    try {
+      setUpdatingQuote(quoteId);
+      
+      const { error } = await supabase
+        .from('Cotizaciones')
+        .update({ Estado: 'Aceptada' })
+        .eq('id_Cotizaciones', quoteId);
+
+      if (error) {
+        console.error('Error accepting quote:', error);
+        alert('Error al aceptar la cotización');
+        return;
+      }
+
+      // Refresh quotes
+      await fetchQuotes();
+      alert('Cotización aceptada exitosamente');
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error inesperado al aceptar la cotización');
+    } finally {
+      setUpdatingQuote(null);
+    }
+  };
+
+  const handleRejectQuote = async (quoteId: number) => {
+    try {
+      setUpdatingQuote(quoteId);
+      
+      const { error } = await supabase
+        .from('Cotizaciones')
+        .update({ Estado: 'Rechazada' })
+        .eq('id_Cotizaciones', quoteId);
+
+      if (error) {
+        console.error('Error rejecting quote:', error);
+        alert('Error al rechazar la cotización');
+        return;
+      }
+
+      // Refresh quotes
+      await fetchQuotes();
+      alert('Cotización rechazada');
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error inesperado al rechazar la cotización');
+    } finally {
+      setUpdatingQuote(null);
+    }
+  };
 
   const fetchQuotes = async () => {
     try {
@@ -274,9 +327,22 @@ const QuoteManagement: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                            Ver detalles
-                          </button>
+                          <div className="flex space-x-2 justify-end">
+                            <button 
+                              onClick={() => handleAcceptQuote(quote.id_Cotizaciones)}
+                              disabled={updatingQuote === quote.id_Cotizaciones}
+                              className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+                            >
+                              {updatingQuote === quote.id_Cotizaciones ? 'Procesando...' : 'Aceptar'}
+                            </button>
+                            <button 
+                              onClick={() => handleRejectQuote(quote.id_Cotizaciones)}
+                              disabled={updatingQuote === quote.id_Cotizaciones}
+                              className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
+                            >
+                              {updatingQuote === quote.id_Cotizaciones ? 'Procesando...' : 'Cancelar'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
