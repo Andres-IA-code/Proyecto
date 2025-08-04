@@ -51,7 +51,26 @@ const QuoteManagement: React.FC = () => {
         : currentUser.profile.Nombre;
 
       console.log('🔍 Buscando cotizaciones para:', nombreDador);
+     console.log('👤 Datos del usuario actual:', {
+       Nombre: currentUser.profile.Nombre,
+       Apellido: currentUser.profile.Apellido,
+       Tipo_Persona: currentUser.profile.Tipo_Persona,
+       nombreDadorCalculado: nombreDador
+     });
 
+     // Primero, verificar qué nombres de dadores existen en la tabla
+     const { data: allDadores, error: dadoresError } = await supabase
+       .from('Cotizaciones')
+       .select('Nombre_Dador')
+       .not('Nombre_Dador', 'is', null);
+
+     if (dadoresError) {
+       console.error('❌ Error consultando dadores:', dadoresError);
+     } else {
+       const uniqueDadores = [...new Set(allDadores?.map(d => d.Nombre_Dador))];
+       console.log('📋 Nombres de dadores en la tabla:', uniqueDadores);
+       console.log('🔍 ¿Coincide exactamente?', uniqueDadores.includes(nombreDador));
+     }
       // Consulta SQL: SELECT * FROM "Cotizaciones" WHERE "Nombre_Dador" = 'nombreDador' ORDER BY "Fecha" DESC
       const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
@@ -77,6 +96,19 @@ const QuoteManagement: React.FC = () => {
       console.log('📊 Cotizaciones encontradas:', quotesData?.length || 0);
       console.log('📋 Datos:', quotesData);
 
+     // Si no se encontraron cotizaciones, intentar búsqueda parcial
+     if (!quotesData || quotesData.length === 0) {
+       console.log('🔍 Intentando búsqueda parcial...');
+       const { data: partialSearch, error: partialError } = await supabase
+         .from('Cotizaciones')
+         .select('*')
+         .ilike('Nombre_Dador', `%${currentUser.profile.Nombre}%`);
+       
+       if (!partialError && partialSearch) {
+         console.log('🔍 Búsqueda parcial encontró:', partialSearch.length, 'registros');
+         console.log('📋 Registros parciales:', partialSearch);
+       }
+     }
       // Establecer las cotizaciones encontradas
       setQuotes(quotesData || []);
       
