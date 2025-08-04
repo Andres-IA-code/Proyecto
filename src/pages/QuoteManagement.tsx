@@ -36,9 +36,8 @@ const QuoteManagement: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      setDebugInfo(null);
       
-      console.log('=== BUSCANDO COTIZACIONES POR NOMBRE_DADOR ===');
+      console.log('=== CONSULTANDO COTIZACIONES DIRECTAMENTE ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -51,100 +50,41 @@ const QuoteManagement: React.FC = () => {
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
         : currentUser.profile.Nombre;
 
-      console.log('🔍 Buscando cotizaciones para Nombre_Dador:', nombreDador);
+      console.log('🔍 Buscando cotizaciones para:', nombreDador);
 
-      // PASO 1: Buscar cotizaciones directamente por Nombre_Dador en la tabla Cotizaciones
-      const { data: cotizacionesData, error: cotizacionesError } = await supabase
+      // Consulta SQL: SELECT * FROM "Cotizaciones" WHERE "Nombre_Dador" = 'nombreDador' ORDER BY "Fecha" DESC
+      const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
-        .select('*')
+        .select(`
+          id_Cotizaciones,
+          Fecha,
+          Estado,
+          Oferta,
+          Nombre_Operador,
+          Nombre_Dador,
+          Vigencia,
+          id_Envio
+        `)
         .eq('Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
-      if (cotizacionesError) {
-        console.error('❌ Error consultando Cotizaciones:', cotizacionesError);
-        setError(`Error al consultar cotizaciones: ${cotizacionesError.message}`);
+      if (quotesError) {
+        console.error('❌ Error consultando Cotizaciones:', quotesError);
+        setError(`Error al consultar cotizaciones: ${quotesError.message}`);
         return;
       }
 
-      console.log('📊 Cotizaciones encontradas:', cotizacionesData?.length || 0);
-      console.log('📋 Datos de cotizaciones:', cotizacionesData);
+      console.log('📊 Cotizaciones encontradas:', quotesData?.length || 0);
+      console.log('📋 Datos:', quotesData);
 
-      if (!cotizacionesData || cotizacionesData.length === 0) {
-        console.log('⚠️ No se encontraron cotizaciones para:', nombreDador);
-        
-        // Verificar si existen cotizaciones con nombres similares
-        const { data: allQuotes } = await supabase
-          .from('Cotizaciones')
-          .select('Nombre_Dador')
-          .not('Nombre_Dador', 'is', null);
-        
-        const uniqueNames = [...new Set(allQuotes?.map(q => q.Nombre_Dador) || [])];
-        
-        setDebugInfo({
-          step: 'SIN COTIZACIONES ENCONTRADAS',
-          nombreDadorBuscado: nombreDador,
-          cotizacionesEncontradas: 0,
-          nombresEnSistema: uniqueNames,
-          message: `No se encontraron cotizaciones para "${nombreDador}". Nombres en sistema: ${uniqueNames.join(', ')}`
-        });
-        
-        setQuotes([]);
-        return;
-      }
-
-      // PASO 2: Para cada cotización, obtener información del envío
-      const quotesWithShipmentInfo = await Promise.all(
-        cotizacionesData.map(async (cotizacion) => {
-          const { data: envioData } = await supabase
-            .from('General')
-            .select('Origen, Destino, Tipo_Carga, Peso')
-            .eq('id_Envio', cotizacion.id_Envio)
-            .single();
-
-          return {
-            ...cotizacion,
-            envio_origen: envioData?.Origen,
-            envio_destino: envioData?.Destino,
-            envio_tipo_carga: envioData?.Tipo_Carga,
-            envio_peso: envioData?.Peso
-          };
-        })
-      );
-
-      console.log('✅ Cotizaciones con información de envío:', quotesWithShipmentInfo.length);
-
-      setDebugInfo({
-        step: 'COTIZACIONES ENCONTRADAS',
-        nombreDadorBuscado: nombreDador,
-        cotizacionesEncontradas: cotizacionesData.length,
-        cotizaciones: cotizacionesData.map(c => ({
-          id: c.id_Cotizaciones,
-          Fecha: c.Fecha,
-          Estado: c.Estado,
-          Oferta: c.Oferta,
-          Nombre_Operador: c.Nombre_Operador,
-          Nombre_Dador: c.Nombre_Dador
-        })),
-        message: `Se encontraron ${cotizacionesData.length} cotizaciones para "${nombreDador}"`
-      });
-
-      setQuotes(quotesWithShipmentInfo);
+      // Establecer las cotizaciones encontradas
+      setQuotes(quotesData || []);
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
       setError('Error inesperado al cargar las cotizaciones');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getOperatorName = (quote: QuoteWithOperator) => {
-    if (!quote.operador_nombre) return `Operador #${quote.id_Operador}`;
-    
-    if (quote.operador_tipo_persona === 'Física') {
-      return `${quote.operador_nombre} ${quote.operador_apellido || ''}`.trim();
-    } else {
-      return quote.operador_nombre; // Business name for juridical persons
     }
   };
 
@@ -355,18 +295,14 @@ const QuoteManagement: React.FC = () => {
                         {/* Nombre_Operador - Campo directo de tabla Cotizaciones */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {quote.Nombre_Operador || 'Operador no especificado'}
+                            {quote.Nombre_Operador || 'No especificado'}
                           </div>
                         </td>
 
-                        {/* Información del Envío */}
+                        {/* ID Envío */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {quote.envio_origen || 'N/A'} → {quote.envio_destino || 'N/A'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {quote.envio_tipo_carga && `${quote.envio_tipo_carga}`}
-                            {quote.envio_peso && ` • ${quote.envio_peso} Tn`}
+                            #{quote.id_Envio}
                           </div>
                         </td>
 
@@ -380,7 +316,7 @@ const QuoteManagement: React.FC = () => {
                         {/* Nombre_Dador - Campo directo de tabla Cotizaciones */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-blue-600">
-                            {quote.Nombre_Dador}
+                            {quote.Nombre_Dador || 'No especificado'}
                           </div>
                         </td>
 
@@ -398,15 +334,15 @@ const QuoteManagement: React.FC = () => {
             </div>
 
             {/* Resumen */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center">
-                <Package className="h-5 w-5 text-blue-600 mr-2" />
+                <Package className="h-5 w-5 text-green-600 mr-2" />
                 <div>
-                  <p className="text-sm font-medium text-blue-800">
-                    Cotizaciones para: {debugInfo?.nombreDadorBuscado || 'Usuario actual'}
+                  <p className="text-sm font-medium text-green-800">
+                    ✅ Cotizaciones encontradas: {quotes.length}
                   </p>
-                  <p className="text-xs text-blue-600">
-                    Total encontradas: {quotes.length} | Mostrando: {filteredQuotes.length}
+                  <p className="text-xs text-green-600">
+                    Filtro aplicado: {filterStatus === 'all' ? 'Todos los estados' : filterStatus} | Mostrando: {filteredQuotes.length}
                   </p>
                 </div>
               </div>
@@ -440,30 +376,6 @@ const QuoteManagement: React.FC = () => {
                 </button>
               </div>
             </div>
-            
-            {/* Debug Information */}
-            {showDebug && debugInfo && (
-              <div className="mt-6 bg-gray-100 border border-gray-300 rounded-lg p-4 text-left">
-                <h4 className="font-bold text-gray-800 mb-3">Información de Debug:</h4>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Paso Actual:</strong> {debugInfo.step}</div>
-                  <div><strong>Usuario ID:</strong> {debugInfo.userId}</div>
-                  <div><strong>Nombre Usuario:</strong> {debugInfo.userName}</div>
-                  <div><strong>Nombre Dador Buscado:</strong> {debugInfo.nombreDadorBuscado}</div>
-                  <div><strong>Cotizaciones Encontradas:</strong> {debugInfo.cotizacionesEncontradas}</div>
-                  <div><strong>Mensaje:</strong> {debugInfo.message}</div>
-                  
-                  {debugInfo.cotizaciones && debugInfo.cotizaciones.length > 0 && (
-                    <div className="mt-4">
-                      <strong>Cotizaciones Encontradas:</strong>
-                      <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(debugInfo.cotizaciones, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
