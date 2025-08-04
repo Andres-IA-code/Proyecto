@@ -37,7 +37,7 @@ const QuoteManagement: React.FC = () => {
       setLoading(true);
       setError('');
       
-      console.log('=== CONSULTANDO COTIZACIONES DIRECTAMENTE ===');
+      console.log('=== DEBUG COMPLETO DE COTIZACIONES ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -58,87 +58,47 @@ const QuoteManagement: React.FC = () => {
        nombreDadorCalculado: nombreDador
      });
 
-     // Primero, verificar qué nombres de dadores existen en la tabla
-     const { data: allDadores, error: dadoresError } = await supabase
-       .from('Cotizaciones')
-       .select('Nombre_Dador')
-       .not('Nombre_Dador', 'is', null);
-
-     if (dadoresError) {
-       console.error('❌ Error consultando dadores:', dadoresError);
-     } else {
-       const uniqueDadores = [...new Set(allDadores?.map(d => d.Nombre_Dador))];
-       console.log('📋 Nombres de dadores en la tabla:', uniqueDadores);
-       console.log('🔍 ¿Coincide exactamente?', uniqueDadores.includes(nombreDador));
-     }
-      // Consulta SQL: SELECT * FROM "Cotizaciones" WHERE "Nombre_Dador" = 'nombreDador' ORDER BY "Fecha" DESC
-      const { data: quotesData, error: quotesError } = await supabase
+      // 1. MOSTRAR TODOS LOS REGISTROS DE COTIZACIONES
+      console.log('📋 === CONSULTANDO TODOS LOS REGISTROS ===');
+      const { data: allCotizaciones, error: allError } = await supabase
         .from('Cotizaciones')
-        .select(`
-          id_Cotizaciones,
-          Fecha,
-          Estado,
-          Oferta,
-          Nombre_Operador,
-          Nombre_Dador,
-          Vigencia,
-          id_Envio
-        `)
-        .eq('Nombre_Dador', nombreDador)
+        .select('*')
         .order('Fecha', { ascending: false });
 
-      if (quotesError) {
-        console.error('❌ Error consultando Cotizaciones:', quotesError);
-        setError(`Error al consultar cotizaciones: ${quotesError.message}`);
+      if (allError) {
+        console.error('❌ Error consultando todas las cotizaciones:', allError);
+        setError(`Error al consultar cotizaciones: ${allError.message}`);
         return;
       }
 
-      console.log('📊 Cotizaciones encontradas:', quotesData?.length || 0);
-      console.log('📋 Datos:', quotesData);
-
-     // Si no se encontraron cotizaciones, intentar búsqueda parcial
-     if (!quotesData || quotesData.length === 0) {
-       console.log('🔍 Intentando búsqueda parcial...');
-       const { data: partialSearch, error: partialError } = await supabase
-         .from('Cotizaciones')
-         .select('*')
-         .ilike('Nombre_Dador', `%${currentUser.profile.Nombre}%`);
-       
-       if (!partialError && partialSearch) {
-         console.log('🔍 Búsqueda parcial encontró:', partialSearch.length, 'registros');
-         console.log('📋 Registros parciales:', partialSearch);
-       }
-     }
-      // Si no se encontraron cotizaciones con búsqueda exacta, intentar búsqueda flexible
-      let finalQuotes = quotesData || [];
+      console.log('📊 TOTAL de cotizaciones en la tabla:', allCotizaciones?.length || 0);
+      console.log('📋 TODOS los registros:', allCotizaciones);
       
-      if (finalQuotes.length === 0) {
-        console.log('🔍 Intentando búsqueda flexible por nombre...');
+      if (allCotizaciones && allCotizaciones.length > 0) {
+        console.log('📝 Nombres de dadores únicos:', [...new Set(allCotizaciones.map(c => c.Nombre_Dador))]);
+        console.log('🔍 Buscando coincidencias para:', nombreDador);
         
-        // Buscar por nombre solamente (más flexible)
-        const { data: flexibleSearch, error: flexibleError } = await supabase
-          .from('Cotizaciones')
-          .select(`
-            id_Cotizaciones,
-            Fecha,
-            Estado,
-            Oferta,
-            Nombre_Operador,
-            Nombre_Dador,
-            Vigencia,
-            id_Envio
-          `)
-          .ilike('Nombre_Dador', `%${currentUser.profile.Nombre}%`)
-          .order('Fecha', { ascending: false });
+        // Filtrar manualmente para ver qué pasa
+        const matchingQuotes = allCotizaciones.filter(quote => {
+          const matches = quote.Nombre_Dador === nombreDador;
+          console.log(`🔍 "${quote.Nombre_Dador}" === "${nombreDador}" ? ${matches}`);
+          return matches;
+        });
         
-        if (!flexibleError && flexibleSearch) {
-          console.log('✅ Búsqueda flexible encontró:', flexibleSearch.length, 'cotizaciones');
-          finalQuotes = flexibleSearch;
-        }
+        console.log('✅ Cotizaciones que coinciden:', matchingQuotes.length);
+        setQuotes(matchingQuotes);
+      } else {
+        console.log('❌ No hay cotizaciones en la tabla');
+        setQuotes([]);
       }
       
-      // Establecer las cotizaciones encontradas
-      setQuotes(finalQuotes);
+      // 2. MOSTRAR INFORMACIÓN DETALLADA DE DEBUG
+      setDebugInfo({
+        totalCotizaciones: allCotizaciones?.length || 0,
+        nombreBuscado: nombreDador,
+        nombresEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.Nombre_Dador))] : [],
+        cotizacionesCompletas: allCotizaciones || []
+      });
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
@@ -146,6 +106,22 @@ const QuoteManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleShowAllCotizaciones = () => {
+    // Mostrar TODAS las cotizaciones sin filtro
+    if (debugInfo?.cotizacionesCompletas) {
+      setQuotes(debugInfo.cotizacionesCompletas);
+    }
+  };
+
+  const handleTestExactMatch = () => {
+    // Probar búsqueda con "Andres Consiglio" exactamente
+    const testQuotes = debugInfo?.cotizacionesCompletas?.filter((quote: any) => 
+      quote.Nombre_Dador === "Andres Consiglio"
+    ) || [];
+    setQuotes(testQuotes);
+    console.log('🧪 Test con "Andres Consiglio":', testQuotes.length, 'encontradas');
   };
 
   const formatDate = (dateString: string) => {
@@ -270,6 +246,22 @@ const QuoteManagement: React.FC = () => {
               <RefreshCw size={16} className="mr-2" />
               Actualizar
             </button>
+            {debugInfo && (
+              <>
+                <button
+                  onClick={handleShowAllCotizaciones}
+                  className="flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                >
+                  Mostrar Todas ({debugInfo.totalCotizaciones})
+                </button>
+                <button
+                  onClick={handleTestExactMatch}
+                  className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                >
+                  Test "Andres Consiglio"
+                </button>
+              </>
+            )}
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -282,6 +274,19 @@ const QuoteManagement: React.FC = () => {
             </select>
           </div>
         </div>
+
+        {/* Debug Info Panel */}
+        {debugInfo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-blue-800 mb-2">🔍 Información de Debug</h3>
+            <div className="text-sm text-blue-700 space-y-1">
+              <div><strong>Total cotizaciones en tabla:</strong> {debugInfo.totalCotizaciones}</div>
+              <div><strong>Nombre buscado:</strong> "{debugInfo.nombreBuscado}"</div>
+              <div><strong>Nombres en tabla:</strong> {debugInfo.nombresEnTabla.join(', ')}</div>
+              <div><strong>Cotizaciones mostradas:</strong> {quotes.length}</div>
+            </div>
+          </div>
+        )}
 
         {/* Mostrar cotizaciones */}
         {filteredQuotes.length > 0 ? (
