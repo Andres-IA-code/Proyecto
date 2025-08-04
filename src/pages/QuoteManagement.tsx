@@ -119,10 +119,10 @@ const QuoteManagement: React.FC = () => {
         cotizacionesEncontradas: cotizacionesData.length,
         cotizaciones: cotizacionesData.map(c => ({
           id: c.id_Cotizaciones,
-          Fecha,
+          Fecha: c.Fecha,
           Estado: c.Estado,
-          Oferta,
-          Nombre_Operador,
+          Oferta: c.Oferta,
+          Nombre_Operador: c.Nombre_Operador,
           Nombre_Dador: c.Nombre_Dador
         })),
         message: `Se encontraron ${cotizacionesData.length} cotizaciones para "${nombreDador}"`
@@ -403,7 +403,7 @@ const QuoteManagement: React.FC = () => {
                 <Package className="h-5 w-5 text-blue-600 mr-2" />
                 <div>
                   <p className="text-sm font-medium text-blue-800">
-                    Cotizaciones para: {debugInfo?.nombreDador || 'Usuario actual'}
+                    Cotizaciones para: {debugInfo?.nombreDadorBuscado || 'Usuario actual'}
                   </p>
                   <p className="text-xs text-blue-600">
                     Total encontradas: {quotes.length} | Mostrando: {filteredQuotes.length}
@@ -432,12 +432,13 @@ const QuoteManagement: React.FC = () => {
                 <li>3. Recibirás cotizaciones aquí</li>
               </ol>
               <div className="mt-6">
-              <button
-                onClick={fetchQuotes}
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Actualizar Lista
-              </button>
+                <button
+                  onClick={fetchQuotes}
+                  className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Actualizar Lista
+                </button>
+              </div>
             </div>
             
             {/* Debug Information */}
@@ -448,7 +449,7 @@ const QuoteManagement: React.FC = () => {
                   <div><strong>Paso Actual:</strong> {debugInfo.step}</div>
                   <div><strong>Usuario ID:</strong> {debugInfo.userId}</div>
                   <div><strong>Nombre Usuario:</strong> {debugInfo.userName}</div>
-                  <div><strong>Nombre Dador Buscado:</strong> {debugInfo.nombreDador}</div>
+                  <div><strong>Nombre Dador Buscado:</strong> {debugInfo.nombreDadorBuscado}</div>
                   <div><strong>Cotizaciones Encontradas:</strong> {debugInfo.cotizacionesEncontradas}</div>
                   <div><strong>Mensaje:</strong> {debugInfo.message}</div>
                   
@@ -465,7 +466,6 @@ const QuoteManagement: React.FC = () => {
             )}
           </div>
         )}
-      </div>
       </div>
     </div>
   );
