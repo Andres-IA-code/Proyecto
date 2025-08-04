@@ -96,25 +96,34 @@ const QuoteManagement: React.FC = () => {
       
       let quotesToShow: any[] = [];
       
-      // Método 1: Por Nombre_Dador (búsqueda exacta)
+      // Método 1: Por Nombre_Dador (búsqueda insensible a acentos)
       const { data: quotesByName, error: nameError } = await supabase
         .from('Cotizaciones')
         .select('*')
-        .eq('Nombre_Dador', nombreDador)
+        .or(`Nombre_Dador.eq.${nombreDador},Nombre_Dador.eq.Andrés Consiglio,Nombre_Dador.ilike.%${currentUser.profile.Nombre}%`)
         .order('Fecha', { ascending: false });
       
-      console.log('📊 Cotizaciones por nombre exacto:', quotesByName?.length || 0);
+      console.log('📊 Cotizaciones por nombre (con variaciones):', quotesByName?.length || 0);
       
-      // Método 2: Por Nombre_Dador (búsqueda flexible)
-      const { data: quotesByPartialName, error: partialError } = await supabase
+      // Método 2: Búsqueda específica para "Andrés Consiglio" (con acento)
+      const { data: quotesByAccentedName, error: accentError } = await supabase
         .from('Cotizaciones')
         .select('*')
-        .ilike('Nombre_Dador', `%${currentUser.profile.Nombre}%`)
+        .eq('Nombre_Dador', 'Andrés Consiglio')
         .order('Fecha', { ascending: false });
       
-      console.log('📊 Cotizaciones por nombre parcial:', quotesByPartialName?.length || 0);
+      console.log('📊 Cotizaciones por "Andrés Consiglio" (con acento):', quotesByAccentedName?.length || 0);
       
-      // Método 3: Como operador (cotizaciones que he enviado)
+      // Método 3: Búsqueda flexible por nombre (sin acentos)
+      const { data: quotesByFlexibleName, error: flexibleError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .or(`Nombre_Dador.ilike.%Andres%,Nombre_Dador.ilike.%Andrés%`)
+        .order('Fecha', { ascending: false });
+      
+      console.log('📊 Cotizaciones por búsqueda flexible:', quotesByFlexibleName?.length || 0);
+      
+      // Método 4: Como operador (cotizaciones que he enviado)
       const { data: quotesAsOperator, error: operatorError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -123,7 +132,7 @@ const QuoteManagement: React.FC = () => {
 
       console.log('📊 Cotizaciones como operador:', quotesAsOperator?.length || 0);
 
-      // Método 4: Por id_Usuario (como respaldo)
+      // Método 5: Por id_Usuario (como respaldo)
       const { data: quotesByUserId, error: userIdError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -131,13 +140,17 @@ const QuoteManagement: React.FC = () => {
         .order('Fecha', { ascending: false });
       
       console.log('📊 Cotizaciones por id_Usuario:', quotesByUserId?.length || 0);
-      // Determinar qué cotizaciones mostrar
+      
+      // Determinar qué cotizaciones mostrar (prioridad actualizada)
       if (quotesByName && quotesByName.length > 0) {
-        console.log('✅ Mostrando cotizaciones por nombre exacto');
+        console.log('✅ Mostrando cotizaciones por nombre (con variaciones)');
         quotesToShow = quotesByName;
-      } else if (quotesByPartialName && quotesByPartialName.length > 0) {
-        console.log('✅ Mostrando cotizaciones por nombre parcial');
-        quotesToShow = quotesByPartialName;
+      } else if (quotesByAccentedName && quotesByAccentedName.length > 0) {
+        console.log('✅ Mostrando cotizaciones por "Andrés Consiglio" (con acento)');
+        quotesToShow = quotesByAccentedName;
+      } else if (quotesByFlexibleName && quotesByFlexibleName.length > 0) {
+        console.log('✅ Mostrando cotizaciones por búsqueda flexible');
+        quotesToShow = quotesByFlexibleName;
       } else if (quotesByUserId && quotesByUserId.length > 0) {
         console.log('✅ Mostrando cotizaciones por id_Usuario');
         quotesToShow = quotesByUserId;
@@ -162,8 +175,9 @@ const QuoteManagement: React.FC = () => {
         nombreBuscado: nombreDador,
         idUsuario: currentUser.profile.id_Usuario,
         cotizacionesPorId: quotesByUserId?.length || 0,
-        cotizacionesPorNombre: quotesByName?.length || 0,
-        cotizacionesPorNombreParcial: quotesByPartialName?.length || 0,
+        cotizacionesPorNombreVariaciones: quotesByName?.length || 0,
+        cotizacionesPorNombreConAcento: quotesByAccentedName?.length || 0,
+        cotizacionesPorNombreFlexible: quotesByFlexibleName?.length || 0,
         cotizacionesComoOperador: quotesAsOperator?.length || 0,
         nombresEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.Nombre_Dador))] : [],
         usuariosEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.id_Usuario))] : [],
@@ -180,10 +194,16 @@ const QuoteManagement: React.FC = () => {
 
   const handleShowAllCotizaciones = () => {
     setDisplayMode('all');
+    setQuotes(allQuotes);
   };
 
   const handleTestExactMatch = () => {
     setDisplayMode('test');
+    // Buscar específicamente "Andrés Consiglio" con acento
+    const testQuotes = allQuotes.filter(quote => 
+      quote.Nombre_Dador === 'Andrés Consiglio'
+    );
+    setQuotes(testQuotes);
   };
 
   const formatDate = (dateString: string) => {
