@@ -154,41 +154,49 @@ const QuoteManagement: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gestión de Cotizaciones</h1>
               <p className="text-gray-500 mt-1">Gestiona las cotizaciones recibidas para tus envíos</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <AlertCircle size={64} className="mx-auto text-red-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar cotizaciones</h3>
+              <p className="text-gray-600 mb-4">
                 {error}
-              </div>
+              </p>
               <button
                 onClick={fetchQuotes}
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
               >
+                <RefreshCw size={16} className="mr-2" />
                 Reintentar
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Cotizaciones</h1>
+            <p className="text-gray-500 mt-1">Gestiona las cotizaciones recibidas para tus envíos</p>
+          </div>
           <div className="flex space-x-2">
             <button
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              onClick={fetchQuotes}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
               <RefreshCw size={16} className="mr-2" />
               Actualizar
             </button>
-            {debugInfo && (
-              <>
-                <button
-                  onClick={handleShowAllCotizaciones}
-                  className="flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-                >
-                  Mostrar Todas ({debugInfo.totalCotizaciones})
-                </button>
-                <button
-                  onClick={handleTestExactMatch}
-                  className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
-                >
-                  Test "Andres Consiglio"
-                </button>
-              </>
-            )}
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
