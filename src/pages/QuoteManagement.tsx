@@ -38,196 +38,94 @@ const QuoteManagement: React.FC = () => {
       setError('');
       setDebugInfo(null);
       
-      console.log('=== INICIANDO BÚSQUEDA COMPREHENSIVA DE COTIZACIONES ===');
+      console.log('=== BUSCANDO COTIZACIONES PARA DADOR ACTUAL ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
-        console.error('❌ No hay usuario autenticado');
         setError('Usuario no autenticado');
         return;
       }
 
-      console.log('👤 Usuario autenticado:', {
-        id_Usuario: currentUser.profile.id_Usuario,
-        nombre: currentUser.profile.Nombre,
-        tipoPersona: currentUser.profile.Tipo_Persona,
-        rol: currentUser.profile.Rol_Operativo
-      });
-
-      // MÉTODO 1: Buscar por id_Usuario del dador
-      console.log('💰 MÉTODO 1: Buscando cotizaciones por id_Usuario...');
-      const { data: quotesByUserId, error: userIdError } = await supabase
-        .from('Cotizaciones')
-        .select(`
-          *,
-          General(
-            id_Envio,
-            Origen,
-            Destino,
-            Nombre_Dador,
-            Estado,
-            id_Usuario
-          )
-        `)
-        .eq('General.id_Usuario', currentUser.profile.id_Usuario)
-        .order('Fecha', { ascending: false });
-
-      console.log('✅ MÉTODO 1 resultado:', {
-        cotizaciones: quotesByUserId?.length || 0,
-        error: userIdError?.message
-      });
-
-      // MÉTODO 2: Buscar por Nombre_Dador
+      // Construir el nombre del dador según el tipo de persona
       const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
         : currentUser.profile.Nombre;
 
-      console.log('💰 MÉTODO 2: Buscando cotizaciones por Nombre_Dador:', nombreDador);
-      const { data: quotesByName, error: nameError } = await supabase
+      console.log('🔍 Buscando cotizaciones para dador:', nombreDador);
+
+      // Buscar cotizaciones directamente por Nombre_Dador
+      const { data: quotesData, error: quotesError } = await supabase
         .from('Cotizaciones')
         .select(`
-          *,
+          id_Cotizaciones,
+          Fecha,
+          Estado,
+          Oferta,
+          Nombre_Operador,
+          id_Envio,
+          id_Operador,
           General(
-            id_Envio,
+            Nombre_Dador,
             Origen,
             Destino,
-            Nombre_Dador,
-            Estado,
-            id_Usuario
+            Tipo_Carga,
+            Peso
           )
         `)
         .eq('General.Nombre_Dador', nombreDador)
         .order('Fecha', { ascending: false });
 
-      console.log('✅ MÉTODO 2 resultado:', {
-        cotizaciones: quotesByName?.length || 0,
-        error: nameError?.message
-      });
-
-      // MÉTODO 3: Buscar TODAS las cotizaciones para debug
-      console.log('💰 MÉTODO 3: Buscando TODAS las cotizaciones...');
-      const { data: allQuotes, error: allError } = await supabase
-        .from('Cotizaciones')
-        .select(`
-          *,
-          General(
-            id_Envio,
-            Origen,
-            Destino,
-            Nombre_Dador,
-            Estado,
-            id_Usuario
-          )
-        `)
-        .order('Fecha', { ascending: false });
-
-      console.log('✅ MÉTODO 3 resultado:', {
-        totalCotizaciones: allQuotes?.length || 0,
-        error: allError?.message
-      });
-
-      // Determinar qué datos usar
-      let quotesData = null;
-      let method = '';
-
-      if (quotesByUserId && quotesByUserId.length > 0) {
-        quotesData = quotesByUserId;
-        method = 'MÉTODO 1 (por id_Usuario)';
-      } else if (quotesByName && quotesByName.length > 0) {
-        quotesData = quotesByName;
-        method = 'MÉTODO 2 (por Nombre_Dador)';
-      } else {
-        quotesData = [];
-        method = 'NINGÚN MÉTODO';
+      if (quotesError) {
+        console.error('❌ Error en consulta:', quotesError);
+        setError(`Error al consultar cotizaciones: ${quotesError.message}`);
+        return;
       }
 
-      console.log('🎯 MÉTODO SELECCIONADO:', method, {
-        cotizacionesEncontradas: quotesData?.length || 0
-      });
-
-      // Guardar información de debug
-      setDebugInfo({
-        userId: currentUser.profile.id_Usuario,
-        userName: currentUser.profile.Nombre,
-        userRole: currentUser.profile.Rol_Operativo,
-        nombreDador: nombreDador,
-        method1_results: quotesByUserId?.length || 0,
-        method1_error: userIdError?.message,
-        method2_results: quotesByName?.length || 0,
-        method2_error: nameError?.message,
-        method3_total: allQuotes?.length || 0,
-        method3_error: allError?.message,
-        selectedMethod: method,
-        finalQuotes: quotesData?.length || 0,
-        allQuotesPreview: allQuotes?.slice(0, 3).map(q => ({
-          id: q.id_Cotizaciones,
-          nombre_dador: q.General?.Nombre_Dador,
-          id_usuario_envio: q.General?.id_Usuario,
-          oferta: q.Oferta
-        }))
-      });
+      console.log('✅ Cotizaciones encontradas:', quotesData?.length || 0);
 
       if (!quotesData || quotesData.length === 0) {
-        console.log('⚠️ RESULTADO: No hay cotizaciones para este dador');
+        console.log('⚠️ No hay cotizaciones para este dador');
         setDebugInfo({
-          step: 'COMPLETADO - SIN RESULTADOS',
+          step: 'SIN COTIZACIONES',
           userId: currentUser.profile.id_Usuario,
           userName: currentUser.profile.Nombre,
           nombreDador: nombreDador,
-          method1_results: quotesByUserId?.length || 0,
-          method2_results: quotesByName?.length || 0,
-          method3_total: allQuotes?.length || 0,
-          message: `No se encontraron cotizaciones para el dador "${nombreDador}". Total de cotizaciones en sistema: ${allQuotes?.length || 0}`
+          cotizacionesEncontradas: 0,
+          message: `No se encontraron cotizaciones para el dador "${nombreDador}"`
         });
         setQuotes([]);
         return;
       }
 
-      // Obtener información adicional del operador para cada cotización
-      console.log('👥 Obteniendo información de operadores...');
-      const quotesWithOperatorInfo = await Promise.all(
-        quotesData.map(async (quote) => {
-          // Buscar información del operador
-          const { data: operatorData } = await supabase
-            .from('Usuarios')
-            .select('Nombre, Apellido, Tipo_Persona')
-            .eq('id_Usuario', quote.id_Operador)
-            .single();
+      // Procesar las cotizaciones encontradas
+      const processedQuotes = quotesData.map(quote => ({
+        ...quote,
+        envio_origen: quote.General?.Origen,
+        envio_destino: quote.General?.Destino,
+        envio_tipo_carga: quote.General?.Tipo_Carga,
+        envio_peso: quote.General?.Peso
+      }));
 
-          return {
-            ...quote,
-            operador_nombre: operatorData?.Nombre,
-            operador_apellido: operatorData?.Apellido,
-            operador_tipo_persona: operatorData?.Tipo_Persona,
-            envio_origen: quote.General?.Origen,
-            envio_destino: quote.General?.Destino,
-            envio_nombre_dador: quote.General?.Nombre_Dador,
-            envio_id_usuario: quote.General?.id_Usuario
-          };
-        })
-      );
+      console.log('✅ Cotizaciones procesadas:', processedQuotes.length);
 
-      console.log('✅ Información de operadores completada:', {
-        cotizacionesConInfo: quotesWithOperatorInfo.length
-      });
-
-      // Guardar información completa de debug
       setDebugInfo({
-        step: 'COMPLETADO - CON RESULTADOS',
+        step: 'COTIZACIONES ENCONTRADAS',
         userId: currentUser.profile.id_Usuario,
         userName: currentUser.profile.Nombre,
-        userRole: currentUser.profile.Rol_Operativo,
         nombreDador: nombreDador,
-        selectedMethod: method,
-        method1_results: quotesByUserId?.length || 0,
-        method2_results: quotesByName?.length || 0,
-        method3_total: allQuotes?.length || 0,
-        finalQuotes: quotesData.length,
-        quotesWithOperatorInfo,
-        message: `Se encontraron ${quotesData.length} cotizaciones para el dador "${nombreDador}" usando ${method}`
+        cotizacionesEncontradas: quotesData.length,
+        cotizaciones: processedQuotes.map(q => ({
+          id: q.id_Cotizaciones,
+          fecha: q.Fecha,
+          estado: q.Estado,
+          oferta: q.Oferta,
+          operador: q.Nombre_Operador,
+          envio: `${q.envio_origen} → ${q.envio_destino}`
+        })),
+        message: `Se encontraron ${quotesData.length} cotizaciones para "${nombreDador}"`
       });
 
-      setQuotes(quotesWithOperatorInfo);
+      setQuotes(processedQuotes);
       
     } catch (err) {
       console.error('💥 Error inesperado:', err);
@@ -385,21 +283,14 @@ const QuoteManagement: React.FC = () => {
         {/* Mostrar cotizaciones */}
         {filteredQuotes.length > 0 ? (
           <div className="space-y-4">
-            {/* Tabla de cotizaciones */}
+            {/* Tabla simplificada de cotizaciones */}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID Cotización
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <Calendar className="inline h-4 w-4 mr-1" />
                       Fecha
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <Clock className="inline h-4 w-4 mr-1" />
-                      Vigencia
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
@@ -409,116 +300,70 @@ const QuoteManagement: React.FC = () => {
                       Oferta
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Operador Logístico
+                      Nombre_Operador
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ruta del Envío
+                      Envío
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID Envío
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID Operador
+                      Acciones
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredQuotes.map((quote) => {
-                    const isExpired = isQuoteExpired(quote.Vigencia);
-                    const daysUntilExpiry = getDaysUntilExpiry(quote.Vigencia);
-                    
                     return (
-                      <tr key={quote.id_Cotizaciones} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : ''}`}>
-                        {/* ID Cotización */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            #{quote.id_Cotizaciones}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Envío: #{quote.id_Envio}
-                          </div>
-                        </td>
-
+                      <tr key={quote.id_Cotizaciones} className="hover:bg-gray-50">
                         {/* Fecha */}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatDate(quote.Fecha)}
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatDateTime(quote.Fecha)}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {formatDateTime(quote.Fecha).split(' ')[1]}
-                          </div>
-                        </td>
-
-                        {/* Vigencia */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
-                            {formatDate(quote.Vigencia)}
-                          </div>
-                          <div className={`text-xs ${isExpired ? 'text-red-500' : daysUntilExpiry <= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
-                            {isExpired ? (
-                              <div className="flex items-center">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Expirada
-                              </div>
-                            ) : daysUntilExpiry === 0 ? (
-                              'Expira hoy'
-                            ) : daysUntilExpiry === 1 ? (
-                              'Expira mañana'
-                            ) : (
-                              `${daysUntilExpiry} días restantes`
-                            )}
+                            ID: #{quote.id_Cotizaciones}
                           </div>
                         </td>
 
                         {/* Estado */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusColor(quote.Estado)}`}>
-                            {quote.Estado || 'Sin estado'}
+                            {quote.Estado || 'Pendiente'}
                           </span>
                         </td>
 
                         {/* Oferta */}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-green-600">
+                          <div className="text-lg font-bold text-green-600">
                             ${(quote.Oferta || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Monto total
                           </div>
                         </td>
 
-                        {/* Operador Logístico */}
+                        {/* Nombre_Operador */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {quote.Nombre_Operador || 'Operador no especificado'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            ID: #{quote.id_Operador}
+                            ID Operador: #{quote.id_Operador}
                           </div>
                         </td>
 
-                        {/* Ruta del Envío */}
+                        {/* Información del Envío */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {quote.envio_origen || 'N/A'} → {quote.envio_destino || 'N/A'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            Envío #{quote.id_Envio}
+                            {quote.envio_tipo_carga && `${quote.envio_tipo_carga}`}
+                            {quote.envio_peso && ` • ${quote.envio_peso} Tn`}
                           </div>
                         </td>
 
-                        {/* ID Envío */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            #{quote.id_Envio}
-                          </div>
-                        </td>
-
-                        {/* ID Operador */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            #{quote.id_Operador}
-                          </div>
+                        {/* Acciones */}
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                            Ver detalles
+                          </button>
                         </td>
                       </tr>
                     );
@@ -533,10 +378,10 @@ const QuoteManagement: React.FC = () => {
                 <Package className="h-5 w-5 text-blue-600 mr-2" />
                 <div>
                   <p className="text-sm font-medium text-blue-800">
-                    Total de cotizaciones encontradas: {quotes.length}
+                    Cotizaciones para: {debugInfo?.nombreDador || 'Usuario actual'}
                   </p>
                   <p className="text-xs text-blue-600">
-                    Mostrando {filteredQuotes.length} cotizaciones con filtro actual
+                    Total encontradas: {quotes.length} | Mostrando: {filteredQuotes.length}
                   </p>
                 </div>
               </div>
@@ -585,34 +430,15 @@ const QuoteManagement: React.FC = () => {
                   <div><strong>Paso Actual:</strong> {debugInfo.step}</div>
                   <div><strong>Usuario ID:</strong> {debugInfo.userId}</div>
                   <div><strong>Nombre Usuario:</strong> {debugInfo.userName}</div>
-                  <div><strong>Rol:</strong> {debugInfo.userRole}</div>
-                  <div><strong>Total Envíos:</strong> {debugInfo.totalShipments}</div>
-                  <div><strong>Cotizaciones Encontradas:</strong> {debugInfo.totalQuotes}</div>
+                  <div><strong>Nombre Dador Buscado:</strong> {debugInfo.nombreDador}</div>
+                  <div><strong>Cotizaciones Encontradas:</strong> {debugInfo.cotizacionesEncontradas}</div>
                   <div><strong>Mensaje:</strong> {debugInfo.message}</div>
                   
-                  {debugInfo.shipmentIds && (
-                    <div className="mt-4">
-                      <strong>IDs de Envíos:</strong>
-                      <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(debugInfo.shipmentIds, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                  
-                  {debugInfo.userShipments && debugInfo.userShipments.length > 0 && (
-                    <div className="mt-4">
-                      <strong>Envíos del Usuario:</strong>
-                      <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(debugInfo.userShipments, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-
-                  {debugInfo.quotesData && debugInfo.quotesData.length > 0 && (
+                  {debugInfo.cotizaciones && debugInfo.cotizaciones.length > 0 && (
                     <div className="mt-4">
                       <strong>Cotizaciones Encontradas:</strong>
                       <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(debugInfo.quotesData, null, 2)}
+                        {JSON.stringify(debugInfo.cotizaciones, null, 2)}
                       </pre>
                     </div>
                   )}
