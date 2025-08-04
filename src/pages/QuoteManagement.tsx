@@ -466,7 +466,6 @@ const QuoteManagement: React.FC = () => {
             )}
           </div>
         )}
-      </div>
     </div>
   );
 };
