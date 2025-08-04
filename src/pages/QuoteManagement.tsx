@@ -27,6 +27,8 @@ const QuoteManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [allQuotes, setAllQuotes] = useState<QuoteWithOperator[]>([]);
+  const [displayMode, setDisplayMode] = useState<'user' | 'all' | 'test'>('user');
 
   useEffect(() => {
     fetchQuotes();
@@ -120,6 +122,11 @@ const QuoteManagement: React.FC = () => {
 
       setQuotes(quotesToShow);
       
+      // Guardar todas las cotizaciones para el botón "Mostrar Todas"
+      if (allQuotesServiceRole) {
+        setAllQuotes(allQuotesServiceRole);
+      }
+      
       // Información de debug
       setDebugInfo({
         totalCotizaciones: allQuotesServiceRole?.length || 0,
@@ -139,6 +146,15 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
+  const handleShowAllCotizaciones = () => {
+    setDisplayMode('all');
+    setFilterStatus('all');
+  };
+
+  const handleTestExactMatch = () => {
+    setDisplayMode('test');
+    setFilterStatus('all');
+  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -201,7 +217,20 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const filteredQuotes = quotes.filter(quote => {
+  // Determinar qué cotizaciones mostrar según el modo de visualización
+  let quotesToDisplay: QuoteWithOperator[] = [];
+  
+  if (displayMode === 'all') {
+    quotesToDisplay = allQuotes;
+  } else if (displayMode === 'test') {
+    quotesToDisplay = allQuotes.filter(quote => 
+      quote.Nombre_Dador?.toLowerCase().includes('andres consiglio')
+    );
+  } else {
+    quotesToDisplay = quotes;
+  }
+
+  const filteredQuotes = quotesToDisplay.filter(quote => {
     if (filterStatus === 'all') return true;
     return quote.Estado?.toLowerCase() === filterStatus.toLowerCase();
   });
