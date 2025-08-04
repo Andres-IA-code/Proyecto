@@ -29,6 +29,7 @@ const QuoteManagement: React.FC = () => {
   const [showDebug, setShowDebug] = useState(false);
   const [allQuotes, setAllQuotes] = useState<QuoteWithOperator[]>([]);
   const [displayMode, setDisplayMode] = useState<'user' | 'all' | 'test'>('user');
+  const [authDebug, setAuthDebug] = useState<any>(null);
 
   useEffect(() => {
     fetchQuotes();
@@ -47,6 +48,18 @@ const QuoteManagement: React.FC = () => {
         return;
       }
 
+      // VERIFICAR CONTEXTO DE AUTENTICACIÓN
+      console.log('🔐 === VERIFICANDO AUTENTICACIÓN ===');
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      console.log('👤 Usuario autenticado:', authUser?.email, authUser?.id);
+      console.log('❌ Error de auth:', authError);
+      
+      setAuthDebug({
+        authUser: authUser,
+        authError: authError,
+        profileUser: currentUser.profile
+      });
+
       // Construir el nombre del dador según el tipo de persona
       const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
@@ -61,10 +74,35 @@ const QuoteManagement: React.FC = () => {
 
       // PASO 1: Verificar estructura de datos en Cotizaciones
       console.log('📊 === VERIFICANDO ESTRUCTURA DE DATOS ===');
-      const { data: allCotizaciones, error: allError } = await supabase
+      
+      // Intentar con diferentes métodos de consulta
+      console.log('🔍 Método 1: Consulta normal con usuario autenticado');
+      const { data: allCotizacionesNormal, error: normalError } = await supabase
         .from('Cotizaciones')
         .select('*')
         .order('id_Cotizaciones', { ascending: false });
+      
+      console.log('📊 Cotizaciones con consulta normal:', allCotizacionesNormal?.length || 0);
+      console.log('❌ Error consulta normal:', normalError);
+      
+      // Método 2: Usar RPC para bypass de RLS si es necesario
+      console.log('🔍 Método 2: Intentando consulta directa');
+      let allCotizaciones = allCotizacionesNormal;
+      let allError = normalError;
+      
+      // Si la consulta normal falla, intentar con una consulta más específica
+      if (!allCotizaciones || allCotizaciones.length === 0) {
+        console.log('🔄 Intentando consulta alternativa...');
+        const { data: altData, error: altError } = await supabase
+          .from('Cotizaciones')
+          .select('id_Cotizaciones, id_Usuario, id_Envio, id_Operador, Fecha, Vigencia, Estado, Oferta, Nombre_Operador, Nombre_Dador')
+          .limit(100);
+        
+        allCotizaciones = altData;
+        allError = altError;
+        console.log('📊 Cotizaciones con consulta alternativa:', altData?.length || 0);
+        console.log('❌ Error consulta alternativa:', altError);
+      }
 
       if (allError) {
         console.error('❌ Error obteniendo todas las cotizaciones:', allError);
@@ -174,6 +212,8 @@ const QuoteManagement: React.FC = () => {
         totalCotizaciones: allCotizaciones?.length || 0,
         nombreBuscado: nombreDador,
         idUsuario: currentUser.profile.id_Usuario,
+        authUser: authUser?.email,
+        authUserId: authUser?.id,
         cotizacionesPorId: quotesByUserId?.length || 0,
         cotizacionesPorNombreVariaciones: quotesByName?.length || 0,
         cotizacionesPorNombreConAcento: quotesByAccentedName?.length || 0,
@@ -181,7 +221,15 @@ const QuoteManagement: React.FC = () => {
         cotizacionesComoOperador: quotesAsOperator?.length || 0,
         nombresEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.Nombre_Dador))] : [],
         usuariosEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.id_Usuario))] : [],
-        cotizacionesCompletas: allCotizaciones || []
+        cotizacionesCompletas: allCotizaciones || [],
+        errores: {
+          normalError,
+          nameError,
+          accentError,
+          flexibleError,
+          operatorError,
+          userIdError
+        }
       });
       
     } catch (err) {
@@ -377,8 +425,50 @@ const QuoteManagement: React.FC = () => {
             <div className="text-sm text-blue-700 space-y-1">
               <div><strong>Total cotizaciones en tabla:</strong> {debugInfo.totalCotizaciones}</div>
               <div><strong>Nombre buscado:</strong> "{debugInfo.nombreBuscado}"</div>
+              <div><strong>Usuario autenticado:</strong> {debugInfo.authUser} (ID: {debugInfo.authUserId})</div>
+              <div><strong>ID Usuario perfil:</strong> {debugInfo.idUsuario}</div>
               <div><strong>Nombres en tabla:</strong> {debugInfo.nombresEnTabla.join(', ')}</div>
+              <div><strong>IDs de usuarios en tabla:</strong> {debugInfo.usuariosEnTabla.join(', ')}</div>
               <div><strong>Cotizaciones mostradas:</strong> {quotes.length}</div>
+              
+              {/* Mostrar errores si los hay */}
+              {debugInfo.errores && Object.entries(debugInfo.errores).some(([_, error]) => error) && (
+                <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded">
+                  <strong>Errores encontrados:</strong>
+                  {Object.entries(debugInfo.errores).map(([method, error]) => 
+                    error ? <div key={method}>• {method}: {error.message}</div> : null
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Botón para mostrar datos completos */}
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+            >
+              {showDebug ? 'Ocultar' : 'Mostrar'} datos completos
+            </button>
+            
+            {showDebug && debugInfo.cotizacionesCompletas && (
+              <div className="mt-4 p-3 bg-white border rounded max-h-60 overflow-y-auto">
+                <pre className="text-xs text-gray-600">
+                  {JSON.stringify(debugInfo.cotizacionesCompletas, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Auth Debug Info */}
+        {authDebug && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-yellow-800 mb-2">🔐 Estado de Autenticación</h3>
+            <div className="text-sm text-yellow-700 space-y-1">
+              <div><strong>Email autenticado:</strong> {authDebug.authUser?.email || 'No disponible'}</div>
+              <div><strong>Auth User ID:</strong> {authDebug.authUser?.id || 'No disponible'}</div>
+              <div><strong>Profile User ID:</strong> {authDebug.profileUser?.id_Usuario || 'No disponible'}</div>
+              <div><strong>Error de autenticación:</strong> {authDebug.authError ? 'SÍ' : 'NO'}</div>
             </div>
           </div>
         )}
