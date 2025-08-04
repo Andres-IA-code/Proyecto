@@ -96,16 +96,7 @@ const QuoteManagement: React.FC = () => {
       
       let quotesToShow: any[] = [];
       
-      // Método 1: Por id_Usuario
-      const { data: quotesByUserId, error: userIdError } = await supabase
-        .from('Cotizaciones')
-        .select('*')
-        .eq('id_Usuario', currentUser.profile.id_Usuario)
-        .order('Fecha', { ascending: false });
-      
-      console.log('📊 Cotizaciones por id_Usuario:', quotesByUserId?.length || 0);
-
-      // Método 2: Por Nombre_Dador (búsqueda exacta)
+      // Método 1: Por Nombre_Dador (búsqueda exacta)
       const { data: quotesByName, error: nameError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -114,7 +105,7 @@ const QuoteManagement: React.FC = () => {
       
       console.log('📊 Cotizaciones por nombre exacto:', quotesByName?.length || 0);
       
-      // Método 3: Por Nombre_Dador (búsqueda flexible)
+      // Método 2: Por Nombre_Dador (búsqueda flexible)
       const { data: quotesByPartialName, error: partialError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -123,7 +114,7 @@ const QuoteManagement: React.FC = () => {
       
       console.log('📊 Cotizaciones por nombre parcial:', quotesByPartialName?.length || 0);
       
-      // Método 4: Como operador
+      // Método 3: Como operador (cotizaciones que he enviado)
       const { data: quotesAsOperator, error: operatorError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -132,16 +123,24 @@ const QuoteManagement: React.FC = () => {
 
       console.log('📊 Cotizaciones como operador:', quotesAsOperator?.length || 0);
 
+      // Método 4: Por id_Usuario (como respaldo)
+      const { data: quotesByUserId, error: userIdError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .eq('id_Usuario', currentUser.profile.id_Usuario)
+        .order('Fecha', { ascending: false });
+      
+      console.log('📊 Cotizaciones por id_Usuario:', quotesByUserId?.length || 0);
       // Determinar qué cotizaciones mostrar
-      if (quotesByUserId && quotesByUserId.length > 0) {
-        console.log('✅ Mostrando cotizaciones por id_Usuario');
-        quotesToShow = quotesByUserId;
-      } else if (quotesByName && quotesByName.length > 0) {
+      if (quotesByName && quotesByName.length > 0) {
         console.log('✅ Mostrando cotizaciones por nombre exacto');
         quotesToShow = quotesByName;
       } else if (quotesByPartialName && quotesByPartialName.length > 0) {
         console.log('✅ Mostrando cotizaciones por nombre parcial');
         quotesToShow = quotesByPartialName;
+      } else if (quotesByUserId && quotesByUserId.length > 0) {
+        console.log('✅ Mostrando cotizaciones por id_Usuario');
+        quotesToShow = quotesByUserId;
       } else if (quotesAsOperator && quotesAsOperator.length > 0) {
         console.log('✅ Mostrando cotizaciones como operador');
         quotesToShow = quotesAsOperator;
