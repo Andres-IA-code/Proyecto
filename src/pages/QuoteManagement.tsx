@@ -39,7 +39,7 @@ const QuoteManagement: React.FC = () => {
       setLoading(true);
       setError('');
       
-      console.log('=== DEBUG COMPLETO DE COTIZACIONES ===');
+      console.log('=== ANÁLISIS COMPLETO DE COTIZACIONES ===');
 
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -52,90 +52,123 @@ const QuoteManagement: React.FC = () => {
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
         : currentUser.profile.Nombre;
 
-      console.log('🔍 Buscando cotizaciones para:', nombreDador);
-     console.log('👤 Datos del usuario actual:', {
-       Nombre: currentUser.profile.Nombre,
-       Apellido: currentUser.profile.Apellido,
-       Tipo_Persona: currentUser.profile.Tipo_Persona,
-       nombreDadorCalculado: nombreDador
-     });
+      console.log('👤 Usuario actual:', {
+        id_Usuario: currentUser.profile.id_Usuario,
+        Nombre: currentUser.profile.Nombre,
+        Apellido: currentUser.profile.Apellido,
+        nombreCompleto: nombreDador
+      });
 
-      // MÉTODO 1: Buscar por id_Usuario (más seguro con RLS)
-      console.log('📋 === MÉTODO 1: Buscar por id_Usuario ===');
+      // PASO 1: Verificar estructura de datos en Cotizaciones
+      console.log('📊 === VERIFICANDO ESTRUCTURA DE DATOS ===');
+      const { data: allCotizaciones, error: allError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .order('id_Cotizaciones', { ascending: false });
+
+      if (allError) {
+        console.error('❌ Error obteniendo todas las cotizaciones:', allError);
+      } else {
+        console.log('📋 Total cotizaciones en tabla:', allCotizaciones?.length || 0);
+        
+        // Analizar la estructura de datos
+        if (allCotizaciones && allCotizaciones.length > 0) {
+          console.log('🔍 Estructura de primera cotización:', allCotizaciones[0]);
+          
+          // Verificar qué id_Usuario tienen las cotizaciones
+          const usuariosEnCotizaciones = [...new Set(allCotizaciones.map(c => c.id_Usuario))];
+          console.log('👥 IDs de usuarios en cotizaciones:', usuariosEnCotizaciones);
+          
+          // Verificar nombres de dadores
+          const nombresEnCotizaciones = [...new Set(allCotizaciones.map(c => c.Nombre_Dador))];
+          console.log('📝 Nombres de dadores en cotizaciones:', nombresEnCotizaciones);
+          
+          // Buscar cotizaciones que podrían ser del usuario actual
+          const cotizacionesPorNombre = allCotizaciones.filter(c => 
+            c.Nombre_Dador && c.Nombre_Dador.toLowerCase().includes('andres')
+          );
+          console.log('🎯 Cotizaciones que contienen "andres":', cotizacionesPorNombre);
+        }
+      }
+
+      // PASO 2: Buscar cotizaciones del usuario actual
+      console.log('🔍 === BUSCANDO COTIZACIONES DEL USUARIO ===');
+      
+      let quotesToShow: any[] = [];
+      
+      // Método 1: Por id_Usuario
       const { data: quotesByUserId, error: userIdError } = await supabase
         .from('Cotizaciones')
         .select('*')
         .eq('id_Usuario', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
+      
+      console.log('📊 Cotizaciones por id_Usuario:', quotesByUserId?.length || 0);
 
-      console.log('🔍 Búsqueda por id_Usuario:', currentUser.profile.id_Usuario);
-      console.log('📊 Cotizaciones encontradas por id_Usuario:', quotesByUserId?.length || 0);
-      console.log('📋 Datos encontrados:', quotesByUserId);
-
-      if (userIdError) {
-        console.error('❌ Error en búsqueda por id_Usuario:', userIdError);
-      }
-
-      // MÉTODO 2: Buscar cotizaciones donde el usuario es el operador
-      console.log('📋 === MÉTODO 2: Buscar donde soy operador ===');
+      // Método 2: Por Nombre_Dador (búsqueda exacta)
+      const { data: quotesByName, error: nameError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .eq('Nombre_Dador', nombreDador)
+        .order('Fecha', { ascending: false });
+      
+      console.log('📊 Cotizaciones por nombre exacto:', quotesByName?.length || 0);
+      
+      // Método 3: Por Nombre_Dador (búsqueda flexible)
+      const { data: quotesByPartialName, error: partialError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .ilike('Nombre_Dador', `%${currentUser.profile.Nombre}%`)
+        .order('Fecha', { ascending: false });
+      
+      console.log('📊 Cotizaciones por nombre parcial:', quotesByPartialName?.length || 0);
+      
+      // Método 4: Como operador
       const { data: quotesAsOperator, error: operatorError } = await supabase
         .from('Cotizaciones')
         .select('*')
         .eq('id_Operador', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
-      console.log('🔍 Búsqueda como operador:', currentUser.profile.id_Usuario);
       console.log('📊 Cotizaciones como operador:', quotesAsOperator?.length || 0);
-      console.log('📋 Datos como operador:', quotesAsOperator);
-
-      if (operatorError) {
-        console.error('❌ Error en búsqueda como operador:', operatorError);
-      }
-
-      // MÉTODO 3: Usar service role para ver todos los datos (solo para debug)
-      console.log('📋 === MÉTODO 3: Consulta con service role ===');
-      const { data: allQuotesServiceRole, error: serviceError } = await supabase
-        .from('Cotizaciones')
-        .select('*')
-        .order('Fecha', { ascending: false });
-
-      console.log('📊 Total con service role:', allQuotesServiceRole?.length || 0);
-      console.log('📋 Todos los datos:', allQuotesServiceRole);
-
-      if (serviceError) {
-        console.error('❌ Error con service role:', serviceError);
-      }
 
       // Determinar qué cotizaciones mostrar
-      let quotesToShow: any[] = [];
-      
       if (quotesByUserId && quotesByUserId.length > 0) {
-        console.log('✅ Usando cotizaciones por id_Usuario');
+        console.log('✅ Mostrando cotizaciones por id_Usuario');
         quotesToShow = quotesByUserId;
+      } else if (quotesByName && quotesByName.length > 0) {
+        console.log('✅ Mostrando cotizaciones por nombre exacto');
+        quotesToShow = quotesByName;
+      } else if (quotesByPartialName && quotesByPartialName.length > 0) {
+        console.log('✅ Mostrando cotizaciones por nombre parcial');
+        quotesToShow = quotesByPartialName;
       } else if (quotesAsOperator && quotesAsOperator.length > 0) {
-        console.log('✅ Usando cotizaciones como operador');
+        console.log('✅ Mostrando cotizaciones como operador');
         quotesToShow = quotesAsOperator;
       } else {
-        console.log('❌ No se encontraron cotizaciones con ningún método');
+        console.log('❌ No se encontraron cotizaciones');
         quotesToShow = [];
       }
 
       setQuotes(quotesToShow);
       
       // Guardar todas las cotizaciones para el botón "Mostrar Todas"
-      if (allQuotesServiceRole) {
-        setAllQuotes(allQuotesServiceRole);
+      if (allCotizaciones) {
+        setAllQuotes(allCotizaciones);
       }
       
       // Información de debug
       setDebugInfo({
-        totalCotizaciones: allQuotesServiceRole?.length || 0,
+        totalCotizaciones: allCotizaciones?.length || 0,
         nombreBuscado: nombreDador,
         idUsuario: currentUser.profile.id_Usuario,
         cotizacionesPorId: quotesByUserId?.length || 0,
+        cotizacionesPorNombre: quotesByName?.length || 0,
+        cotizacionesPorNombreParcial: quotesByPartialName?.length || 0,
         cotizacionesComoOperador: quotesAsOperator?.length || 0,
-        nombresEnTabla: allQuotesServiceRole ? [...new Set(allQuotesServiceRole.map(c => c.Nombre_Dador))] : [],
-        cotizacionesCompletas: allQuotesServiceRole || []
+        nombresEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.Nombre_Dador))] : [],
+        usuariosEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.id_Usuario))] : [],
+        cotizacionesCompletas: allCotizaciones || []
       });
       
     } catch (err) {
@@ -148,12 +181,10 @@ const QuoteManagement: React.FC = () => {
 
   const handleShowAllCotizaciones = () => {
     setDisplayMode('all');
-    setFilterStatus('all');
   };
 
   const handleTestExactMatch = () => {
     setDisplayMode('test');
-    setFilterStatus('all');
   };
 
   const formatDate = (dateString: string) => {
