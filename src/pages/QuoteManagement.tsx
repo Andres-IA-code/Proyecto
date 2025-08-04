@@ -432,13 +432,6 @@ const QuoteManagement: React.FC = () => {
                 <li>3. Recibirás cotizaciones aquí</li>
               </ol>
               <div className="mt-6">
-                <button
-                  onClick={() => setShowDebug(!showDebug)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm mr-2"
-                >
-                  {showDebug ? 'Ocultar' : 'Mostrar'} Info Debug
-                </button>
-              </div>
               <button
                 onClick={fetchQuotes}
                 className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
