@@ -135,15 +135,18 @@ const QuoteManagement: React.FC = () => {
       let quotesToShow: any[] = [];
       
       // Método 1: Por Nombre_Dador (búsqueda insensible a acentos)
+      console.log('🔍 Método 1: Búsqueda por nombre con variaciones');
       const { data: quotesByName, error: nameError } = await supabase
         .from('Cotizaciones')
         .select('*')
-        .or(`Nombre_Dador.eq.${nombreDador},Nombre_Dador.eq.Andrés Consiglio,Nombre_Dador.ilike.%${currentUser.profile.Nombre}%`)
+        .or(`Nombre_Dador.eq.${nombreDador},Nombre_Dador.eq.Andrés Consiglio,Nombre_Dador.ilike.%Andres%,Nombre_Dador.ilike.%Andrés%`)
         .order('Fecha', { ascending: false });
       
       console.log('📊 Cotizaciones por nombre (con variaciones):', quotesByName?.length || 0);
+      console.log('❌ Error búsqueda por nombre:', nameError);
       
       // Método 2: Búsqueda específica para "Andrés Consiglio" (con acento)
+      console.log('🔍 Método 2: Búsqueda específica con acento');
       const { data: quotesByAccentedName, error: accentError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -151,8 +154,21 @@ const QuoteManagement: React.FC = () => {
         .order('Fecha', { ascending: false });
       
       console.log('📊 Cotizaciones por "Andrés Consiglio" (con acento):', quotesByAccentedName?.length || 0);
+      console.log('❌ Error búsqueda con acento:', accentError);
       
-      // Método 3: Búsqueda flexible por nombre (sin acentos)
+      // Método 3: Búsqueda usando textSearch (insensible a acentos)
+      console.log('🔍 Método 3: Búsqueda con textSearch');
+      const { data: quotesByTextSearch, error: textSearchError } = await supabase
+        .from('Cotizaciones')
+        .select('*')
+        .textSearch('Nombre_Dador', 'Andres | Andrés', { type: 'websearch' })
+        .order('Fecha', { ascending: false });
+      
+      console.log('📊 Cotizaciones por textSearch:', quotesByTextSearch?.length || 0);
+      console.log('❌ Error textSearch:', textSearchError);
+      
+      // Método 4: Búsqueda flexible por nombre (sin acentos)
+      console.log('🔍 Método 4: Búsqueda flexible con ilike');
       const { data: quotesByFlexibleName, error: flexibleError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -160,8 +176,10 @@ const QuoteManagement: React.FC = () => {
         .order('Fecha', { ascending: false });
       
       console.log('📊 Cotizaciones por búsqueda flexible:', quotesByFlexibleName?.length || 0);
+      console.log('❌ Error búsqueda flexible:', flexibleError);
       
-      // Método 4: Como operador (cotizaciones que he enviado)
+      // Método 5: Como operador (cotizaciones que he enviado)
+      console.log('🔍 Método 5: Como operador');
       const { data: quotesAsOperator, error: operatorError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -169,8 +187,10 @@ const QuoteManagement: React.FC = () => {
         .order('Fecha', { ascending: false });
 
       console.log('📊 Cotizaciones como operador:', quotesAsOperator?.length || 0);
+      console.log('❌ Error como operador:', operatorError);
 
-      // Método 5: Por id_Usuario (como respaldo)
+      // Método 6: Por id_Usuario (como respaldo)
+      console.log('🔍 Método 6: Por id_Usuario');
       const { data: quotesByUserId, error: userIdError } = await supabase
         .from('Cotizaciones')
         .select('*')
@@ -178,6 +198,7 @@ const QuoteManagement: React.FC = () => {
         .order('Fecha', { ascending: false });
       
       console.log('📊 Cotizaciones por id_Usuario:', quotesByUserId?.length || 0);
+      console.log('❌ Error por id_Usuario:', userIdError);
       
       // Determinar qué cotizaciones mostrar (prioridad actualizada)
       if (quotesByName && quotesByName.length > 0) {
@@ -186,6 +207,9 @@ const QuoteManagement: React.FC = () => {
       } else if (quotesByAccentedName && quotesByAccentedName.length > 0) {
         console.log('✅ Mostrando cotizaciones por "Andrés Consiglio" (con acento)');
         quotesToShow = quotesByAccentedName;
+      } else if (quotesByTextSearch && quotesByTextSearch.length > 0) {
+        console.log('✅ Mostrando cotizaciones por textSearch');
+        quotesToShow = quotesByTextSearch;
       } else if (quotesByFlexibleName && quotesByFlexibleName.length > 0) {
         console.log('✅ Mostrando cotizaciones por búsqueda flexible');
         quotesToShow = quotesByFlexibleName;
@@ -217,6 +241,7 @@ const QuoteManagement: React.FC = () => {
         cotizacionesPorId: quotesByUserId?.length || 0,
         cotizacionesPorNombreVariaciones: quotesByName?.length || 0,
         cotizacionesPorNombreConAcento: quotesByAccentedName?.length || 0,
+        cotizacionesPorTextSearch: quotesByTextSearch?.length || 0,
         cotizacionesPorNombreFlexible: quotesByFlexibleName?.length || 0,
         cotizacionesComoOperador: quotesAsOperator?.length || 0,
         nombresEnTabla: allCotizaciones ? [...new Set(allCotizaciones.map(c => c.Nombre_Dador))] : [],
@@ -226,6 +251,7 @@ const QuoteManagement: React.FC = () => {
           normalError,
           nameError,
           accentError,
+          textSearchError,
           flexibleError,
           operatorError,
           userIdError
