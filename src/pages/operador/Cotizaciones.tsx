@@ -32,16 +32,18 @@ interface AcceptedQuote {
 
 const OperadorCotizaciones: React.FC = () => {
   const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([]);
+  const [cancelledQuotes, setCancelledQuotes] = useState<AcceptedQuote[]>([]);
+  const [selectedTab, setSelectedTab] = useState<'accepted' | 'cancelled'>('accepted');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedQuote, setSelectedQuote] = useState<AcceptedQuote | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
-    fetchAcceptedQuotes();
+    fetchQuotes();
   }, []);
 
-  const fetchAcceptedQuotes = async () => {
+  const fetchQuotes = async () => {
     try {
       setLoading(true);
       setError('');
@@ -59,7 +61,7 @@ const OperadorCotizaciones: React.FC = () => {
 
       console.log('Buscando cotizaciones aceptadas para operador:', nombreOperador);
 
-      // Buscar cotizaciones aceptadas del operador actual con JOIN a la tabla General
+      // Buscar cotizaciones aceptadas del operador actual
       const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
@@ -91,7 +93,38 @@ const OperadorCotizaciones: React.FC = () => {
         return;
       }
 
-      // Transformar los datos para facilitar el acceso
+      // Buscar cotizaciones canceladas/rechazadas del operador actual
+      const { data: cancelledData, error: cancelledError } = await supabase
+        .from('Cotizaciones')
+        .select(`
+          *,
+          General!inner(
+            Origen,
+            Destino,
+            Distancia,
+            Tipo_Carga,
+            Peso,
+            Tipo_Vehiculo,
+            Fecha_Retiro,
+            Horario_Retiro,
+            Observaciones,
+            Tipo_Carroceria,
+            Parada_Programada,
+            Dimension_Largo,
+            Dimension_Ancho,
+            Dimension_Alto
+          )
+        `)
+        .eq('Nombre_Operador', nombreOperador)
+        .eq('Estado', 'Rechazada')
+        .order('Fecha', { ascending: false });
+
+      if (cancelledError) {
+        console.error('Error fetching cancelled quotes:', cancelledError);
+        // Don't set error here, just log it
+      }
+
+      // Transformar los datos aceptados para facilitar el acceso
       const transformedData = (data || []).map(quote => ({
         ...quote,
         envio_origen: quote.General?.Origen,
@@ -111,7 +144,29 @@ const OperadorCotizaciones: React.FC = () => {
       }));
 
       setAcceptedQuotes(transformedData);
+      
+      // Transformar los datos cancelados
+      const transformedCancelledData = (cancelledData || []).map(quote => ({
+        ...quote,
+        envio_origen: quote.General?.Origen,
+        envio_destino: quote.General?.Destino,
+        envio_distancia: quote.General?.Distancia,
+        envio_tipo_carga: quote.General?.Tipo_Carga,
+        envio_peso: quote.General?.Peso,
+        envio_tipo_vehiculo: quote.General?.Tipo_Vehiculo,
+        envio_fecha_retiro: quote.General?.Fecha_Retiro,
+        envio_horario_retiro: quote.General?.Horario_Retiro,
+        envio_observaciones: quote.General?.Observaciones,
+        envio_tipo_carroceria: quote.General?.Tipo_Carroceria,
+        envio_parada_programada: quote.General?.Parada_Programada,
+        envio_dimension_largo: quote.General?.Dimension_Largo,
+        envio_dimension_ancho: quote.General?.Dimension_Ancho,
+        envio_dimension_alto: quote.General?.Dimension_Alto,
+      }));
+
+      setCancelledQuotes(transformedCancelledData);
       console.log('Cotizaciones aceptadas encontradas:', transformedData.length);
+      console.log('Cotizaciones canceladas encontradas:', transformedCancelledData.length);
       
     } catch (err) {
       console.error('Error inesperado:', err);
@@ -183,7 +238,7 @@ const OperadorCotizaciones: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar cotizaciones</h3>
               <p className="text-gray-600 mb-4">{error}</p>
               <button
-                onClick={fetchAcceptedQuotes}
+                onClick={fetchQuotes}
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
               >
                 <RefreshCw size={16} className="mr-2" />
@@ -196,17 +251,23 @@ const OperadorCotizaciones: React.FC = () => {
     );
   }
 
+  const currentQuotes = selectedTab === 'accepted' ? acceptedQuotes : cancelledQuotes;
+  const tabTitle = selectedTab === 'accepted' ? 'Cotizaciones Aceptadas' : 'Cotizaciones Canceladas';
+  const tabSubtitle = selectedTab === 'accepted' 
+    ? 'Viajes confirmados y detalles de operación' 
+    : 'Cotizaciones rechazadas por el dador de carga';
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cotizaciones Aceptadas</h1>
-            <p className="text-gray-500 mt-1">Viajes confirmados y detalles de operación</p>
+            <h1 className="text-2xl font-bold text-gray-900">{tabTitle}</h1>
+            <p className="text-gray-500 mt-1">{tabSubtitle}</p>
           </div>
           <button
-            onClick={fetchAcceptedQuotes}
+            onClick={fetchQuotes}
             className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
           >
             <RefreshCw size={16} className="mr-2" />
@@ -214,54 +275,125 @@ const OperadorCotizaciones: React.FC = () => {
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-500" />
-              <div className="ml-3">
-                <div className="text-sm text-gray-500">Viajes Confirmados</div>
-                <div className="text-xl font-semibold">{acceptedQuotes.length}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <DollarSign className="h-8 w-8 text-blue-500" />
-              <div className="ml-3">
-                <div className="text-sm text-gray-500">Ingresos Totales</div>
-                <div className="text-xl font-semibold">
-                  ${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <Package className="h-8 w-8 text-purple-500" />
-              <div className="ml-3">
-                <div className="text-sm text-gray-500">Carga Total</div>
-                <div className="text-xl font-semibold">
-                  {acceptedQuotes.reduce((sum, quote) => {
-                    const peso = parseFloat(quote.envio_peso || '0');
-                    return sum + peso;
-                  }, 0).toFixed(1)} Tn
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setSelectedTab('accepted')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                selectedTab === 'accepted'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Aceptadas ({acceptedQuotes.length})
+            </button>
+            <button
+              onClick={() => setSelectedTab('cancelled')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                selectedTab === 'cancelled'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Canceladas ({cancelledQuotes.length})
+            </button>
+          </nav>
         </div>
+
+        {/* Stats */}
+        {selectedTab === 'accepted' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <CheckCircle className="h-8 w-8 text-green-500" />
+                <div className="ml-3">
+                  <div className="text-sm text-gray-500">Viajes Confirmados</div>
+                  <div className="text-xl font-semibold">{acceptedQuotes.length}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <DollarSign className="h-8 w-8 text-blue-500" />
+                <div className="ml-3">
+                  <div className="text-sm text-gray-500">Ingresos Totales</div>
+                  <div className="text-xl font-semibold">
+                    ${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <Package className="h-8 w-8 text-purple-500" />
+                <div className="ml-3">
+                  <div className="text-sm text-gray-500">Carga Total</div>
+                  <div className="text-xl font-semibold">
+                    {acceptedQuotes.reduce((sum, quote) => {
+                      const peso = parseFloat(quote.envio_peso || '0');
+                      return sum + peso;
+                    }, 0).toFixed(1)} Tn
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedTab === 'cancelled' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-red-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <div className="ml-3">
+                  <div className="text-sm text-gray-500">Cotizaciones Rechazadas</div>
+                  <div className="text-xl font-semibold">{cancelledQuotes.length}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <DollarSign className="h-8 w-8 text-gray-500" />
+                <div className="ml-3">
+                  <div className="text-sm text-gray-500">Ingresos Perdidos</div>
+                  <div className="text-xl font-semibold">
+                    ${cancelledQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <Package className="h-8 w-8 text-orange-500" />
+                <div className="ml-3">
+                  <div className="text-sm text-gray-500">Carga No Transportada</div>
+                  <div className="text-xl font-semibold">
+                    {cancelledQuotes.reduce((sum, quote) => {
+                      const peso = parseFloat(quote.envio_peso || '0');
+                      return sum + peso;
+                    }, 0).toFixed(1)} Tn
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quotes List */}
-      {acceptedQuotes.length > 0 ? (
+      {currentQuotes.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {acceptedQuotes.map((quote) => (
+          {currentQuotes.map((quote) => (
             <div
               key={quote.id_Cotizaciones}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              className={`bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow ${
+                selectedTab === 'accepted' ? 'border-green-200' : 'border-red-200'
+              }`}
             >
               <div className="p-6">
                 {/* Header */}
@@ -274,12 +406,23 @@ const OperadorCotizaciones: React.FC = () => {
                       <User size={16} className="mr-1" />
                       {quote.Nombre_Dador}
                     </div>
+                    {selectedTab === 'cancelled' && (
+                      <div className="mt-2">
+                        <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
+                          Rechazada
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className={`text-2xl font-bold ${
+                      selectedTab === 'accepted' ? 'text-green-600' : 'text-red-600'
+                    }`}>
                       ${quote.Oferta?.toLocaleString()}
                     </div>
-                    <div className="text-xs text-gray-500">Precio asignado</div>
+                    <div className="text-xs text-gray-500">
+                      {selectedTab === 'accepted' ? 'Precio asignado' : 'Precio rechazado'}
+                    </div>
                   </div>
                 </div>
 
@@ -397,7 +540,11 @@ const OperadorCotizaciones: React.FC = () => {
                 {/* Action Button */}
                 <button
                   onClick={() => handleViewDetails(quote)}
-                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
+                  className={`w-full mt-4 px-4 py-2 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors text-sm ${
+                    selectedTab === 'accepted'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                      : 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500'
+                  }`}
                 >
                   Ver Detalles Completos
                 </button>
@@ -409,13 +556,16 @@ const OperadorCotizaciones: React.FC = () => {
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <Package size={64} className="mx-auto text-gray-300 mb-6" />
           <h3 className="text-xl font-semibold text-gray-900 mb-3">
-            No hay cotizaciones aceptadas
+            {selectedTab === 'accepted' ? 'No hay cotizaciones aceptadas' : 'No hay cotizaciones canceladas'}
           </h3>
           <p className="text-gray-500 mb-6">
-            Cuando los dadores de carga acepten tus cotizaciones, aparecerán aquí con todos los detalles del viaje.
+            {selectedTab === 'accepted' 
+              ? 'Cuando los dadores de carga acepten tus cotizaciones, aparecerán aquí con todos los detalles del viaje.'
+              : 'Las cotizaciones que sean rechazadas por los dadores de carga aparecerán aquí.'
+            }
           </p>
           <button
-            onClick={fetchAcceptedQuotes}
+            onClick={fetchQuotes}
             className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             Actualizar Lista
@@ -612,12 +762,16 @@ const OperadorCotizaciones: React.FC = () => {
                   >
                     Cerrar
                   </button>
-                  <button className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors">
-                    Iniciar Viaje
-                  </button>
-                  <button className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                    Contactar Cliente
-                  </button>
+                  {selectedTab === 'accepted' && (
+                    <>
+                      <button className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors">
+                        Iniciar Viaje
+                      </button>
+                      <button className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                        Contactar Cliente
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
