@@ -330,15 +330,23 @@ const QuoteManagement: React.FC = () => {
                           <div className="flex space-x-2 justify-end">
                             <button 
                               onClick={() => handleAcceptQuote(quote.id_Cotizaciones)}
-                              disabled={updatingQuote === quote.id_Cotizaciones}
-                              className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+                             disabled={updatingQuote === quote.id_Cotizaciones || quote.Estado === 'Aceptada' || quote.Estado === 'Rechazada'}
+                             className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                               quote.Estado === 'Aceptada' || quote.Estado === 'Rechazada'
+                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                 : 'bg-green-600 text-white hover:bg-green-700'
+                             }`}
                             >
                               {updatingQuote === quote.id_Cotizaciones ? 'Procesando...' : 'Aceptar'}
                             </button>
                             <button 
                               onClick={() => handleRejectQuote(quote.id_Cotizaciones)}
-                              disabled={updatingQuote === quote.id_Cotizaciones}
-                              className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
+                             disabled={updatingQuote === quote.id_Cotizaciones || quote.Estado === 'Aceptada' || quote.Estado === 'Rechazada'}
+                             className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                               quote.Estado === 'Aceptada' || quote.Estado === 'Rechazada'
+                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                 : 'bg-red-600 text-white hover:bg-red-700'
+                             }`}
                             >
                               {updatingQuote === quote.id_Cotizaciones ? 'Procesando...' : 'Cancelar'}
                             </button>
