@@ -528,7 +528,7 @@ const OperadorCotizaciones: React.FC = () => {
                 {/* Quote Info */}
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
-                    <span>Cotización aceptada:</span>
+                    <span>Fecha:</span>
                     <span>{formatDateTime(quote.Fecha)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm text-gray-500">
