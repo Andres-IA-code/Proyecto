@@ -79,7 +79,6 @@ const History: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <h1 className="text-2xl font-bold">Seguimientos</h1>
             <div className="flex space-x-2 mt-4 md:mt-0">
               <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">
                 <Calendar size={14} className="mr-2" />
