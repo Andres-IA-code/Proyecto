@@ -118,6 +118,36 @@ const History: React.FC = () => {
     }
   };
 
+  const getSimplifiedLocation = (fullAddress: string | undefined): string => {
+    if (!fullAddress) return 'No especificado';
+    
+    // Extract city/locality from the full address
+    // Look for common patterns in addresses
+    const parts = fullAddress.split(',').map(part => part.trim());
+    
+    // Try to find the city/locality (usually the last meaningful part before province/country)
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const part = parts[i];
+      
+      // Skip common suffixes
+      if (part.toLowerCase().includes('provincia') || 
+          part.toLowerCase().includes('argentina') ||
+          part.toLowerCase().includes('méxico') ||
+          part.toLowerCase().includes('chile') ||
+          part.toLowerCase().includes('colombia')) {
+        continue;
+      }
+      
+      // Return the first meaningful location found
+      if (part.length > 2) {
+        return part;
+      }
+    }
+    
+    // Fallback: return the first part if no city found
+    return parts[0] || fullAddress;
+  };
+
   const filteredCotizaciones = cotizaciones.filter(cotizacion => {
     if (filterStatus === 'all') return true;
     return cotizacion.Estado?.toLowerCase() === filterStatus.toLowerCase();
@@ -236,7 +266,7 @@ const History: React.FC = () => {
                       #{cotizacion.id_Envio}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      {cotizacion.envio_origen || 'No especificado'} → {cotizacion.envio_destino || 'No especificado'}
+                      {getSimplifiedLocation(cotizacion.envio_origen)} → {getSimplifiedLocation(cotizacion.envio_destino)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                       {formatDate(cotizacion.Fecha)}
