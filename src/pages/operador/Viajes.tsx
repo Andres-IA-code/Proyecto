@@ -104,11 +104,6 @@ const Viajes: React.FC = () => {
               <h1 className="text-2xl font-bold">Gestión de Viajes</h1>
               <p className="text-gray-500 mt-1">Administra y monitorea todos los viajes</p>
             </div>
-            <div className="mt-4 md:mt-0 flex space-x-2">
-              <button className="px-3 py-1.5 bg-black text-white rounded-md hover:bg-gray-800 text-xs">
-                + Nuevo Viaje
-              </button>
-            </div>
           </div>
         </div>
 
