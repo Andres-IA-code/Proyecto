@@ -193,42 +193,9 @@ const History: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Historial de Cotizaciones</h1>
-              <p className="text-gray-500 mt-1">Todas las cotizaciones generadas para tus envíos</p>
-            </div>
-            <div className="flex space-x-2 mt-4 md:mt-0">
-              <button
-                onClick={fetchCotizaciones}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <RefreshCw size={14} className="mr-2" />
-                Actualizar
-              </button>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="block w-full pl-3 pr-10 py-1.5 text-xs border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="pendiente">Pendientes</option>
-                <option value="aceptada">Aceptadas</option>
-                <option value="rechazada">Canceladas</option>
-              </select>
-              <button className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700">
-                <Download size={14} className="mr-2" />
-                Exportar
-              </button>
-            </div>
-          </div>
-        </div>
-
         {filteredCotizaciones.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
               <thead>
                 <tr className="bg-gray-50">
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
