@@ -66,6 +66,7 @@ const Header: React.FC = () => {
   return (
     <header className="bg-white border-b border-gray-200 py-3 px-6 flex items-center justify-between">
       <div>
+        <h1 className="text-2xl font-bold">Historial</h1>
         <h1 className="text-2xl font-bold">{title}</h1>
       </div>
       <div className="flex items-center space-x-4">
