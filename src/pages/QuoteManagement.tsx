@@ -208,7 +208,6 @@ const QuoteManagement: React.FC = () => {
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-6">
-            <div>
               <p className="text-gray-500 mt-1">Gestiona las cotizaciones recibidas para tus envíos</p>
             </div>
           </div>
