@@ -193,9 +193,9 @@ const History: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow">
         {filteredCotizaciones.length > 0 ? (
           <div className="overflow-x-auto">
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-gray-50">
