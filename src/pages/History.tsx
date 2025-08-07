@@ -218,10 +218,6 @@ const History: React.FC = () => {
                 <option value="aceptada">Aceptadas</option>
                 <option value="rechazada">Canceladas</option>
               </select>
-              <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">
-                <Filter size={14} className="mr-2" />
-                Filtrar
-              </button>
               <button className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700">
                 <Download size={14} className="mr-2" />
                 Exportar
