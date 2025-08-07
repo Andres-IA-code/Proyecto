@@ -196,79 +196,80 @@ const History: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Historial de Envíos</h1>
       </div>
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow">
-        {filteredCotizaciones.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID Envío
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ruta
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Operador Logístico
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Costo
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCotizaciones.map((cotizacion) => (
-                  <tr key={cotizacion.id_Cotizaciones} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      #{cotizacion.id_Envio}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      {getSimplifiedLocation(cotizacion.envio_origen)} → {getSimplifiedLocation(cotizacion.envio_destino)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      {formatDate(cotizacion.Fecha)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      {cotizacion.Nombre_Operador || 'No especificado'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(cotizacion.Estado)}`}>
-                        {getStatusLabel(cotizacion.Estado)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      ${cotizacion.Oferta?.toLocaleString() || '0'}
-                    </td>
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow">
+          {filteredCotizaciones.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ID Envío
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ruta
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fecha
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Operador Logístico
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Costo
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gray-100">
-              <Calendar size={36} className="text-gray-400" />
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCotizaciones.map((cotizacion) => (
+                    <tr key={cotizacion.id_Cotizaciones} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        #{cotizacion.id_Envio}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        {getSimplifiedLocation(cotizacion.envio_origen)} → {getSimplifiedLocation(cotizacion.envio_destino)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        {formatDate(cotizacion.Fecha)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        {cotizacion.Nombre_Operador || 'No especificado'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(cotizacion.Estado)}`}>
+                          {getStatusLabel(cotizacion.Estado)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        ${cotizacion.Oferta?.toLocaleString() || '0'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No hay cotizaciones</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {filterStatus === 'all' 
-                ? 'No se han generado cotizaciones aún.'
-                : `No hay cotizaciones con estado "${getStatusLabel(filterStatus)}".`
-              }
-            </p>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-12">
+              <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gray-100">
+                <Calendar size={36} className="text-gray-400" />
+              </div>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">No hay cotizaciones</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {filterStatus === 'all' 
+                  ? 'No se han generado cotizaciones aún.'
+                  : `No hay cotizaciones con estado "${getStatusLabel(filterStatus)}".`
+                }
+              </p>
+            </div>
+          )}
 
-        <div className="p-6 bg-gray-50 border-t">
-          <div className="text-sm text-gray-500 text-center">
-            Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
+          <div className="p-6 bg-gray-50 border-t">
+            <div className="text-sm text-gray-500 text-center">
+              Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
+            </div>
           </div>
         </div>
       </div>
