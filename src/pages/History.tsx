@@ -193,6 +193,10 @@ const History: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Historial de Envíos</h1>
+      </div>
+    <div className="space-y-6">
       <div className="bg-white rounded-lg shadow">
         {filteredCotizaciones.length > 0 ? (
           <div className="overflow-x-auto">
