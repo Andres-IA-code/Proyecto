@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { Truck, DollarSign, CheckCircle } from 'lucide-react';
+import { Truck, DollarSign, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -39,6 +39,7 @@ interface AcceptedQuote {
 const Dashboard = () => {
   const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     fetchAcceptedQuotes();
@@ -216,7 +217,17 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="relative">
+      {/* Sidebar Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed left-0 top-[70%] transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 z-50 transition-all duration-300"
+        style={{ left: sidebarOpen ? '256px' : '0px' }}
+      >
+        {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+      </button>
+
+      <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold mb-6">Dashboard Operativo</h1>
       
       {/* Stats Cards */}
@@ -277,6 +288,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 };
