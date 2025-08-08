@@ -14,7 +14,6 @@ import {
   PointElement,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import StatCard from '../../components/StatCard';
 import { supabase, getCurrentUser } from '../../lib/supabase';
 
 ChartJS.register(
@@ -118,22 +117,36 @@ const Dashboard = () => {
   const initializeDashboardItems = () => {
     const items: DashboardItem[] = [
       {
-        id: 'stats',
+        id: 'cotizaciones-aceptadas',
         type: 'stat',
         component: (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <StatCard
-              title="Cotizaciones Aceptadas"
-              value={acceptedQuotes.length.toString()}
-              icon={<CheckCircle className="text-green-600" size={24} />}
-              description="Total histórico"
-            />
-            <StatCard
-              title="Ingresos Totales"
-              value={`$${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}`}
-              icon={<DollarSign className="text-purple-600" size={24} />}
-              description="De cotizaciones aceptadas"
-            />
+          <div className="bg-white rounded-lg shadow p-6 flex items-start">
+            <div className="bg-green-100 p-3 rounded-full mr-4">
+              <CheckCircle size={24} className="text-green-600" />
+            </div>
+            <div>
+              <div className="font-bold text-2xl">{acceptedQuotes.length}</div>
+              <div className="text-gray-500 text-sm">Cotizaciones Aceptadas</div>
+              <div className="text-xs text-gray-400 mt-1">Total histórico</div>
+            </div>
+          </div>
+        )
+      },
+      {
+        id: 'ingresos-totales',
+        type: 'stat',
+        component: (
+          <div className="bg-white rounded-lg shadow p-6 flex items-start">
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <DollarSign size={24} className="text-purple-600" />
+            </div>
+            <div>
+              <div className="font-bold text-2xl">
+                ${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}
+              </div>
+              <div className="text-gray-500 text-sm">Ingresos Totales</div>
+              <div className="text-xs text-gray-400 mt-1">De cotizaciones aceptadas</div>
+            </div>
           </div>
         )
       },
@@ -141,8 +154,8 @@ const Dashboard = () => {
         id: 'chart',
         type: 'chart',
         component: (
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-medium text-gray-700 mb-4">Cotizaciones Aceptadas por Mes</h3>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="font-medium text-gray-700 mb-4">Volumen de Carga Mensual (Cotizaciones Aceptadas)</h3>
             <div className="h-96">
               {acceptedQuotes.length > 0 ? (
                 <Bar options={chartOptions} data={prepareChartData()} />
@@ -152,7 +165,7 @@ const Dashboard = () => {
                     <Truck size={48} className="mx-auto text-gray-300 mb-4" />
                     <p className="text-gray-500">No hay cotizaciones aceptadas aún</p>
                     <p className="text-gray-400 text-sm mt-1">
-                      Cuando tengas cotizaciones aceptadas, aparecerán en este gráfico
+                      Cuando tengas cotizaciones aceptadas, el volumen aparecerá en este gráfico
                     </p>
                   </div>
                 </div>
@@ -166,89 +179,59 @@ const Dashboard = () => {
     setDashboardItems(items);
   };
 
-  // Preparar datos para el gráfico
+  // Preparar datos para el gráfico basado en cotizaciones aceptadas
   const prepareChartData = () => {
     if (acceptedQuotes.length === 0) {
       return {
         labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-        datasets: [
-          {
-            label: 'Cantidad de Cotizaciones',
-            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            backgroundColor: 'rgba(59, 130, 246, 0.8)',
-            borderColor: 'rgb(59, 130, 246)',
-            borderWidth: 1,
-            borderRadius: 4,
-            yAxisID: 'y',
-          },
-          {
-            label: 'Ingresos Totales ($)',
-            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            backgroundColor: 'rgba(34, 197, 94, 0.8)',
-            borderColor: 'rgb(34, 197, 94)',
-            borderWidth: 1,
-            borderRadius: 4,
-            yAxisID: 'y1',
-          }
-        ]
-      };
-    }
-
-    // Agrupar cotizaciones por mes
-    const monthlyData: { [key: number]: { count: number; total: number } } = {};
-    
-    acceptedQuotes.forEach((quote) => {
-      const date = new Date(quote.Fecha);
-      const month = date.getMonth(); // 0-11
-      
-      if (!monthlyData[month]) {
-        monthlyData[month] = { count: 0, total: 0 };
-      }
-      
-      monthlyData[month].count += 1;
-      monthlyData[month].total += quote.Oferta || 0;
-    });
-
-    // Crear arrays de 12 meses con los datos
-    const monthlyCounts = [];
-    const monthlyTotals = [];
-    for (let i = 0; i < 12; i++) {
-      monthlyCounts.push(monthlyData[i]?.count || 0);
-      monthlyTotals.push(monthlyData[i]?.total || 0);
-    }
-
-    return {
-      labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-      datasets: [
-        {
-          label: 'Cantidad de Cotizaciones',
-          data: monthlyCounts,
+        datasets: [{
+          label: 'Volumen de Carga (toneladas)',
+          data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           backgroundColor: 'rgba(59, 130, 246, 0.8)',
           borderColor: 'rgb(59, 130, 246)',
           borderWidth: 1,
           borderRadius: 4,
-          yAxisID: 'y',
-        },
-        {
-          label: 'Ingresos Totales ($)',
-          data: monthlyTotals,
-          backgroundColor: 'rgba(34, 197, 94, 0.8)',
-          borderColor: 'rgb(34, 197, 94)',
-          borderWidth: 1,
-          borderRadius: 4,
-          yAxisID: 'y1',
-        }
-      ]
+        }]
+      };
+    }
+
+    // Agrupar cotizaciones por mes y sumar el peso
+    const monthlyData: { [key: number]: number } = {};
+    
+    acceptedQuotes.forEach(quote => {
+      const date = new Date(quote.Fecha);
+      const month = date.getMonth(); // 0-11
+      const peso = parseFloat(quote.envio_peso || '0');
+      
+      if (!monthlyData[month]) {
+        monthlyData[month] = 0;
+      }
+      
+      monthlyData[month] += peso;
+    });
+
+    // Crear array de 12 meses con los datos
+    const monthlyVolumes = [];
+    for (let i = 0; i < 12; i++) {
+      monthlyVolumes.push(monthlyData[i] || 0);
+    }
+
+    return {
+      labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+      datasets: [{
+        label: 'Volumen de Carga (toneladas)',
+        data: monthlyVolumes,
+        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
     };
   };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
-    },
     plugins: {
       legend: {
         position: 'top' as const,
@@ -259,28 +242,15 @@ const Dashboard = () => {
         },
       },
       title: {
-        display: true,
-        text: 'Cotizaciones Aceptadas por Mes',
-        font: {
-          size: 16,
-          weight: 'bold' as const,
-        },
-        color: '#374151',
+        display: false,
       },
     },
     scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-      },
       y: {
-        type: 'linear' as const,
-        display: true,
-        position: 'left' as const,
+        beginAtZero: true,
         title: {
           display: true,
-          text: 'Cantidad',
+          text: 'Toneladas',
           font: {
             size: 12,
           },
@@ -289,19 +259,9 @@ const Dashboard = () => {
           color: 'rgba(0, 0, 0, 0.1)',
         },
       },
-      y1: {
-        type: 'linear' as const,
-        display: true,
-        position: 'right' as const,
-        title: {
-          display: true,
-          text: 'Ingresos ($)',
-          font: {
-            size: 12,
-          },
-        },
+      x: {
         grid: {
-          drawOnChartArea: false,
+          display: false,
         },
       },
     },
@@ -338,6 +298,9 @@ const Dashboard = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold mb-6">Dashboard Operativo</h1>
+        <div className="text-sm text-gray-500">
+          💡 Arrastra los elementos para reordenar tu dashboard
+        </div>
       </div>
       
       <DragDropContext onDragEnd={handleDragEnd}>
