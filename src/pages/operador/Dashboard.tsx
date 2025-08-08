@@ -411,59 +411,6 @@ const Dashboard = () => {
     </div>
   );
 
-  function renderStatCard(item: DashboardItem) {
-    const { content } = item;
-    const IconComponent = content.icon;
-    
-    return (
-      <div className="bg-white rounded-lg shadow p-6 flex items-start">
-        <div className={`p-3 rounded-full mr-4 ${getColorClasses(content.color)}`}>
-          <IconComponent size={24} />
-        </div>
-        <div>
-          <div className="font-bold text-2xl">{content.value}</div>
-          <div className="text-gray-500 text-sm">{item.title}</div>
-          <div className="text-xs text-gray-400 mt-1">{content.description}</div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderChart() {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-medium text-gray-700 mb-4">Volumen de Carga Mensual (Cotizaciones Aceptadas)</h3>
-        <div className="h-96">
-          {acceptedQuotes.length > 0 ? (
-            <Bar options={chartOptions} data={prepareChartData()} />
-          ) : (
-            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <CheckCircle size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">No hay cotizaciones aceptadas aún</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  Cuando tengas cotizaciones aceptadas, el volumen aparecerá en este gráfico
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  function getColorClasses(color: string) {
-    switch (color) {
-      case 'green':
-        return 'bg-green-100 text-green-600';
-      case 'purple':
-        return 'bg-purple-100 text-purple-600';
-      case 'blue':
-        return 'bg-blue-100 text-blue-600';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
-  }
 };
 
 export default Dashboard;
