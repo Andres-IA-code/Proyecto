@@ -218,12 +218,6 @@ const Dashboard = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Flota Activa"
-          value="42"
-          icon={<Truck className="text-blue-600" size={24} />}
-          description="85% de utilización"
-        />
-        <StatCard
           title="Cotizaciones Aceptadas"
           value={acceptedQuotes.length.toString()}
           icon={<Truck className="text-green-600" size={24} />}
