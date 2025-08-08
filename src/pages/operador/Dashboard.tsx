@@ -40,7 +40,8 @@ interface AcceptedQuote {
 interface DashboardItem {
   id: string;
   type: 'stat' | 'chart';
-  component: React.ReactNode;
+  title: string;
+  content: any;
 }
 
 const Dashboard = () => {
@@ -119,60 +120,44 @@ const Dashboard = () => {
       {
         id: 'cotizaciones-aceptadas',
         type: 'stat',
-        component: (
-          <div className="bg-white rounded-lg shadow p-6 flex items-start">
-            <div className="bg-green-100 p-3 rounded-full mr-4">
-              <CheckCircle size={24} className="text-green-600" />
-            </div>
-            <div>
-              <div className="font-bold text-2xl">{acceptedQuotes.length}</div>
-              <div className="text-gray-500 text-sm">Cotizaciones Aceptadas</div>
-              <div className="text-xs text-gray-400 mt-1">Total histórico</div>
-            </div>
-          </div>
-        )
+        title: 'Cotizaciones Aceptadas',
+        content: {
+          value: acceptedQuotes.length,
+          description: 'Total histórico',
+          icon: CheckCircle,
+          color: 'green'
+        }
       },
       {
         id: 'ingresos-totales',
         type: 'stat',
-        component: (
-          <div className="bg-white rounded-lg shadow p-6 flex items-start">
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <DollarSign size={24} className="text-purple-600" />
-            </div>
-            <div>
-              <div className="font-bold text-2xl">
-                ${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}
-              </div>
-              <div className="text-gray-500 text-sm">Ingresos Totales</div>
-              <div className="text-xs text-gray-400 mt-1">De cotizaciones aceptadas</div>
-            </div>
-          </div>
-        )
+        title: 'Ingresos Totales',
+        content: {
+          value: `$${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}`,
+          description: 'De cotizaciones aceptadas',
+          icon: DollarSign,
+          color: 'purple'
+        }
+      },
+      {
+        id: 'volumen-total',
+        type: 'stat',
+        title: 'Volumen Total Transportado',
+        content: {
+          value: `${acceptedQuotes.reduce((sum, quote) => {
+            const peso = parseFloat(quote.envio_peso || '0');
+            return sum + peso;
+          }, 0).toFixed(1)} Tn`,
+          description: 'Carga total transportada',
+          icon: Truck,
+          color: 'blue'
+        }
       },
       {
         id: 'chart',
         type: 'chart',
-        component: (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="font-medium text-gray-700 mb-4">Volumen de Carga Mensual (Cotizaciones Aceptadas)</h3>
-            <div className="h-96">
-              {acceptedQuotes.length > 0 ? (
-                <Bar options={chartOptions} data={prepareChartData()} />
-              ) : (
-                <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <Truck size={48} className="mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500">No hay cotizaciones aceptadas aún</p>
-                    <p className="text-gray-400 text-sm mt-1">
-                      Cuando tengas cotizaciones aceptadas, el volumen aparecerá en este gráfico
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )
+        title: 'Volumen de Carga Mensual',
+        content: null
       }
     ];
 
@@ -279,6 +264,60 @@ const Dashboard = () => {
     setDashboardItems(items);
   };
 
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'green':
+        return 'bg-green-100 text-green-600';
+      case 'purple':
+        return 'bg-purple-100 text-purple-600';
+      case 'blue':
+        return 'bg-blue-100 text-blue-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const renderStatCard = (item: DashboardItem) => {
+    const { content } = item;
+    const IconComponent = content.icon;
+    
+    return (
+      <div className="bg-white rounded-lg shadow p-6 flex items-start">
+        <div className={`p-3 rounded-full mr-4 ${getColorClasses(content.color)}`}>
+          <IconComponent size={24} />
+        </div>
+        <div>
+          <div className="font-bold text-2xl">{content.value}</div>
+          <div className="text-gray-500 text-sm">{item.title}</div>
+          <div className="text-xs text-gray-400 mt-1">{content.description}</div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderChart = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="font-medium text-gray-700 mb-4">Volumen de Carga Mensual (Cotizaciones Aceptadas)</h3>
+        <div className="h-96">
+          {acceptedQuotes.length > 0 ? (
+            <Bar options={chartOptions} data={prepareChartData()} />
+          ) : (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <CheckCircle size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No hay cotizaciones aceptadas aún</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Cuando tengas cotizaciones aceptadas, el volumen aparecerá en este gráfico
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (chartLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -328,13 +367,13 @@ const Dashboard = () => {
                         cursor: snapshot.isDragging ? 'grabbing' : 'grab',
                       }}
                     >
-                      <div className={`relative ${
+                      <div className={`relative group ${
                         snapshot.isDragging 
-                          ? 'bg-blue-50 border-2 border-blue-300 rounded-lg' 
+                          ? 'bg-blue-50 border-2 border-blue-300 rounded-lg p-2' 
                           : ''
                       }`}>
                         {/* Drag indicator */}
-                        <div className={`absolute top-2 right-2 opacity-0 transition-opacity ${
+                        <div className={`absolute top-2 right-2 z-10 opacity-0 transition-opacity ${
                           snapshot.isDragging ? 'opacity-100' : 'group-hover:opacity-100'
                         }`}>
                           <div className="flex flex-col space-y-1">
@@ -347,9 +386,18 @@ const Dashboard = () => {
                           </div>
                         </div>
                         
-                        <div className="group">
-                          {item.component}
-                        </div>
+                        {/* Render content based on type */}
+                        {item.type === 'stat' ? (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {dashboardItems.filter(i => i.type === 'stat').map((statItem) => (
+                              <div key={statItem.id}>
+                                {renderStatCard(statItem)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          renderChart()
+                        )}
                       </div>
                     </div>
                   )}
@@ -362,6 +410,60 @@ const Dashboard = () => {
       </DragDropContext>
     </div>
   );
+
+  function renderStatCard(item: DashboardItem) {
+    const { content } = item;
+    const IconComponent = content.icon;
+    
+    return (
+      <div className="bg-white rounded-lg shadow p-6 flex items-start">
+        <div className={`p-3 rounded-full mr-4 ${getColorClasses(content.color)}`}>
+          <IconComponent size={24} />
+        </div>
+        <div>
+          <div className="font-bold text-2xl">{content.value}</div>
+          <div className="text-gray-500 text-sm">{item.title}</div>
+          <div className="text-xs text-gray-400 mt-1">{content.description}</div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderChart() {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="font-medium text-gray-700 mb-4">Volumen de Carga Mensual (Cotizaciones Aceptadas)</h3>
+        <div className="h-96">
+          {acceptedQuotes.length > 0 ? (
+            <Bar options={chartOptions} data={prepareChartData()} />
+          ) : (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <CheckCircle size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No hay cotizaciones aceptadas aún</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Cuando tengas cotizaciones aceptadas, el volumen aparecerá en este gráfico
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function getColorClasses(color: string) {
+    switch (color) {
+      case 'green':
+        return 'bg-green-100 text-green-600';
+      case 'purple':
+        return 'bg-purple-100 text-purple-600';
+      case 'blue':
+        return 'bg-blue-100 text-blue-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  }
 };
 
 export default Dashboard;
