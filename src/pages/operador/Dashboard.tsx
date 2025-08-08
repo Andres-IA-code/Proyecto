@@ -103,7 +103,7 @@ const Dashboard = () => {
     // Agrupar cotizaciones por mes
     const monthlyData: { [key: string]: { count: number; total: number } } = {};
     
-    acceptedQuotes.forEach(quote => {
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       const date = new Date(quote.Fecha);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
