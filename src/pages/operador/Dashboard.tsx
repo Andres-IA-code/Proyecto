@@ -1,7 +1,6 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
 import { Truck, DollarSign, CheckCircle } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,32 +36,17 @@ interface AcceptedQuote {
   envio_peso?: string;
 }
 
-interface DashboardItem {
-  id: string;
-  type: 'stat' | 'chart';
-  title: string;
-  content: any;
-}
-
 const Dashboard = () => {
   const [acceptedQuotes, setAcceptedQuotes] = useState<AcceptedQuote[]>([]);
-  const [chartLoading, setChartLoading] = useState(true);
-  const [dashboardItems, setDashboardItems] = useState<DashboardItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAcceptedQuotes();
   }, []);
 
-  useEffect(() => {
-    // Initialize dashboard items after data is loaded
-    if (!chartLoading) {
-      initializeDashboardItems();
-    }
-  }, [chartLoading, acceptedQuotes]);
-
   const fetchAcceptedQuotes = async () => {
     try {
-      setChartLoading(true);
+      setLoading(true);
       
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -111,57 +95,8 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Error inesperado:', err);
     } finally {
-      setChartLoading(false);
+      setLoading(false);
     }
-  };
-
-  const initializeDashboardItems = () => {
-    const items: DashboardItem[] = [
-      {
-        id: 'cotizaciones-aceptadas',
-        type: 'stat',
-        title: 'Cotizaciones Aceptadas',
-        content: {
-          value: acceptedQuotes.length,
-          description: 'Total histórico',
-          icon: CheckCircle,
-          color: 'green'
-        }
-      },
-      {
-        id: 'ingresos-totales',
-        type: 'stat',
-        title: 'Ingresos Totales',
-        content: {
-          value: `$${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}`,
-          description: 'De cotizaciones aceptadas',
-          icon: DollarSign,
-          color: 'purple'
-        }
-      },
-      {
-        id: 'volumen-total',
-        type: 'stat',
-        title: 'Volumen Total Transportado',
-        content: {
-          value: `${acceptedQuotes.reduce((sum, quote) => {
-            const peso = parseFloat(quote.envio_peso || '0');
-            return sum + peso;
-          }, 0).toFixed(1)} Tn`,
-          description: 'Carga total transportada',
-          icon: Truck,
-          color: 'blue'
-        }
-      },
-      {
-        id: 'chart',
-        type: 'chart',
-        title: 'Volumen de Carga Mensual',
-        content: null
-      }
-    ];
-
-    setDashboardItems(items);
   };
 
   // Preparar datos para el gráfico basado en cotizaciones aceptadas
@@ -252,51 +187,78 @@ const Dashboard = () => {
     },
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) {
-      return;
-    }
-
-    const items = Array.from(dashboardItems);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setDashboardItems(items);
+  const calculateTotalVolume = () => {
+    return acceptedQuotes.reduce((total, quote) => {
+      const peso = parseFloat(quote.envio_peso || '0');
+      return total + peso;
+    }, 0);
   };
 
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case 'green':
-        return 'bg-green-100 text-green-600';
-      case 'purple':
-        return 'bg-purple-100 text-purple-600';
-      case 'blue':
-        return 'bg-blue-100 text-blue-600';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
+  const calculateTotalRevenue = () => {
+    return acceptedQuotes.reduce((total, quote) => {
+      return total + (quote.Oferta || 0);
+    }, 0);
   };
 
-  const renderStatCard = (item: DashboardItem) => {
-    const { content } = item;
-    const IconComponent = content.icon;
-    
+  if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 flex items-start">
-        <div className={`p-3 rounded-full mr-4 ${getColorClasses(content.color)}`}>
-          <IconComponent size={24} />
-        </div>
-        <div>
-          <div className="font-bold text-2xl">{content.value}</div>
-          <div className="text-gray-500 text-sm">{item.title}</div>
-          <div className="text-xs text-gray-400 mt-1">{content.description}</div>
+      <div className="p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-gray-500 text-sm">Cargando datos del dashboard...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
-  };
+  }
 
-  const renderChart = () => {
-    return (
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold mb-6">Dashboard Operativo</h1>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Cotizaciones Aceptadas */}
+        <div className="bg-white rounded-lg shadow p-6 flex items-start">
+          <div className="bg-green-100 text-green-600 p-3 rounded-full mr-4">
+            <CheckCircle size={24} />
+          </div>
+          <div>
+            <div className="font-bold text-2xl">{acceptedQuotes.length}</div>
+            <div className="text-gray-500 text-sm">Cotizaciones Aceptadas</div>
+            <div className="text-xs text-gray-400 mt-1">Total histórico</div>
+          </div>
+        </div>
+
+        {/* Ingresos Totales */}
+        <div className="bg-white rounded-lg shadow p-6 flex items-start">
+          <div className="bg-purple-100 text-purple-600 p-3 rounded-full mr-4">
+            <DollarSign size={24} />
+          </div>
+          <div>
+            <div className="font-bold text-2xl">${calculateTotalRevenue().toLocaleString()}</div>
+            <div className="text-gray-500 text-sm">Ingresos Totales</div>
+            <div className="text-xs text-gray-400 mt-1">De cotizaciones aceptadas</div>
+          </div>
+        </div>
+
+        {/* Volumen Total Transportado */}
+        <div className="bg-white rounded-lg shadow p-6 flex items-start">
+          <div className="bg-blue-100 text-blue-600 p-3 rounded-full mr-4">
+            <Truck size={24} />
+          </div>
+          <div>
+            <div className="font-bold text-2xl">{calculateTotalVolume().toFixed(1)} Tn</div>
+            <div className="text-gray-500 text-sm">Volumen Total Transportado</div>
+            <div className="text-xs text-gray-400 mt-1">Carga total transportada</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Cargo Volume Chart */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="font-medium text-gray-700 mb-4">Volumen de Carga Mensual (Cotizaciones Aceptadas)</h3>
         <div className="h-96">
@@ -315,102 +277,8 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    );
-  };
-
-  if (chartLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-gray-500 text-sm">Cargando datos...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold mb-6">Dashboard Operativo</h1>
-        <div className="text-sm text-gray-500">
-          💡 Arrastra los elementos para reordenar tu dashboard
-        </div>
-      </div>
-      
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="dashboard">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-6"
-            >
-              {dashboardItems.map((item, index) => (
-                <Draggable key={item.id} draggableId={item.id} index={index}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`transition-all duration-200 ${
-                        snapshot.isDragging 
-                          ? 'transform rotate-2 shadow-2xl scale-105' 
-                          : 'hover:shadow-lg'
-                      }`}
-                      style={{
-                        ...provided.draggableProps.style,
-                        cursor: snapshot.isDragging ? 'grabbing' : 'grab',
-                      }}
-                    >
-                      <div className={`relative group ${
-                        snapshot.isDragging 
-                          ? 'bg-blue-50 border-2 border-blue-300 rounded-lg p-2' 
-                          : ''
-                      }`}>
-                        {/* Drag indicator */}
-                        <div className={`absolute top-2 right-2 z-10 opacity-0 transition-opacity ${
-                          snapshot.isDragging ? 'opacity-100' : 'group-hover:opacity-100'
-                        }`}>
-                          <div className="flex flex-col space-y-1">
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                          </div>
-                        </div>
-                        
-                        {/* Render content based on type */}
-                        {item.type === 'stat' ? (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {dashboardItems.filter(i => i.type === 'stat').map((statItem) => (
-                              <div key={statItem.id}>
-                                {renderStatCard(statItem)}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          renderChart()
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
     </div>
   );
-
 };
 
 export default Dashboard;
