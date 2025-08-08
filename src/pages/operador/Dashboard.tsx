@@ -103,7 +103,7 @@ const Dashboard = () => {
     // Agrupar cotizaciones por mes
     const monthlyData: { [key: string]: { count: number; total: number } } = {};
     
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    acceptedQuotes.forEach((quote) => {
       const date = new Date(quote.Fecha);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
@@ -216,23 +216,23 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold mb-6">Dashboard Operativo</h1>
       </div>
       
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Flota Activa"
           value="42"
-          icon={<Truck className="text-blue-600\" size={24} />}
+          icon={<Truck className="text-blue-600" size={24} />}
           description="85% de utilización"
         />
         <StatCard
           title="Cotizaciones Aceptadas"
           value={acceptedQuotes.length.toString()}
-          icon={<Truck className="text-green-600\" size={24} />}
+          icon={<Truck className="text-green-600" size={24} />}
           description="Total histórico"
         />
         <StatCard
           title="Ingresos Totales"
           value={`$${acceptedQuotes.reduce((sum, quote) => sum + (quote.Oferta || 0), 0).toLocaleString()}`}
-          icon={<Truck className="text-purple-600\" size={24} />}
+          icon={<Truck className="text-purple-600" size={24} />}
           description="De cotizaciones aceptadas"
         />
       </div>
