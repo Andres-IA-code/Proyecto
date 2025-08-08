@@ -233,8 +233,9 @@ const OperadorLogistico: React.FC = () => {
 
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed left-0 top-[70%] transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 z-50 transition-all duration-300"
-          style={{ left: sidebarOpen ? '256px' : '0px' }}
+          className={`fixed top-[70%] transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 z-50 transition-all duration-300 ${
+            sidebarOpen ? 'left-64' : 'left-0'
+          }`}
         >
           {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </button>
