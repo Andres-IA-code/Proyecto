@@ -374,17 +374,6 @@ const Viajes: React.FC = () => {
                 <option value="cancelado">Cancelados</option>
               </select>
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="date">Ordenar por Fecha</option>
-                <option value="revenue">Ordenar por Ingreso</option>
-                <option value="distance">Ordenar por Distancia</option>
-              </select>
-            </div>
           </div>
 
           {/* Trips Table */}
