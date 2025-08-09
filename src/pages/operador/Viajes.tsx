@@ -357,15 +357,6 @@ const Viajes: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-red-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <AlertCircle className="h-8 w-8 text-red-500" />
-                <div className="ml-3">
-                  <div className="text-sm text-gray-500">Cancelados</div>
-                  <div className="text-xl font-semibold">{statusCounts.cancelado}</div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Filters */}
