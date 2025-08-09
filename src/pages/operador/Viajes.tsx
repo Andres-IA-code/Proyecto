@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Calendar, MapPin, Clock, Package, DollarSign, AlertCircle, Filter, ChevronDown, User, Route, Weight, Play, CheckCircle, XCircle } from 'lucide-react';
+import { Truck, Calendar, MapPin, Clock, Package, DollarSign, AlertCircle, Filter, ChevronDown, User, Route, Weight, Play, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { supabase, getCurrentUser } from '../../lib/supabase';
 
 interface Trip {
@@ -31,10 +31,10 @@ interface Trip {
 }
 
 const statusStyles = {
-  'programado': 'bg-blue-100 text-blue-800',
-  'en-curso': 'bg-green-100 text-green-800',
-  'completado': 'bg-gray-100 text-gray-800',
-  'cancelado': 'bg-red-100 text-red-800',
+  'programado': 'bg-blue-100 text-blue-800 border-blue-200',
+  'en-curso': 'bg-green-100 text-green-800 border-green-200',
+  'completado': 'bg-gray-100 text-gray-800 border-gray-200',
+  'cancelado': 'bg-red-100 text-red-800 border-red-200',
 };
 
 const statusLabels = {
@@ -49,7 +49,6 @@ const Viajes: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('date');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [updatingTrip, setUpdatingTrip] = useState<number | null>(null);
@@ -168,17 +167,11 @@ const Viajes: React.FC = () => {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatTime = (timeString: string) => {
     try {
-      return new Date(dateString).toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return timeString.slice(0, 5); // HH:MM format
     } catch {
-      return dateString;
+      return timeString;
     }
   };
 
@@ -186,8 +179,6 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
-      // Aquí podrías actualizar el estado en la base de datos si tienes una tabla de viajes
-      // Por ahora, solo actualizamos el estado local
       setTrips(prev => prev.map(trip => 
         trip.id_Cotizaciones === tripId 
           ? { ...trip, trip_status: 'en-curso' }
@@ -229,21 +220,17 @@ const Viajes: React.FC = () => {
 
   const calculateVolume = (largo?: number, ancho?: number, alto?: number) => {
     if (!largo || !ancho || !alto) return null;
-    // Convertir de cm a m³
     return ((largo * ancho * alto) / 1000000).toFixed(2);
   };
 
   const getSimplifiedLocation = (fullAddress: string | undefined): string => {
     if (!fullAddress) return 'No especificado';
     
-    // Extract city/locality from the full address
     const parts = fullAddress.split(',').map(part => part.trim());
     
-    // Try to find the city/locality (usually the last meaningful part before province/country)
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i];
       
-      // Skip common suffixes
       if (part.toLowerCase().includes('provincia') || 
           part.toLowerCase().includes('argentina') ||
           part.toLowerCase().includes('méxico') ||
@@ -252,13 +239,11 @@ const Viajes: React.FC = () => {
         continue;
       }
       
-      // Return the first meaningful location found
       if (part.length > 2) {
         return part;
       }
     }
     
-    // Fallback: return the first part if no city found
     return parts[0] || fullAddress;
   };
 
@@ -272,7 +257,6 @@ const Viajes: React.FC = () => {
       programado: trips.filter(t => t.trip_status === 'programado').length,
       enCurso: trips.filter(t => t.trip_status === 'en-curso').length,
       completado: trips.filter(t => t.trip_status === 'completado').length,
-      cancelado: trips.filter(t => t.trip_status === 'cancelado').length,
     };
   };
 
@@ -317,211 +301,315 @@ const Viajes: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Viajes</h1>
+          <p className="text-gray-600 mt-1">Seguimiento y control de viajes activos</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchTrips}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Actualizar
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards - Horizontal Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Gestión de Viajes</h1>
-              <p className="text-gray-500 mt-1">Seguimiento de viajes basado en cotizaciones aceptadas</p>
+              <p className="text-blue-100 text-sm font-medium">Viajes Programados</p>
+              <p className="text-3xl font-bold">{statusCounts.programado}</p>
+              <p className="text-blue-100 text-xs mt-1">Listos para iniciar</p>
+            </div>
+            <div className="bg-white bg-opacity-20 rounded-full p-3">
+              <Calendar className="h-8 w-8" />
             </div>
           </div>
         </div>
 
-        <div className="p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-blue-500" />
-                <div className="ml-3">
-                  <div className="text-sm text-gray-500">Viajes Programados</div>
-                  <div className="text-xl font-semibold">{statusCounts.programado}</div>
-                </div>
-              </div>
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm font-medium">En Curso</p>
+              <p className="text-3xl font-bold">{statusCounts.enCurso}</p>
+              <p className="text-green-100 text-xs mt-1">Viajes activos</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <Truck className="h-8 w-8 text-green-500" />
-                <div className="ml-3">
-                  <div className="text-sm text-gray-500">En Curso</div>
-                  <div className="text-xl font-semibold">{statusCounts.enCurso}</div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <Package className="h-8 w-8 text-gray-500" />
-                <div className="ml-3">
-                  <div className="text-sm text-gray-500">Completados</div>
-                  <div className="text-xl font-semibold">{statusCounts.completado}</div>
-                </div>
-              </div>
+            <div className="bg-white bg-opacity-20 rounded-full p-3">
+              <Truck className="h-8 w-8" />
             </div>
           </div>
+        </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-[200px]">
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">Todos los estados</option>
-                <option value="programado">Programados</option>
-                <option value="en-curso">En Curso</option>
-                <option value="completado">Completados</option>
-                <option value="cancelado">Cancelados</option>
-              </select>
+        <div className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-100 text-sm font-medium">Completados</p>
+              <p className="text-3xl font-bold">{statusCounts.completado}</p>
+              <p className="text-gray-100 text-xs mt-1">Este mes</p>
+            </div>
+            <div className="bg-white bg-opacity-20 rounded-full p-3">
+              <CheckCircle className="h-8 w-8" />
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Trips Table */}
-          {filteredTrips.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID/RUTA
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      PROGRAMACIÓN
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      CARGA
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      VEHÍCULO/CONDUCTOR
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ESTADO
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      INGRESO
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ACCIONES
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTrips.map((trip) => (
-                    <tr key={trip.id_Cotizaciones} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">V{trip.id_Envio.toString().padStart(3, '0')}</div>
-                        <div className="text-sm text-gray-500">
-                          {getSimplifiedLocation(trip.envio_origen)} → {getSimplifiedLocation(trip.envio_destino)}
+      {/* Filter Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex items-center gap-2">
+            <Filter size={20} className="text-gray-500" />
+            <span className="font-medium text-gray-700">Filtrar por estado:</span>
+          </div>
+          <select
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px]"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="all">Todos los estados ({trips.length})</option>
+            <option value="programado">Programados ({statusCounts.programado})</option>
+            <option value="en-curso">En Curso ({statusCounts.enCurso})</option>
+            <option value="completado">Completados ({statusCounts.completado})</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Trips Grid */}
+      {filteredTrips.length > 0 ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {filteredTrips.map((trip) => (
+            <div
+              key={trip.id_Cotizaciones}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200"
+            >
+              <div className="p-6">
+                {/* Trip Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 rounded-full p-2">
+                      <Truck className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        V{trip.id_Envio.toString().padStart(3, '0')}
+                      </h3>
+                      <p className="text-sm text-gray-600">{trip.Nombre_Dador}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-3 py-1 text-xs rounded-full font-medium border ${statusStyles[trip.trip_status]}`}>
+                      {statusLabels[trip.trip_status]}
+                    </span>
+                    <div className="text-lg font-bold text-green-600 mt-1">
+                      ${trip.Oferta?.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Route Information */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={16} className="text-green-600" />
+                      <span className="text-sm font-medium text-gray-900">
+                        {getSimplifiedLocation(trip.envio_origen)}
+                      </span>
+                    </div>
+                    <Route size={16} className="text-gray-400" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">
+                        {getSimplifiedLocation(trip.envio_destino)}
+                      </span>
+                      <MapPin size={16} className="text-red-600" />
+                    </div>
+                  </div>
+                  {trip.envio_distancia && (
+                    <div className="text-center mt-2">
+                      <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
+                        {trip.envio_distancia} km
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Trip Details Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Package size={14} className="text-gray-400" />
+                      <span className="text-gray-600">Carga:</span>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {trip.envio_tipo_carga || 'General'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {trip.envio_peso || '0'} Tn
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock size={14} className="text-gray-400" />
+                      <span className="text-gray-600">Programación:</span>
+                    </div>
+                    {trip.envio_fecha_retiro ? (
+                      <>
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatDate(trip.envio_fecha_retiro)}
                         </div>
-                        <div className="text-sm text-gray-500">{trip.envio_distancia} km</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          {trip.envio_fecha_retiro ? (
-                            <>
-                              <div className="flex items-center">
-                                <Clock size={16} className="text-gray-400 mr-1" />
-                                Salida: {formatDate(trip.envio_fecha_retiro)}
-                              </div>
-                              {trip.envio_horario_retiro && (
-                                <div className="flex items-center mt-1">
-                                  <Clock size={16} className="text-gray-400 mr-1" />
-                                  Hora: {trip.envio_horario_retiro}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-gray-400">Fecha no especificada</div>
-                          )}
+                        <div className="text-xs text-gray-500">
+                          {trip.envio_horario_retiro ? formatTime(trip.envio_horario_retiro) : 'Hora no especificada'}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <div>{trip.envio_tipo_carga || 'General'}</div>
-                          <div className="text-gray-500">{trip.envio_peso || '0'} Tn</div>
-                          {calculateVolume(trip.envio_dimension_largo, trip.envio_dimension_ancho, trip.envio_dimension_alto) && (
-                            <div className="text-gray-500">{calculateVolume(trip.envio_dimension_largo, trip.envio_dimension_ancho, trip.envio_dimension_alto)} m³</div>
-                          )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-400">No programado</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vehicle and Body Type */}
+                {(trip.envio_tipo_vehiculo || trip.envio_tipo_carroceria) && (
+                  <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Truck size={14} className="text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Especificaciones del Vehículo</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-1">
+                      {trip.envio_tipo_vehiculo && (
+                        <div className="text-sm text-blue-700">
+                          <span className="font-medium">Tipo:</span> {trip.envio_tipo_vehiculo}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <div>{trip.envio_tipo_vehiculo || 'No especificado'}</div>
-                          {trip.envio_tipo_carroceria && (
-                            <div className="text-gray-500">{trip.envio_tipo_carroceria}</div>
-                          )}
-                          <div className="text-gray-500">Conductor: Por asignar</div>
+                      )}
+                      {trip.envio_tipo_carroceria && (
+                        <div className="text-sm text-blue-700">
+                          <span className="font-medium">Carrocería:</span> {trip.envio_tipo_carroceria}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${statusStyles[trip.trip_status]}`}>
-                          {statusLabels[trip.trip_status]}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium">${trip.Oferta?.toLocaleString()}</div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex space-x-2 justify-end">
-                          <button 
-                            onClick={() => handleViewDetails(trip)}
-                            className="text-blue-600 hover:text-blue-900 text-xs"
-                          >
-                            Ver detalles
-                          </button>
-                          {trip.trip_status === 'programado' && (
-                            <button
-                              onClick={() => handleStartTrip(trip.id_Cotizaciones)}
-                              disabled={updatingTrip === trip.id_Cotizaciones}
-                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50"
-                            >
-                              {updatingTrip === trip.id_Cotizaciones ? 'Iniciando...' : 'Iniciar'}
-                            </button>
-                          )}
-                          {trip.trip_status === 'en-curso' && (
-                            <button
-                              onClick={() => handleCompleteTrip(trip.id_Cotizaciones)}
-                              disabled={updatingTrip === trip.id_Cotizaciones}
-                              className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
-                            >
-                              {updatingTrip === trip.id_Cotizaciones ? 'Completando...' : 'Completar'}
-                            </button>
-                          )}
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Scheduled Stops */}
+                {trip.envio_parada_programada && (
+                  <div className="bg-yellow-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin size={14} className="text-yellow-600" />
+                      <span className="text-sm font-medium text-yellow-800">Paradas Programadas</span>
+                    </div>
+                    <div className="space-y-1">
+                      {trip.envio_parada_programada.split('\n').slice(0, 2).map((parada, index) => (
+                        <div key={index} className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
+                          {parada.trim()}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      ))}
+                      {trip.envio_parada_programada.split('\n').length > 2 && (
+                        <div className="text-xs text-yellow-600">
+                          +{trip.envio_parada_programada.split('\n').length - 2} paradas más
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => handleViewDetails(trip)}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Ver Detalles
+                  </button>
+                  
+                  {trip.trip_status === 'programado' && (
+                    <button
+                      onClick={() => handleStartTrip(trip.id_Cotizaciones)}
+                      disabled={updatingTrip === trip.id_Cotizaciones}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                    >
+                      {updatingTrip === trip.id_Cotizaciones ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Iniciando...
+                        </>
+                      ) : (
+                        <>
+                          <Play size={14} className="mr-1" />
+                          Iniciar
+                        </>
+                      )}
+                    </button>
+                  )}
+                  
+                  {trip.trip_status === 'en-curso' && (
+                    <button
+                      onClick={() => handleCompleteTrip(trip.id_Cotizaciones)}
+                      disabled={updatingTrip === trip.id_Cotizaciones}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                    >
+                      {updatingTrip === trip.id_Cotizaciones ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Completando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={14} className="mr-1" />
+                          Completar
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <Truck size={64} className="mx-auto text-gray-300 mb-6" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                No hay viajes disponibles
-              </h3>
-              <p className="text-gray-500 mb-6">
-                {filterStatus === 'all' 
-                  ? 'No tienes cotizaciones aceptadas que generen viajes aún.'
-                  : `No hay viajes con estado "${statusLabels[filterStatus as keyof typeof statusLabels]}".`
-                }
-              </p>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+              <Truck size={36} className="text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              No hay viajes disponibles
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {filterStatus === 'all' 
+                ? 'No tienes cotizaciones aceptadas que generen viajes aún. Cuando los dadores de carga acepten tus cotizaciones, los viajes aparecerán aquí.'
+                : `No hay viajes con estado "${statusLabels[filterStatus as keyof typeof statusLabels]}".`
+              }
+            </p>
+            <div className="flex gap-3 justify-center">
               <button
                 onClick={fetchTrips}
                 className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Actualizar Lista
               </button>
+              {filterStatus !== 'all' && (
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Ver Todos
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Trip Details Modal */}
       {showDetailsModal && selectedTrip && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
+          <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
@@ -533,9 +621,9 @@ const Viajes: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-500 text-2xl"
+                  className="text-gray-400 hover:text-gray-500 text-2xl font-bold"
                 >
-                  &times;
+                  ×
                 </button>
               </div>
             </div>
@@ -543,21 +631,21 @@ const Viajes: React.FC = () => {
             <div className="p-6 space-y-6">
               {/* Status and Financial Summary */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-blue-800 mb-3">Estado del Viaje</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-4">Estado del Viaje</h3>
                   <div className="flex items-center justify-between">
-                    <span className={`px-3 py-2 text-sm rounded-full font-medium ${statusStyles[selectedTrip.trip_status]}`}>
+                    <span className={`px-4 py-2 text-sm rounded-full font-medium border ${statusStyles[selectedTrip.trip_status]}`}>
                       {statusLabels[selectedTrip.trip_status]}
                     </span>
                     <div className="text-right">
-                      <div className="text-sm text-gray-600">Fecha de cotización</div>
-                      <div className="font-medium">{formatDateTime(selectedTrip.Fecha)}</div>
+                      <div className="text-sm text-gray-600">Cotización creada</div>
+                      <div className="font-medium">{formatDate(selectedTrip.Fecha)}</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-green-800 mb-3">Información Financiera</h3>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-green-800 mb-4">Información Financiera</h3>
                   <div className="text-center">
                     <div className="text-3xl font-bold text-green-600">
                       ${selectedTrip.Oferta?.toLocaleString()}
@@ -576,27 +664,27 @@ const Viajes: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Información de la Ruta</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center">
-                      <MapPin size={16} className="text-green-600 mr-2" />
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <MapPin size={16} className="text-green-600 mt-1" />
                       <div>
                         <span className="text-sm font-medium text-gray-700">Origen:</span>
-                        <div className="text-gray-900">{selectedTrip.envio_origen || 'No especificado'}</div>
+                        <div className="text-gray-900 text-sm">{selectedTrip.envio_origen || 'No especificado'}</div>
                       </div>
                     </div>
-                    <div className="flex items-center">
-                      <MapPin size={16} className="text-red-600 mr-2" />
+                    <div className="flex items-start gap-3">
+                      <MapPin size={16} className="text-red-600 mt-1" />
                       <div>
                         <span className="text-sm font-medium text-gray-700">Destino:</span>
-                        <div className="text-gray-900">{selectedTrip.envio_destino || 'No especificado'}</div>
+                        <div className="text-gray-900 text-sm">{selectedTrip.envio_destino || 'No especificado'}</div>
                       </div>
                     </div>
                     {selectedTrip.envio_distancia && (
-                      <div className="flex items-center">
-                        <Route size={16} className="text-blue-600 mr-2" />
+                      <div className="flex items-center gap-3">
+                        <Route size={16} className="text-blue-600" />
                         <div>
                           <span className="text-sm font-medium text-gray-700">Distancia:</span>
-                          <div className="text-gray-900">{selectedTrip.envio_distancia} km</div>
+                          <div className="text-gray-900 text-sm">{selectedTrip.envio_distancia} km</div>
                         </div>
                       </div>
                     )}
@@ -615,7 +703,7 @@ const Viajes: React.FC = () => {
                     {selectedTrip.envio_horario_retiro && (
                       <div>
                         <span className="text-sm font-medium text-gray-700">Hora de Retiro:</span>
-                        <div className="text-gray-900">{selectedTrip.envio_horario_retiro}</div>
+                        <div className="text-gray-900">{formatTime(selectedTrip.envio_horario_retiro)}</div>
                       </div>
                     )}
                     <div>
@@ -672,7 +760,7 @@ const Viajes: React.FC = () => {
                 </div>
               </div>
 
-              {/* Scheduled Stops */}
+              {/* Scheduled Stops (Full List) */}
               {selectedTrip.envio_parada_programada && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Paradas Programadas</h3>
@@ -701,10 +789,10 @@ const Viajes: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="border-t pt-6">
-                <div className="flex space-x-3">
+                <div className="flex gap-3">
                   <button
                     onClick={() => setShowDetailsModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                   >
                     Cerrar
                   </button>
@@ -714,7 +802,7 @@ const Viajes: React.FC = () => {
                         handleStartTrip(selectedTrip.id_Cotizaciones);
                         setShowDetailsModal(false);
                       }}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                      className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                     >
                       <Play size={16} className="mr-2" />
                       Iniciar Viaje
@@ -726,7 +814,7 @@ const Viajes: React.FC = () => {
                         handleCompleteTrip(selectedTrip.id_Cotizaciones);
                         setShowDetailsModal(false);
                       }}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                      className="flex-1 px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
                     >
                       <CheckCircle size={16} className="mr-2" />
                       Completar Viaje
