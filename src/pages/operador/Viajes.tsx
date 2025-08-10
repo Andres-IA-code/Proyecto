@@ -572,29 +572,22 @@ const Viajes: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            {/* Action Buttons */}
-            <div className="flex justify-end pt-6 border-t border-gray-200">
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cerrar
-                </button>
-                {selectedTrip.trip_status === 'en-curso' && (
-                  <button
-                    onClick={() => {
-                      handleCompleteTrip(selectedTrip.id_Cotizaciones);
-                      setShowDetailsModal(false);
-                    }}
-                    className="px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <CheckCircle size={16} className="mr-2" />
-                    Completar Viaje
-                  </button>
-                )}
-              </div>
-            </div>
+          <Truck size={64} className="mx-auto text-gray-300 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay viajes disponibles</h3>
+          <p className="text-gray-600 mb-6">
+            {filterStatus === 'all' 
+              ? 'No tienes viajes asignados en este momento.'
+              : `No hay viajes con estado "${statusLabels[filterStatus as keyof typeof statusLabels] || filterStatus}".`
+            }
+          </p>
+          <button
+            onClick={fetchTrips}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <RefreshCw size={16} className="mr-2 inline" />
+            Actualizar
+          </button>
+        </div>
           </div>
         </div>
       )}
