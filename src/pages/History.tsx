@@ -1,6 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Filter, Calendar, RefreshCw, AlertCircle, Star } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 interface Cotizacion {
   id_Cotizaciones: number;
