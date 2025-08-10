@@ -749,28 +749,26 @@ const Viajes: React.FC = () => {
               {selectedTrip.envio_parada_programada && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Paradas Programadas</h3>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="space-y-2">
-                      {selectedTrip.envio_parada_programada.split('\n').map((parada, index) => (
-                        <div key={index} className="flex items-center">
-                          <MapPin size={16} className="text-blue-600 mr-2 flex-shrink-0" />
-                          <span className="text-gray-900">{parada.trim()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Observations */}
-              {selectedTrip.envio_observaciones && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Observaciones del Cliente</h3>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-gray-900">{selectedTrip.envio_observaciones}</p>
-                  </div>
-                </div>
-              )}
+              <div className="border-t pt-6">
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                  {selectedTrip.trip_status === 'programado' && (
+                    <button
+                      onClick={() => {
+                        handleStartTrip(selectedTrip.id_Cotizaciones);
+                        setShowDetailsModal(false);
+                      }}
+                      className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                    >
+                      <Play size={16} className="mr-2" />
+                      Iniciar Viaje
+                    </button>
+                  )}
                   {selectedTrip.trip_status === 'en-curso' && (
                     <button
                       onClick={() => {
@@ -784,6 +782,7 @@ const Viajes: React.FC = () => {
                     </button>
                   )}
                 </div>
+              </div>
               </div>
           </div>
         </div>
