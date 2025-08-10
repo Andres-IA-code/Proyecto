@@ -1,27 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Filter, Calendar, RefreshCw, AlertCircle, Star } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 interface Cotizacion {
   id_Cotizaciones: number;
@@ -169,6 +148,116 @@ const History: React.FC = () => {
     return parts[0] || fullAddress;
   };
 
+  const prepareChartData = () => {
+    // Group quotes by month
+    const monthlyData: { [key: string]: { accepted: number; cancelled: number } } = {};
+    
+    // Initialize last 12 months
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = date.toISOString().slice(0, 7); // YYYY-MM format
+      const monthLabel = date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+      months.push({ key: monthKey, label: monthLabel });
+      monthlyData[monthKey] = { accepted: 0, cancelled: 0 };
+    }
+
+    // Count quotes by month and status
+    cotizaciones.forEach(cotizacion => {
+      const date = new Date(cotizacion.Fecha);
+      const monthKey = date.toISOString().slice(0, 7);
+      
+      if (monthlyData[monthKey]) {
+        if (cotizacion.Estado?.toLowerCase() === 'aceptada') {
+          monthlyData[monthKey].accepted++;
+        } else if (cotizacion.Estado?.toLowerCase() === 'rechazada') {
+          monthlyData[monthKey].cancelled++;
+        }
+      }
+    });
+
+    return {
+      labels: months.map(m => m.label),
+      datasets: [
+        {
+          label: 'Envíos Aceptados',
+          data: months.map(m => monthlyData[m.key].accepted),
+          borderColor: 'rgb(34, 197, 94)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.4,
+          fill: true,
+        },
+        {
+          label: 'Envíos Cancelados',
+          data: months.map(m => monthlyData[m.key].cancelled),
+          borderColor: 'rgb(239, 68, 68)',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    };
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+        },
+      },
+      title: {
+        display: true,
+        text: 'Tendencia de Envíos - Últimos 12 Meses',
+        font: {
+          size: 16,
+          weight: 'bold' as const,
+        },
+        color: '#374151',
+        padding: 20,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Cantidad de Envíos',
+          font: {
+            size: 12,
+          },
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          stepSize: 1,
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+        title: {
+          display: true,
+          text: 'Período',
+          font: {
+            size: 12,
+          },
+        },
+      },
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
+    },
+  };
+
   const filteredCotizaciones = cotizaciones.filter(cotizacion => {
     if (filterStatus === 'all') return true;
     return cotizacion.Estado?.toLowerCase() === filterStatus.toLowerCase();
@@ -217,6 +306,26 @@ const History: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Historial de Envíos</h1>
       </div>
+
+      {/* Line Chart Section */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="h-[400px]">
+          {cotizaciones.length > 0 ? (
+            <Line options={chartOptions} data={prepareChartData()} />
+          ) : (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No hay datos suficientes para mostrar el gráfico</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Cuando tengas más cotizaciones, la tendencia aparecerá aquí
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow">
           {filteredCotizaciones.length > 0 ? (
@@ -287,9 +396,42 @@ const History: React.FC = () => {
             </div>
           )}
 
-          <div className="p-6 bg-gray-50 border-t">
-            <div className="text-sm text-gray-500 text-center">
-              Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
+          <div className="p-6 bg-gray-50 border-t space-y-4">
+            {/* Chart Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                  <span className="text-sm font-medium text-gray-700">Envíos Aceptados</span>
+                </div>
+                <div className="text-2xl font-bold text-green-600 mt-1">
+                  {cotizaciones.filter(c => c.Estado?.toLowerCase() === 'aceptada').length}
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                  <span className="text-sm font-medium text-gray-700">Envíos Cancelados</span>
+                </div>
+                <div className="text-2xl font-bold text-red-600 mt-1">
+                  {cotizaciones.filter(c => c.Estado?.toLowerCase() === 'rechazada').length}
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                  <span className="text-sm font-medium text-gray-700">Total de Envíos</span>
+                </div>
+                <div className="text-2xl font-bold text-blue-600 mt-1">
+                  {cotizaciones.length}
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-sm text-gray-500 text-center border-t pt-4">
+              Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones en la tabla
             </div>
           </div>
         </div>
