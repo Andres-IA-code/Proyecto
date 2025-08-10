@@ -786,16 +786,6 @@ const Viajes: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              {/* Action Buttons */}
-              <div className="border-t pt-6">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Cerrar
-                  </button>
                   {selectedTrip.trip_status === 'en-curso' && (
                     <button
                       onClick={() => {
