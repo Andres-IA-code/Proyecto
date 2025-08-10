@@ -749,41 +749,64 @@ const Viajes: React.FC = () => {
               {selectedTrip.envio_parada_programada && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Paradas Programadas</h3>
-              <div className="border-t pt-6">
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Cerrar
-                  </button>
-                  {selectedTrip.trip_status === 'programado' && (
-                    <button
-                      onClick={() => {
-                        handleStartTrip(selectedTrip.id_Cotizaciones);
-                        setShowDetailsModal(false);
-                      }}
-                      className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                    >
-                      <Play size={16} className="mr-2" />
-                      Iniciar Viaje
-                    </button>
-                  )}
-                  {selectedTrip.trip_status === 'en-curso' && (
-                    <button
-                      onClick={() => {
-                        handleCompleteTrip(selectedTrip.id_Cotizaciones);
-                        setShowDetailsModal(false);
-                      }}
-                      className="flex-1 px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                    >
-                      <CheckCircle size={16} className="mr-2" />
-                      Completar Viaje
-                    </button>
-                  )}
+                  <div className="bg-yellow-50 rounded-lg p-4">
+                    <div className="space-y-2">
+                      {selectedTrip.envio_parada_programada.split('\n').map((parada, index) => (
+                        <div key={index} className="text-sm text-yellow-700 bg-yellow-100 px-3 py-2 rounded">
+                          <span className="font-medium">Parada {index + 1}:</span> {parada.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {/* Observations */}
+              {selectedTrip.envio_observaciones && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Observaciones</h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-gray-700 text-sm whitespace-pre-wrap">{selectedTrip.envio_observaciones}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="border-t pt-6">
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cerrar
+                </button>
+                {selectedTrip.trip_status === 'programado' && (
+                  <button
+                    onClick={() => {
+                      handleStartTrip(selectedTrip.id_Cotizaciones);
+                      setShowDetailsModal(false);
+                    }}
+                    className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                  >
+                    <Play size={16} className="mr-2" />
+                    Iniciar Viaje
+                  </button>
+                )}
+                {selectedTrip.trip_status === 'en-curso' && (
+                  <button
+                    onClick={() => {
+                      handleCompleteTrip(selectedTrip.id_Cotizaciones);
+                      setShowDetailsModal(false);
+                    }}
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                  >
+                    <CheckCircle size={16} className="mr-2" />
+                    Completar Viaje
+                  </button>
+                )}
               </div>
-              </div>
+            </div>
           </div>
         </div>
       )}
