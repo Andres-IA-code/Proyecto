@@ -572,34 +572,28 @@ const Viajes: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-              <Truck size={36} className="text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">
-              No hay viajes disponibles
-            </h3>
-            <p className="text-gray-500 mb-6">
-              {filterStatus === 'all' 
-                ? 'No tienes cotizaciones aceptadas que generen viajes aún. Cuando los dadores de carga acepten tus cotizaciones, los viajes aparecerán aquí.'
-                : `No hay viajes con estado "${statusLabels[filterStatus as keyof typeof statusLabels]}".`
-              }
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={fetchTrips}
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Actualizar Lista
-              </button>
-              {filterStatus !== 'all' && (
+            {/* Action Buttons */}
+            <div className="flex justify-end pt-6 border-t border-gray-200">
+              <div className="flex space-x-3">
                 <button
-                  onClick={() => setFilterStatus('all')}
+                  onClick={() => setShowDetailsModal(false)}
                   className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  Ver Todos
+                  Cerrar
                 </button>
-              )}
+                {selectedTrip.trip_status === 'en-curso' && (
+                  <button
+                    onClick={() => {
+                      handleCompleteTrip(selectedTrip.id_Cotizaciones);
+                      setShowDetailsModal(false);
+                    }}
+                    className="px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                  >
+                    <CheckCircle size={16} className="mr-2" />
+                    Completar Viaje
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
