@@ -588,7 +588,6 @@ const Viajes: React.FC = () => {
             Actualizar
           </button>
         </div>
-        </div>
       )}
 
       {/* Trip Details Modal */}
