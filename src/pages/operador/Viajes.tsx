@@ -785,7 +785,6 @@ const Viajes: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
           </div>
         </div>
       )}
