@@ -796,18 +796,6 @@ const Viajes: React.FC = () => {
                   >
                     Cerrar
                   </button>
-                  {selectedTrip.trip_status === 'programado' && (
-                    <button
-                      onClick={() => {
-                        handleStartTrip(selectedTrip.id_Cotizaciones);
-                        setShowDetailsModal(false);
-                      }}
-                      className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                    >
-                      <Play size={16} className="mr-2" />
-                      Iniciar Viaje
-                    </button>
-                  )}
                   {selectedTrip.trip_status === 'en-curso' && (
                     <button
                       onClick={() => {
