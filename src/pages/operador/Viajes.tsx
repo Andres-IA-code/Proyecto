@@ -109,19 +109,30 @@ const Viajes: React.FC = () => {
 
       // Transformar los datos para facilitar el acceso y agregar estado del viaje
       const transformedData = (data || []).map(trip => {
-        // Determinar el estado del viaje basado en la fecha de retiro
+        // Determinar el estado del viaje basado en el estado de la base de datos
         let tripStatus: 'programado' | 'en-curso' | 'completado' | 'cancelado' = 'programado';
         
-        if (trip.General?.Fecha_Retiro) {
-          const fechaRetiro = new Date(trip.General.Fecha_Retiro);
-          const ahora = new Date();
-          const unDiaEnMs = 24 * 60 * 60 * 1000;
-          
-          if (fechaRetiro.getTime() < ahora.getTime() - unDiaEnMs) {
-            tripStatus = 'completado';
-          } else if (fechaRetiro.getTime() < ahora.getTime() + unDiaEnMs && fechaRetiro.getTime() > ahora.getTime() - unDiaEnMs) {
+        // Usar el estado de la tabla General para determinar el estado del viaje
+        const estadoGeneral = trip.General?.Estado?.toLowerCase();
+        
+        switch (estadoGeneral) {
+          case 'en curso':
+          case 'en_curso':
+          case 'activo':
             tripStatus = 'en-curso';
-          }
+            break;
+          case 'completado':
+          case 'finalizado':
+          case 'entregado':
+            tripStatus = 'completado';
+            break;
+          case 'cancelado':
+          case 'rechazado':
+            tripStatus = 'cancelado';
+            break;
+          default:
+            tripStatus = 'programado';
+            break;
         }
 
         return {
@@ -179,11 +190,17 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
-      // Update the trip status in the database by updating the General table
+      // Encontrar el viaje y actualizar su estado en la base de datos
+      const tripToUpdate = trips.find(t => t.id_Cotizaciones === tripId);
+      if (!tripToUpdate) {
+        alert('Error: No se encontró el viaje');
+        return;
+      }
+      
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'En Curso' })
-        .eq('id_Envio', trips.find(t => t.id_Cotizaciones === tripId)?.id_Envio);
+        .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
         console.error('Error updating trip status:', updateError);
@@ -191,13 +208,14 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Update local state only after successful database update
+      // Actualizar el estado local para reflejar el cambio inmediatamente
       setTrips(prev => prev.map(trip => 
         trip.id_Cotizaciones === tripId 
           ? { ...trip, trip_status: 'en-curso' }
           : trip
       ));
       
+      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado exitosamente`);
       alert('Viaje iniciado exitosamente');
     } catch (err) {
       console.error('Error:', err);
@@ -211,11 +229,17 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
-      // Update the trip status in the database by updating the General table
+      // Encontrar el viaje y actualizar su estado en la base de datos
+      const tripToUpdate = trips.find(t => t.id_Cotizaciones === tripId);
+      if (!tripToUpdate) {
+        alert('Error: No se encontró el viaje');
+        return;
+      }
+      
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'Completado' })
-        .eq('id_Envio', trips.find(t => t.id_Cotizaciones === tripId)?.id_Envio);
+        .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
         console.error('Error updating trip status:', updateError);
@@ -223,13 +247,14 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Update local state only after successful database update
+      // Actualizar el estado local para reflejar el cambio inmediatamente
       setTrips(prev => prev.map(trip => 
         trip.id_Cotizaciones === tripId 
           ? { ...trip, trip_status: 'completado' }
           : trip
       ));
       
+      console.log(`✅ Viaje ${tripToUpdate.id_Envio} completado exitosamente`);
       alert('Viaje completado exitosamente');
     } catch (err) {
       console.error('Error:', err);
