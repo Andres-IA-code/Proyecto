@@ -252,61 +252,6 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
       }));
-
-      // Buscar teléfonos para cotizaciones canceladas también
-      const cancelledQuotesWithPhones = await Promise.all(
-        transformedCancelledData.map(async (quote) => {
-          try {
-            console.log(`Buscando teléfono para dador cancelado: "${quote.Nombre_Dador}"`);
-            
-            // First try exact match
-            let { data: userData, error: userError } = await supabase
-              .from('Usuarios')
-              .select('Telefono')
-              .eq('Nombre', quote.Nombre_Dador)
-              .limit(1)
-              .maybeSingle();
-
-            // If no exact match found, try with combined name for physical persons
-            if (!userData && quote.Nombre_Dador) {
-              const nameParts = quote.Nombre_Dador.trim().split(' ');
-              if (nameParts.length >= 2) {
-                const firstName = nameParts[0];
-                const lastName = nameParts.slice(1).join(' ');
-                
-                const { data: combinedData, error: combinedError } = await supabase
-                  .from('Usuarios')
-                  .select('Telefono, Nombre, Apellido')
-                  .eq('Nombre', firstName)
-                  .eq('Apellido', lastName)
-                  .limit(1)
-                  .maybeSingle();
-                
-                if (!combinedError && combinedData) {
-                  userData = combinedData;
-                }
-              }
-            }
-            
-            // If still no match, try partial search
-            if (!userData && quote.Nombre_Dador) {
-              const { data: partialData, error: partialError } = await supabase
-                .from('Usuarios')
-                .select('Telefono, Nombre, Apellido')
-                .or(`Nombre.ilike.%${quote.Nombre_Dador}%,Apellido.ilike.%${quote.Nombre_Dador}%`)
-                .limit(1)
-                .maybeSingle();
-              
-              if (!partialError && partialData) {
-                userData = partialData;
-              }
-            }
-
-            if (userError) {
-              console.error('Error fetching user phone:', userError);
-              return { ...quote, dador_telefono: null };
-            }
-
             console.log(`Resultado final para ${quote.Nombre_Dador}:`, userData?.Telefono || 'No encontrado');
             return { ...quote, dador_telefono: userData?.Telefono || null };
           } catch (err) {
