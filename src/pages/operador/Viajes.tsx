@@ -208,12 +208,8 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Actualizar el estado local para reflejar el cambio inmediatamente
-      setTrips(prev => prev.map(trip => 
-        trip.id_Cotizaciones === tripId 
-          ? { ...trip, trip_status: 'en-curso' }
-          : trip
-      ));
+      // Recargar todos los datos desde la base de datos para mantener consistencia
+      await fetchTrips();
       
       console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado exitosamente`);
       alert('Viaje iniciado exitosamente');
@@ -247,12 +243,8 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Actualizar el estado local para reflejar el cambio inmediatamente
-      setTrips(prev => prev.map(trip => 
-        trip.id_Cotizaciones === tripId 
-          ? { ...trip, trip_status: 'completado' }
-          : trip
-      ));
+      // Recargar todos los datos desde la base de datos para mantener consistencia
+      await fetchTrips();
       
       console.log(`✅ Viaje ${tripToUpdate.id_Envio} completado exitosamente`);
       alert('Viaje completado exitosamente');
