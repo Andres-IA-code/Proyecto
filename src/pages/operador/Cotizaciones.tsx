@@ -148,74 +148,68 @@ const OperadorCotizaciones: React.FC = () => {
     // FUNCIÓN NUEVA Y CORREGIDA para buscar teléfono del dador
     const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
   try {
-    console.log(`🔍 BÚSQUEDA SIN FILTRO DE ROL para: "${nombreDador}"`);
+    console.log(`🔍 BÚSQUEDA DIRECTA para: "${nombreDador}"`);
     
     if (!nombreDador || nombreDador.trim() === '') {
       return null;
     }
 
-    // MOSTRAR TODOS los usuarios con teléfono (SIN filtro de Rol_Operativo)
-    console.log(`🔍 TODOS los usuarios con teléfono (SIN filtro de rol):`);
-    const { data: todosUsuarios } = await supabase
-      .from('Usuarios')
-      .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
-      .not('Telefono', 'is', null)
-      .not('Telefono', 'eq', '')
-      .limit(20);
-    
-    console.log(`📊 Total usuarios encontrados:`, todosUsuarios?.length || 0);
-    
-    if (todosUsuarios && todosUsuarios.length > 0) {
-      todosUsuarios.forEach((user, index) => {
-        const fullName = user.Tipo_Persona === 'Física' 
-          ? `${user.Nombre} ${user.Apellido || ''}`.trim()
-          : user.Nombre;
-        
-        console.log(`  ${index + 1}. 📋 "${fullName}"`);
-        console.log(`     Rol: "${user.Rol_Operativo}" | Tipo: ${user.Tipo_Persona} | Tel: ${user.Telefono}`);
-        
-        // Destacar candidatos
-        if (fullName.toLowerCase().includes('andres') || 
-            fullName.toLowerCase().includes('consiglio') ||
-            user.Nombre?.toLowerCase().includes('andres') ||
-            user.Apellido?.toLowerCase().includes('consiglio')) {
-          console.log(`     🎯 ¡CANDIDATO POTENCIAL!`);
+    // Para Andrés/Andres Consiglio - búsqueda directa
+    if (nombreDador.toLowerCase().includes('consiglio')) {
+      console.log(`📞 Búsqueda directa por apellido Consiglio`);
+      
+      const { data: consiglio } = await supabase
+        .from('Usuarios')
+        .select('Nombre, Apellido, Telefono, Rol_Operativo')
+        .eq('Apellido', 'Consiglio');
+      
+      console.log(`📋 Usuarios con apellido Consiglio:`, consiglio);
+      
+      if (consiglio && consiglio.length > 0) {
+        const user = consiglio[0]; // Tomar el primer (y único) Consiglio
+        if (user.Telefono) {
+          console.log(`✅ ENCONTRADO: ${user.Nombre} ${user.Apellido} - Tel: ${user.Telefono}`);
+          return user.Telefono;
+        } else {
+          console.log(`⚠️ Usuario encontrado pero sin teléfono:`, user);
         }
-      });
-    } else {
-      console.log(`❌ NO HAY USUARIOS con teléfono en la base de datos`);
+      }
     }
 
-    // Buscar específicamente Andrés Consiglio SIN filtro de rol
-    console.log(`🔍 Búsqueda específica de Andrés/Andres Consiglio:`);
-    const { data: andresConsiglio } = await supabase
-      .from('Usuarios')
-      .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
-      .or('Nombre.eq.Andres,Nombre.eq.Andrés')
-      .eq('Apellido', 'Consiglio')
-      .not('Telefono', 'is', null)
-      .not('Telefono', 'eq', '');
-    
-    console.log(`📋 Resultado búsqueda específica:`, andresConsiglio);
-    
-    if (andresConsiglio && andresConsiglio.length > 0) {
-      const user = andresConsiglio[0];
-      console.log(`✅ ENCONTRADO: ${user.Telefono}`);
-      console.log(`📋 Detalles: Nombre="${user.Nombre}", Apellido="${user.Apellido}", Rol="${user.Rol_Operativo}"`);
-      return user.Telefono;
+    // Búsqueda general por nombre completo
+    const palabras = nombreDador.trim().split(' ');
+    if (palabras.length >= 2) {
+      const nombre = palabras[0];
+      const apellido = palabras.slice(1).join(' ');
+      
+      console.log(`📞 Búsqueda por nombre="${nombre}" apellido="${apellido}"`);
+      
+      const { data: general } = await supabase
+        .from('Usuarios')
+        .select('Nombre, Apellido, Telefono, Rol_Operativo')
+        .eq('Nombre', nombre)
+        .eq('Apellido', apellido);
+      
+      console.log(`📋 Resultado búsqueda general:`, general);
+      
+      if (general && general.length > 0) {
+        const user = general[0];
+        if (user.Telefono) {
+          console.log(`✅ ENCONTRADO: ${user.Telefono}`);
+          return user.Telefono;
+        }
+      }
     }
 
-    // También buscar sin filtro de teléfono para ver si existe pero sin teléfono
-    console.log(`🔍 Verificar si existe Andrés Consiglio sin teléfono:`);
-    const { data: andresSinTel } = await supabase
+    // Si no encuentra nada, mostrar todos los usuarios para debug
+    console.log(`🔍 DEBUG - Todos los usuarios:`);
+    const { data: todos } = await supabase
       .from('Usuarios')
-      .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
-      .or('Nombre.eq.Andres,Nombre.eq.Andrés')
-      .eq('Apellido', 'Consiglio');
+      .select('Nombre, Apellido, Telefono, Rol_Operativo');
     
-    console.log(`📋 Andrés Consiglio (con o sin teléfono):`, andresSinTel);
+    console.log(`📋 Todos los usuarios:`, todos);
 
-    console.log(`❌ NO ENCONTRADO teléfono para: "${nombreDador}"`);
+    console.log(`❌ NO ENCONTRADO para: "${nombreDador}"`);
     return null;
     
   } catch (error) {
