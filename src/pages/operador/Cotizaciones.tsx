@@ -336,6 +336,11 @@ const OperadorCotizaciones: React.FC = () => {
                 .maybeSingle();
               
               if (caseMatch?.Telefono) {
+                phoneNumber = caseMatch.Telefono;
+                console.log(`✅ Encontrado case-insensitive: ${phoneNumber}`);
+              }
+            }
+            
             console.log(`📱 Resultado final para ${quote.Nombre_Dador}:`, phoneNumber || 'No encontrado');
             return { ...quote, dador_telefono: phoneNumber };
           } catch (err) {
