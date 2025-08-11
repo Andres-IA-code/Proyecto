@@ -151,59 +151,92 @@ const OperadorCotizaciones: React.FC = () => {
           try {
             console.log(`Buscando teléfono para dador: "${quote.Nombre_Dador}"`);
             
-            // First try exact match
-            let { data: userData, error: userError } = await supabase
+            // Debug: First check what users exist in the database
+            const { data: allUsers, error: debugError } = await supabase
               .from('Usuarios')
-              .select('Telefono')
-              .eq('Nombre', quote.Nombre_Dador)
-              .limit(1)
-              .maybeSingle();
-
-            // If no exact match found, try with combined name for physical persons
-            if (!userData && quote.Nombre_Dador) {
-              console.log(`No se encontró coincidencia exacta, buscando por nombre combinado...`);
+              .select('Nombre, Apellido, Telefono, Tipo_Persona')
+              .limit(10);
+            
+            if (!debugError) {
+              console.log('Usuarios disponibles en la base de datos:', allUsers);
+            }
+            
+            // Try multiple search strategies
+            let userData = null;
+            
+            // Strategy 1: Exact match by full name (for juridical persons)
+            if (!userData) {
+              const { data: exactData, error: exactError } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .eq('Nombre', quote.Nombre_Dador)
+                .maybeSingle();
               
-              // Try to split the name and search by first name + last name combination
+              if (!exactError && exactData) {
+                userData = exactData;
+                console.log(`✅ Encontrado por nombre exacto:`, exactData);
+              }
+            }
+            
+            // Strategy 2: Search by first name and last name (for physical persons)
+            if (!userData && quote.Nombre_Dador) {
               const nameParts = quote.Nombre_Dador.trim().split(' ');
               if (nameParts.length >= 2) {
                 const firstName = nameParts[0];
                 const lastName = nameParts.slice(1).join(' ');
                 
-                const { data: combinedData, error: combinedError } = await supabase
+                console.log(`Buscando por nombre: "${firstName}" y apellido: "${lastName}"`);
+                
+                const { data: nameData, error: nameError } = await supabase
                   .from('Usuarios')
-                  .select('Telefono, Nombre, Apellido')
+                  .select('Telefono, Nombre, Apellido, Tipo_Persona')
                   .eq('Nombre', firstName)
                   .eq('Apellido', lastName)
-                  .limit(1)
                   .maybeSingle();
                 
-                if (!combinedError && combinedData) {
-                  userData = combinedData;
-                  console.log(`Encontrado por nombre+apellido: ${firstName} ${lastName}`);
+                if (!nameError && nameData) {
+                  userData = nameData;
+                  console.log(`✅ Encontrado por nombre+apellido:`, nameData);
                 }
               }
             }
             
-            // If still no match, try partial search
+            // Strategy 3: Search using SQL function to concatenate names
             if (!userData && quote.Nombre_Dador) {
-              console.log(`Buscando coincidencias parciales...`);
+              console.log(`Buscando usando concatenación SQL...`);
+              
+              const { data: concatData, error: concatError } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .or(`Nombre.eq.${quote.Nombre_Dador},(Nombre || ' ' || COALESCE(Apellido, '')).eq.${quote.Nombre_Dador}`)
+                .maybeSingle();
+              
+              if (!concatError && concatData) {
+                userData = concatData;
+                console.log(`✅ Encontrado por concatenación:`, concatData);
+              }
+            }
+
+            // Strategy 4: Partial search as last resort
+            if (!userData && quote.Nombre_Dador) {
+              console.log(`Búsqueda parcial como último recurso...`);
               
               const { data: partialData, error: partialError } = await supabase
                 .from('Usuarios')
-                .select('Telefono, Nombre, Apellido')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona')
                 .or(`Nombre.ilike.%${quote.Nombre_Dador}%,Apellido.ilike.%${quote.Nombre_Dador}%`)
                 .limit(1)
                 .maybeSingle();
               
               if (!partialError && partialData) {
                 userData = partialData;
-                console.log(`Encontrado por búsqueda parcial:`, partialData);
+                console.log(`✅ Encontrado por búsqueda parcial:`, partialData);
               }
             }
-
-            if (userError) {
-              console.error('Error fetching user phone:', userError);
-              return { ...quote, dador_telefono: null };
+            
+            if (!userData) {
+              console.log(`❌ No se encontró usuario para: "${quote.Nombre_Dador}"`);
+              console.log(`Usuarios disponibles:`, allUsers?.map(u => `"${u.Nombre}" "${u.Apellido}" (${u.Tipo_Persona})`));
             }
 
             console.log(`Resultado final para ${quote.Nombre_Dador}:`, userData?.Telefono || 'No encontrado');
