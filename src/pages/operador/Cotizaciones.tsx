@@ -201,23 +201,7 @@ const OperadorCotizaciones: React.FC = () => {
               }
             }
             
-            // Strategy 3: Search using SQL function to concatenate names
-            if (!userData && quote.Nombre_Dador) {
-              console.log(`Buscando usando concatenación SQL...`);
-              
-              const { data: concatData, error: concatError } = await supabase
-                .from('Usuarios')
-                .select('Telefono, Nombre, Apellido, Tipo_Persona')
-                .or(`Nombre.eq.${quote.Nombre_Dador},(Nombre || ' ' || COALESCE(Apellido, '')).eq.${quote.Nombre_Dador}`)
-                .maybeSingle();
-              
-              if (!concatError && concatData) {
-                userData = concatData;
-                console.log(`✅ Encontrado por concatenación:`, concatData);
-              }
-            }
-
-            // Strategy 4: Partial search as last resort
+            // Strategy 3: Partial search as last resort
             if (!userData && quote.Nombre_Dador) {
               console.log(`Búsqueda parcial como último recurso...`);
               
