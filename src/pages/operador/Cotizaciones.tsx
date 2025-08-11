@@ -49,21 +49,26 @@ const OperadorCotizaciones: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-
-      const user = await getCurrentUser();
-      if (!user) {
+      
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
         setError('Usuario no autenticado');
         return;
       }
 
-      // Obtener cotizaciones aceptadas
-      const { data: acceptedData, error: acceptedError } = await supabase
+      // Construir el nombre del operador según el tipo de persona
+      const nombreOperador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
+
+      console.log('Buscando cotizaciones aceptadas para operador:', nombreOperador);
+
+      // Buscar cotizaciones aceptadas del operador actual
+      const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          Usuarios!id_Usuario(Nombre),
-          Operadores!id_Operador(Nombre),
-          General!id_Envio(
+          General!inner(
             Origen,
             Destino,
             Distancia,
@@ -77,23 +82,25 @@ const OperadorCotizaciones: React.FC = () => {
             Parada_Programada,
             Dimension_Largo,
             Dimension_Ancho,
-            Dimension_Alto,
-            Usuarios!id_Usuario(Telefono)
+            Dimension_Alto
           )
         `)
-        .eq('id_Operador', user.id)
-        .eq('Estado', 'Aceptada');
+        .eq('Nombre_Operador', nombreOperador)
+        .eq('Estado', 'Aceptada')
+        .order('Fecha', { ascending: false });
 
-      if (acceptedError) throw acceptedError;
+      if (fetchError) {
+        console.error('Error fetching accepted quotes:', fetchError);
+        setError(`Error al cargar las cotizaciones: ${fetchError.message}`);
+        return;
+      }
 
-      // Obtener cotizaciones canceladas
+      // Buscar cotizaciones canceladas/rechazadas del operador actual
       const { data: cancelledData, error: cancelledError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          Usuarios!id_Usuario(Nombre),
-          Operadores!id_Operador(Nombre),
-          General!id_Envio(
+          General!inner(
             Origen,
             Destino,
             Distancia,
@@ -107,21 +114,21 @@ const OperadorCotizaciones: React.FC = () => {
             Parada_Programada,
             Dimension_Largo,
             Dimension_Ancho,
-            Dimension_Alto,
-            Usuarios!id_Usuario(Telefono)
+            Dimension_Alto
           )
         `)
-        .eq('id_Operador', user.id)
-        .eq('Estado', 'Rechazada');
+        .eq('Nombre_Operador', nombreOperador)
+        .eq('Estado', 'Rechazada')
+        .order('Fecha', { ascending: false });
 
-      if (cancelledError) throw cancelledError;
+      if (cancelledError) {
+        console.error('Error fetching cancelled quotes:', cancelledError);
+        // Don't set error here, just log it
+      }
 
-      // Formatear datos aceptadas
-      const formattedAccepted = (acceptedData || []).map(quote => ({
+      // Transformar los datos aceptados para facilitar el acceso
+      const transformedData = (data || []).map(quote => ({
         ...quote,
-        Nombre_Dador: quote.Usuarios?.Nombre || 'No disponible',
-        Nombre_Operador: quote.Operadores?.Nombre || 'No disponible',
-        dador_telefono: quote.General?.Usuarios?.Telefono,
         envio_origen: quote.General?.Origen,
         envio_destino: quote.General?.Destino,
         envio_distancia: quote.General?.Distancia,
@@ -135,15 +142,194 @@ const OperadorCotizaciones: React.FC = () => {
         envio_parada_programada: quote.General?.Parada_Programada,
         envio_dimension_largo: quote.General?.Dimension_Largo,
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
-        envio_dimension_alto: quote.General?.Dimension_Alto
+        envio_dimension_alto: quote.General?.Dimension_Alto,
       }));
 
-      // Formatear datos canceladas
-      const formattedCancelled = (cancelledData || []).map(quote => ({
+      // Función optimizada para buscar teléfono del dador
+      const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
+        try {
+          console.log(`🔍 Iniciando búsqueda de teléfono para: "${nombreDador}"`);
+          
+          if (!nombreDador || nombreDador.trim() === '') {
+            console.log('❌ Nombre del dador está vacío');
+            return null;
+          }
+
+          const dadorNormalizado = nombreDador.trim();
+          
+          // Función auxiliar para normalizar texto (quitar acentos y normalizar)
+          const normalizeText = (text: string) => {
+            return text
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+              .replace(/[^\w\s]/g, '') // Quitar caracteres especiales
+              .trim();
+          };
+
+          // MÉTODO 1: Búsqueda exacta por nombre completo para empresas (Jurídica)
+          console.log(`📞 Método 1: Búsqueda exacta para empresas`);
+          const { data: businessMatch } = await supabase
+            .from('Usuarios')
+            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .eq('Nombre', dadorNormalizado)
+            .eq('Tipo_Persona', 'Jurídica')
+            .eq('Rol_Operativo', 'dador')
+            .not('Telefono', 'is', null)
+            .not('Telefono', 'eq', '')
+            .maybeSingle();
+          
+          if (businessMatch?.Telefono) {
+            console.log(`✅ Método 1 - Encontrada empresa: ${businessMatch.Telefono}`);
+            return businessMatch.Telefono;
+          }
+
+          // MÉTODO 2: Búsqueda por nombre y apellido separados para personas físicas
+          if (dadorNormalizado.includes(' ')) {
+            console.log(`📞 Método 2: Búsqueda por nombre y apellido separados`);
+            const palabras = dadorNormalizado.split(' ');
+            const nombre = palabras[0];
+            const apellido = palabras.slice(1).join(' ');
+            
+            console.log(`  Buscando: Nombre="${nombre}", Apellido="${apellido}"`);
+            
+            // Buscar con nombre y apellido exactos
+            const { data: exactNameMatch } = await supabase
+              .from('Usuarios')
+              .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+              .eq('Nombre', nombre)
+              .eq('Apellido', apellido)
+              .eq('Tipo_Persona', 'Física')
+              .eq('Rol_Operativo', 'dador')
+              .not('Telefono', 'is', null)
+              .not('Telefono', 'eq', '')
+              .maybeSingle();
+            
+            if (exactNameMatch?.Telefono) {
+              console.log(`✅ Método 2a - Encontrado por nombre+apellido: ${exactNameMatch.Telefono}`);
+              return exactNameMatch.Telefono;
+            }
+
+            // Probar variaciones con acentos
+            const nombreVariations = [nombre, nombre.replace('e', 'é')];
+            const apellidoVariations = [apellido, apellido.replace('e', 'é')];
+            
+            for (const nombreVar of nombreVariations) {
+              for (const apellidoVar of apellidoVariations) {
+                console.log(`  Probando variación: "${nombreVar}" + "${apellidoVar}"`);
+                
+                const { data: variationMatch } = await supabase
+                  .from('Usuarios')
+                  .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+                  .eq('Nombre', nombreVar)
+                  .eq('Apellido', apellidoVar)
+                  .eq('Tipo_Persona', 'Física')
+                  .eq('Rol_Operativo', 'dador')
+                  .not('Telefono', 'is', null)
+                  .not('Telefono', 'eq', '')
+                  .maybeSingle();
+                
+                if (variationMatch?.Telefono) {
+                  console.log(`✅ Método 2b - Encontrado con variación: ${variationMatch.Telefono}`);
+                  return variationMatch.Telefono;
+                }
+              }
+            }
+          }
+
+          // MÉTODO 3: Búsqueda por ILIKE para encontrar coincidencias parciales
+          console.log(`📞 Método 3: Búsqueda ILIKE`);
+          const { data: ilikeMatches } = await supabase
+            .from('Usuarios')
+            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .eq('Rol_Operativo', 'dador')
+            .not('Telefono', 'is', null)
+            .not('Telefono', 'eq', '')
+            .limit(20);
+          
+          if (ilikeMatches && ilikeMatches.length > 0) {
+            console.log(`  Analizando ${ilikeMatches.length} dadores...`);
+            
+            const dadorNormalized = normalizeText(dadorNormalizado);
+            
+            for (const user of ilikeMatches) {
+              const fullName = user.Tipo_Persona === 'Física' 
+                ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+                : user.Nombre;
+              
+              const userNormalized = normalizeText(fullName);
+              
+              console.log(`    Comparando "${userNormalized}" con "${dadorNormalized}"`);
+              
+              if (userNormalized === dadorNormalized) {
+                console.log(`✅ Método 3 - Coincidencia exacta normalizada: ${user.Telefono}`);
+                return user.Telefono;
+              }
+            }
+          }
+
+          // MÉTODO 4: Búsqueda específica para "Andres Consiglio" vs "Andrés Consiglio"
+          if (dadorNormalizado.toLowerCase().includes('andres') && dadorNormalizado.toLowerCase().includes('consiglio')) {
+            console.log(`📞 Método 4: Búsqueda específica para Andrés Consiglio`);
+            
+            const { data: andresMatches } = await supabase
+              .from('Usuarios')
+              .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+              .or('Nombre.eq.Andres,Nombre.eq.Andrés')
+              .eq('Apellido', 'Consiglio')
+              .eq('Tipo_Persona', 'Física')
+              .eq('Rol_Operativo', 'dador')
+              .not('Telefono', 'is', null)
+              .not('Telefono', 'eq', '')
+              .maybeSingle();
+            
+            if (andresMatches?.Telefono) {
+              console.log(`✅ Método 4 - Encontrado Andrés Consiglio: ${andresMatches.Telefono}`);
+              return andresMatches.Telefono;
+            }
+          }
+
+          // MÉTODO 5: Debug - mostrar todos los dadores disponibles
+          console.log(`🔍 Debug - Dadores disponibles en la base de datos:`);
+          const { data: allDadores } = await supabase
+            .from('Usuarios')
+            .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
+            .eq('Rol_Operativo', 'dador')
+            .not('Telefono', 'is', null)
+            .not('Telefono', 'eq', '')
+            .limit(10);
+          
+          if (allDadores) {
+            allDadores.forEach(dador => {
+              const fullName = dador.Tipo_Persona === 'Física' 
+                ? `${dador.Nombre} ${dador.Apellido || ''}`.trim()
+                : dador.Nombre;
+              console.log(`  - "${fullName}" (${dador.Tipo_Persona}) - Tel: ${dador.Telefono}`);
+            });
+          }
+
+          console.log(`❌ No se encontró teléfono para: "${dadorNormalizado}"`);
+          return null;
+          
+        } catch (error) {
+          console.error('Error en búsqueda de teléfono:', error);
+          return null;
+        }
+      };
+
+      // Buscar teléfonos de los dadores de carga usando la función mejorada
+      const quotesWithPhones = await Promise.all(
+        transformedData.map(async (quote) => {
+          const phoneNumber = await findDadorPhone(quote.Nombre_Dador);
+          return { ...quote, dador_telefono: phoneNumber };
+        })
+      );
+
+      setAcceptedQuotes(quotesWithPhones);
+      
+      // Transformar los datos cancelados
+      const transformedCancelledData = (cancelledData || []).map(quote => ({
         ...quote,
-        Nombre_Dador: quote.Usuarios?.Nombre || 'No disponible',
-        Nombre_Operador: quote.Operadores?.Nombre || 'No disponible',
-        dador_telefono: quote.General?.Usuarios?.Telefono,
         envio_origen: quote.General?.Origen,
         envio_destino: quote.General?.Destino,
         envio_distancia: quote.General?.Distancia,
@@ -157,15 +343,24 @@ const OperadorCotizaciones: React.FC = () => {
         envio_parada_programada: quote.General?.Parada_Programada,
         envio_dimension_largo: quote.General?.Dimension_Largo,
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
-        envio_dimension_alto: quote.General?.Dimension_Alto
+        envio_dimension_alto: quote.General?.Dimension_Alto,
       }));
 
-      setAcceptedQuotes(formattedAccepted);
-      setCancelledQuotes(formattedCancelled);
+      // Buscar teléfonos para cotizaciones canceladas
+      const cancelledQuotesWithPhones = await Promise.all(
+        transformedCancelledData.map(async (quote) => {
+          const phoneNumber = await findDadorPhone(quote.Nombre_Dador);
+          return { ...quote, dador_telefono: phoneNumber };
+        })
+      );
 
+      setCancelledQuotes(cancelledQuotesWithPhones);
+      console.log('Cotizaciones aceptadas encontradas:', transformedData.length);
+      console.log('Cotizaciones canceladas encontradas:', transformedCancelledData.length);
+      
     } catch (err) {
-      console.error('Error fetching quotes:', err);
-      setError('Error al cargar las cotizaciones');
+      console.error('Error inesperado:', err);
+      setError('Error inesperado al cargar las cotizaciones');
     } finally {
       setLoading(false);
     }
@@ -636,12 +831,12 @@ const OperadorCotizaciones: React.FC = () => {
                         {selectedQuote.dador_telefono ? (
                           <a 
                             href={`tel:${selectedQuote.dador_telefono}`}
-                            className="text-blue-600 hover:text-blue-800 underline font-medium"
+                            className="text-blue-600 hover:text-blue-800 underline"
                           >
                             {selectedQuote.dador_telefono}
                           </a>
                         ) : (
-                          <span className="text-green-600 font-medium">Disponible en el sistema</span>
+                          <span className="text-red-500">No disponible</span>
                         )}
                       </div>
                     </div>
