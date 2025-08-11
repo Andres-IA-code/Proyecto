@@ -149,20 +149,64 @@ const OperadorCotizaciones: React.FC = () => {
       const quotesWithPhones = await Promise.all(
         transformedData.map(async (quote) => {
           try {
-            // Buscar el teléfono del dador de carga por nombre exacto o similar
-            const { data: userData, error: userError } = await supabase
+            console.log(`Buscando teléfono para dador: "${quote.Nombre_Dador}"`);
+            
+            // First try exact match
+            let { data: userData, error: userError } = await supabase
               .from('Usuarios')
               .select('Telefono')
-              .or(`Nombre.eq."${quote.Nombre_Dador}",Nombre.ilike."%${quote.Nombre_Dador}%"`)
+              .eq('Nombre', quote.Nombre_Dador)
               .limit(1)
               .maybeSingle();
+
+            // If no exact match found, try with combined name for physical persons
+            if (!userData && quote.Nombre_Dador) {
+              console.log(`No se encontró coincidencia exacta, buscando por nombre combinado...`);
+              
+              // Try to split the name and search by first name + last name combination
+              const nameParts = quote.Nombre_Dador.trim().split(' ');
+              if (nameParts.length >= 2) {
+                const firstName = nameParts[0];
+                const lastName = nameParts.slice(1).join(' ');
+                
+                const { data: combinedData, error: combinedError } = await supabase
+                  .from('Usuarios')
+                  .select('Telefono, Nombre, Apellido')
+                  .eq('Nombre', firstName)
+                  .eq('Apellido', lastName)
+                  .limit(1)
+                  .maybeSingle();
+                
+                if (!combinedError && combinedData) {
+                  userData = combinedData;
+                  console.log(`Encontrado por nombre+apellido: ${firstName} ${lastName}`);
+                }
+              }
+            }
+            
+            // If still no match, try partial search
+            if (!userData && quote.Nombre_Dador) {
+              console.log(`Buscando coincidencias parciales...`);
+              
+              const { data: partialData, error: partialError } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido')
+                .or(`Nombre.ilike.%${quote.Nombre_Dador}%,Apellido.ilike.%${quote.Nombre_Dador}%`)
+                .limit(1)
+                .maybeSingle();
+              
+              if (!partialError && partialData) {
+                userData = partialData;
+                console.log(`Encontrado por búsqueda parcial:`, partialData);
+              }
+            }
 
             if (userError) {
               console.error('Error fetching user phone:', userError);
               return { ...quote, dador_telefono: null };
             }
 
-            console.log(`Teléfono encontrado para ${quote.Nombre_Dador}:`, userData?.Telefono);
+            console.log(`Resultado final para ${quote.Nombre_Dador}:`, userData?.Telefono || 'No encontrado');
             return { ...quote, dador_telefono: userData?.Telefono || null };
           } catch (err) {
             console.error('Error fetching phone for quote:', quote.id_Cotizaciones, err);
@@ -196,18 +240,57 @@ const OperadorCotizaciones: React.FC = () => {
       const cancelledQuotesWithPhones = await Promise.all(
         transformedCancelledData.map(async (quote) => {
           try {
-            const { data: userData, error: userError } = await supabase
+            console.log(`Buscando teléfono para dador cancelado: "${quote.Nombre_Dador}"`);
+            
+            // First try exact match
+            let { data: userData, error: userError } = await supabase
               .from('Usuarios')
               .select('Telefono')
-              .or(`Nombre.eq."${quote.Nombre_Dador}",Nombre.ilike."%${quote.Nombre_Dador}%"`)
+              .eq('Nombre', quote.Nombre_Dador)
               .limit(1)
               .maybeSingle();
+
+            // If no exact match found, try with combined name for physical persons
+            if (!userData && quote.Nombre_Dador) {
+              const nameParts = quote.Nombre_Dador.trim().split(' ');
+              if (nameParts.length >= 2) {
+                const firstName = nameParts[0];
+                const lastName = nameParts.slice(1).join(' ');
+                
+                const { data: combinedData, error: combinedError } = await supabase
+                  .from('Usuarios')
+                  .select('Telefono, Nombre, Apellido')
+                  .eq('Nombre', firstName)
+                  .eq('Apellido', lastName)
+                  .limit(1)
+                  .maybeSingle();
+                
+                if (!combinedError && combinedData) {
+                  userData = combinedData;
+                }
+              }
+            }
+            
+            // If still no match, try partial search
+            if (!userData && quote.Nombre_Dador) {
+              const { data: partialData, error: partialError } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido')
+                .or(`Nombre.ilike.%${quote.Nombre_Dador}%,Apellido.ilike.%${quote.Nombre_Dador}%`)
+                .limit(1)
+                .maybeSingle();
+              
+              if (!partialError && partialData) {
+                userData = partialData;
+              }
+            }
 
             if (userError) {
               console.error('Error fetching user phone:', userError);
               return { ...quote, dador_telefono: null };
             }
 
+            console.log(`Resultado final para ${quote.Nombre_Dador}:`, userData?.Telefono || 'No encontrado');
             return { ...quote, dador_telefono: userData?.Telefono || null };
           } catch (err) {
             console.error('Error fetching phone for cancelled quote:', quote.id_Cotizaciones, err);
