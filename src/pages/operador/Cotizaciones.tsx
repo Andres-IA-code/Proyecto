@@ -636,6 +636,10 @@ const OperadorCotizaciones: React.FC = () => {
                       <div className="text-gray-900">{selectedQuote.Nombre_Dador}</div>
                     </div>
                     <div>
+                      <span className="text-sm font-medium text-gray-700">Teléfono de Contacto:</span>
+                      <div className="text-gray-900">+54 9 1234-567890</div>
+                    </div>
+                    <div>
                       <span className="text-sm font-medium text-gray-700">Fecha de Aceptación:</span>
                       <div className="text-gray-900">{formatDateTime(selectedQuote.Fecha)}</div>
                     </div>
