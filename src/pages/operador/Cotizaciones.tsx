@@ -49,91 +49,123 @@ const OperadorCotizaciones: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
+
+      const user = await getCurrentUser();
+      if (!user) {
         setError('Usuario no autenticado');
         return;
       }
 
-      // Get current user's data to find their name
-      const { data: userData } = await supabase
-        .from('Usuarios')
-        .select('Nombre, Apellido, Tipo_Persona')
-        .eq('auth_user_id', currentUser.id)
-        .single();
-
-      if (!userData) {
-        setError('No se encontraron datos del usuario');
-        return;
-      }
-
-      const operatorName = userData.Tipo_Persona === 'Física' 
-        ? `${userData.Nombre} ${userData.Apellido || ''}`.trim()
-        : userData.Nombre;
-
-      // Fetch quotes with related data
-      const { data: quotesData, error: quotesError } = await supabase
+      // Obtener cotizaciones aceptadas
+      const { data: acceptedData, error: acceptedError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          General!inner(
-            *,
-            Usuarios!inner(
-              Telefono,
-              Nombre,
-              Apellido,
-              Tipo_Persona
-            )
+          Usuarios!id_Usuario(Nombre),
+          Operadores!id_Operador(Nombre),
+          General!id_Envio(
+            Origen,
+            Destino,
+            Distancia,
+            Tipo_Carga,
+            Peso,
+            Tipo_Vehiculo,
+            Fecha_Retiro,
+            Horario_Retiro,
+            Observaciones,
+            Tipo_Carroceria,
+            Parada_Programada,
+            Dimension_Largo,
+            Dimension_Ancho,
+            Dimension_Alto,
+            Usuarios!id_Usuario(Telefono)
           )
         `)
-        .eq('Nombre_Operador', operatorName);
+        .eq('id_Operador', user.id)
+        .eq('Estado', 'Aceptada');
 
-      if (quotesError) {
-        console.error('Error fetching quotes:', quotesError);
-        setError('Error al cargar las cotizaciones');
-        return;
-      }
+      if (acceptedError) throw acceptedError;
 
-      // Transform and separate data
-      const transformedData: AcceptedQuote[] = [];
-      const transformedCancelledData: AcceptedQuote[] = [];
+      // Obtener cotizaciones canceladas
+      const { data: cancelledData, error: cancelledError } = await supabase
+        .from('Cotizaciones')
+        .select(`
+          *,
+          Usuarios!id_Usuario(Nombre),
+          Operadores!id_Operador(Nombre),
+          General!id_Envio(
+            Origen,
+            Destino,
+            Distancia,
+            Tipo_Carga,
+            Peso,
+            Tipo_Vehiculo,
+            Fecha_Retiro,
+            Horario_Retiro,
+            Observaciones,
+            Tipo_Carroceria,
+            Parada_Programada,
+            Dimension_Largo,
+            Dimension_Ancho,
+            Dimension_Alto,
+            Usuarios!id_Usuario(Telefono)
+          )
+        `)
+        .eq('id_Operador', user.id)
+        .eq('Estado', 'Rechazada');
 
-      quotesData?.forEach(quote => {
-        const transformedQuote: AcceptedQuote = {
-          ...quote,
-          dador_telefono: quote.General?.Usuarios?.Telefono,
-          envio_origen: quote.General?.Origen,
-          envio_destino: quote.General?.Destino,
-          envio_distancia: quote.General?.Distancia,
-          envio_tipo_carga: quote.General?.Tipo_Carga,
-          envio_peso: quote.General?.Peso,
-          envio_tipo_vehiculo: quote.General?.Tipo_Vehiculo,
-          envio_fecha_retiro: quote.General?.Fecha_Retiro,
-          envio_horario_retiro: quote.General?.Horario_Retiro,
-          envio_observaciones: quote.General?.Observaciones,
-          envio_tipo_carroceria: quote.General?.Tipo_Carroceria,
-          envio_parada_programada: quote.General?.Parada_Programada,
-          envio_dimension_largo: quote.General?.Dimension_Largo,
-          envio_dimension_ancho: quote.General?.Dimension_Ancho,
-          envio_dimension_alto: quote.General?.Dimension_Alto,
-        };
+      if (cancelledError) throw cancelledError;
 
-        if (quote.Estado === 'Aceptada') {
-          transformedData.push(transformedQuote);
-        } else if (quote.Estado === 'Cancelada') {
-          transformedCancelledData.push(transformedQuote);
-        }
-      });
+      // Formatear datos aceptadas
+      const formattedAccepted = (acceptedData || []).map(quote => ({
+        ...quote,
+        Nombre_Dador: quote.Usuarios?.Nombre || 'No disponible',
+        Nombre_Operador: quote.Operadores?.Nombre || 'No disponible',
+        dador_telefono: quote.General?.Usuarios?.Telefono,
+        envio_origen: quote.General?.Origen,
+        envio_destino: quote.General?.Destino,
+        envio_distancia: quote.General?.Distancia,
+        envio_tipo_carga: quote.General?.Tipo_Carga,
+        envio_peso: quote.General?.Peso,
+        envio_tipo_vehiculo: quote.General?.Tipo_Vehiculo,
+        envio_fecha_retiro: quote.General?.Fecha_Retiro,
+        envio_horario_retiro: quote.General?.Horario_Retiro,
+        envio_observaciones: quote.General?.Observaciones,
+        envio_tipo_carroceria: quote.General?.Tipo_Carroceria,
+        envio_parada_programada: quote.General?.Parada_Programada,
+        envio_dimension_largo: quote.General?.Dimension_Largo,
+        envio_dimension_ancho: quote.General?.Dimension_Ancho,
+        envio_dimension_alto: quote.General?.Dimension_Alto
+      }));
 
-      setAcceptedQuotes(transformedData);
-      setCancelledQuotes(transformedCancelledData);
-      console.log('✅ Cotizaciones aceptadas encontradas:', transformedData.length);
-      console.log('✅ Cotizaciones canceladas encontradas:', transformedCancelledData.length);
-      
+      // Formatear datos canceladas
+      const formattedCancelled = (cancelledData || []).map(quote => ({
+        ...quote,
+        Nombre_Dador: quote.Usuarios?.Nombre || 'No disponible',
+        Nombre_Operador: quote.Operadores?.Nombre || 'No disponible',
+        dador_telefono: quote.General?.Usuarios?.Telefono,
+        envio_origen: quote.General?.Origen,
+        envio_destino: quote.General?.Destino,
+        envio_distancia: quote.General?.Distancia,
+        envio_tipo_carga: quote.General?.Tipo_Carga,
+        envio_peso: quote.General?.Peso,
+        envio_tipo_vehiculo: quote.General?.Tipo_Vehiculo,
+        envio_fecha_retiro: quote.General?.Fecha_Retiro,
+        envio_horario_retiro: quote.General?.Horario_Retiro,
+        envio_observaciones: quote.General?.Observaciones,
+        envio_tipo_carroceria: quote.General?.Tipo_Carroceria,
+        envio_parada_programada: quote.General?.Parada_Programada,
+        envio_dimension_largo: quote.General?.Dimension_Largo,
+        envio_dimension_ancho: quote.General?.Dimension_Ancho,
+        envio_dimension_alto: quote.General?.Dimension_Alto
+      }));
+
+      setAcceptedQuotes(formattedAccepted);
+      setCancelledQuotes(formattedCancelled);
+
     } catch (err) {
-      console.error('❌ Error inesperado:', err);
-      setError('Error inesperado al cargar las cotizaciones');
+      console.error('Error fetching quotes:', err);
+      setError('Error al cargar las cotizaciones');
     } finally {
       setLoading(false);
     }
