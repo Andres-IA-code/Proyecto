@@ -13,6 +13,8 @@ interface AcceptedQuote {
   Oferta: number;
   Nombre_Operador: string;
   Nombre_Dador: string;
+  // Datos del dador de carga
+  dador_telefono?: string;
   // Datos del envío desde la tabla General
   envio_origen?: string;
   envio_destino?: string;
@@ -143,7 +145,32 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_alto: quote.General?.Dimension_Alto,
       }));
 
-      setAcceptedQuotes(transformedData);
+      // Buscar teléfonos de los dadores de carga
+      const quotesWithPhones = await Promise.all(
+        transformedData.map(async (quote) => {
+          try {
+            // Buscar el teléfono del dador de carga por nombre
+            const { data: userData, error: userError } = await supabase
+              .from('Usuarios')
+              .select('Telefono')
+              .or(`Nombre.eq.${quote.Nombre_Dador},Nombre.ilike.%${quote.Nombre_Dador.split(' ')[0]}%`)
+              .limit(1)
+              .maybeSingle();
+
+            if (userError) {
+              console.error('Error fetching user phone:', userError);
+              return { ...quote, dador_telefono: null };
+            }
+
+            return { ...quote, dador_telefono: userData?.Telefono || null };
+          } catch (err) {
+            console.error('Error fetching phone for quote:', quote.id_Cotizaciones, err);
+            return { ...quote, dador_telefono: null };
+          }
+        })
+      );
+
+      setAcceptedQuotes(quotesWithPhones);
       
       // Transformar los datos cancelados
       const transformedCancelledData = (cancelledData || []).map(quote => ({
@@ -164,7 +191,31 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_alto: quote.General?.Dimension_Alto,
       }));
 
-      setCancelledQuotes(transformedCancelledData);
+      // Buscar teléfonos para cotizaciones canceladas también
+      const cancelledQuotesWithPhones = await Promise.all(
+        transformedCancelledData.map(async (quote) => {
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('Usuarios')
+              .select('Telefono')
+              .or(`Nombre.eq.${quote.Nombre_Dador},Nombre.ilike.%${quote.Nombre_Dador.split(' ')[0]}%`)
+              .limit(1)
+              .maybeSingle();
+
+            if (userError) {
+              console.error('Error fetching user phone:', userError);
+              return { ...quote, dador_telefono: null };
+            }
+
+            return { ...quote, dador_telefono: userData?.Telefono || null };
+          } catch (err) {
+            console.error('Error fetching phone for cancelled quote:', quote.id_Cotizaciones, err);
+            return { ...quote, dador_telefono: null };
+          }
+        })
+      );
+
+      setCancelledQuotes(cancelledQuotesWithPhones);
       console.log('Cotizaciones aceptadas encontradas:', transformedData.length);
       console.log('Cotizaciones canceladas encontradas:', transformedCancelledData.length);
       
@@ -637,7 +688,9 @@ const OperadorCotizaciones: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-700">Teléfono de Contacto:</span>
-                      <div className="text-gray-900">+54 9 1234-567890</div>
+                      <div className="text-gray-900">
+                        {selectedQuote.dador_telefono || 'No disponible'}
+                      </div>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-700">Fecha de Aceptación:</span>
