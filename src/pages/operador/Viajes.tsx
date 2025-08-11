@@ -198,8 +198,9 @@ const Viajes: React.FC = () => {
         return;
       }
       
-      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio} - Estado actual: ${tripToUpdate.trip_status}`);
+      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio}`);
       
+      // Actualizar el estado en la tabla General a "En curso"
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'En curso' })
@@ -211,12 +212,11 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      console.log(`✅ Estado actualizado en BD a "En curso" para viaje ${tripToUpdate.id_Envio}`);
+      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado - Estado: En curso`);
       
       // Recargar todos los datos desde la base de datos para mantener consistencia
       await fetchTrips();
       
-      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado exitosamente - Datos recargados`);
       alert('Viaje iniciado exitosamente');
     } catch (err) {
       console.error('Error:', err);
@@ -237,6 +237,9 @@ const Viajes: React.FC = () => {
         return;
       }
       
+      console.log(`✅ Completando viaje ${tripToUpdate.id_Envio}`);
+      
+      // Actualizar el estado en la tabla General a "Completado"
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'Completado' })
@@ -248,10 +251,11 @@ const Viajes: React.FC = () => {
         return;
       }
 
+      console.log(`✅ Viaje ${tripToUpdate.id_Envio} completado - Estado: Completado`);
+      
       // Recargar todos los datos desde la base de datos para mantener consistencia
       await fetchTrips();
       
-      console.log(`✅ Viaje ${tripToUpdate.id_Envio} completado exitosamente`);
       alert('Viaje completado exitosamente');
     } catch (err) {
       console.error('Error:', err);
@@ -578,7 +582,7 @@ const Viajes: React.FC = () => {
                     <button
                       onClick={() => handleStartTrip(trip.id_Cotizaciones)}
                       disabled={updatingTrip === trip.id_Cotizaciones}
-                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                     >
                       {updatingTrip === trip.id_Cotizaciones ? (
                         <>
@@ -598,7 +602,7 @@ const Viajes: React.FC = () => {
                     <button
                       onClick={() => handleCompleteTrip(trip.id_Cotizaciones)}
                       disabled={updatingTrip === trip.id_Cotizaciones}
-                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                     >
                       {updatingTrip === trip.id_Cotizaciones ? (
                         <>
