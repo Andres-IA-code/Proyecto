@@ -112,29 +112,27 @@ const Viajes: React.FC = () => {
         // Determinar el estado del viaje basado en el estado de la base de datos
         let tripStatus: 'programado' | 'en-curso' | 'completado' | 'cancelado' = 'programado';
         
-        // Usar el estado de la tabla General para determinar el estado del viaje
-        const estadoGeneral = trip.General?.Estado?.toLowerCase();
+        // Mapear el estado de la tabla General al estado del viaje
+        const estadoGeneral = trip.General?.Estado;
         
-        switch (estadoGeneral) {
+        console.log(`Viaje ${trip.id_Envio} - Estado en BD: "${estadoGeneral}"`);
+        
+        switch (estadoGeneral?.toLowerCase()) {
           case 'en curso':
-          case 'en_curso':
-          case 'activo':
             tripStatus = 'en-curso';
             break;
           case 'completado':
-          case 'finalizado':
-          case 'entregado':
             tripStatus = 'completado';
             break;
           case 'cancelado':
-          case 'rechazado':
             tripStatus = 'cancelado';
             break;
           default:
-            // Si el estado es "Solicitado", "Pendiente", etc., se considera programado
             tripStatus = 'programado';
             break;
         }
+        
+        console.log(`Viaje ${trip.id_Envio} - Estado mapeado: "${tripStatus}"`);
 
         return {
           ...trip,
@@ -191,19 +189,18 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
-      // Encontrar el viaje y actualizar su estado en la base de datos
       const tripToUpdate = trips.find(t => t.id_Cotizaciones === tripId);
       if (!tripToUpdate) {
         alert('Error: No se encontró el viaje');
         return;
       }
       
-      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio}`);
+      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio} - Estado actual: ${tripToUpdate.trip_status}`);
       
-      // Actualizar el estado en la tabla General a "En curso"
+      // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
-        .update({ Estado: 'En curso' })
+        .update({ Estado: 'En Curso' })
         .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
@@ -212,9 +209,9 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado - Estado: En curso`);
+      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado - Estado: En Curso`);
       
-      // Recargar todos los datos desde la base de datos para mantener consistencia
+      // Recargar datos
       await fetchTrips();
       
       alert('Viaje iniciado exitosamente');
@@ -230,16 +227,15 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
-      // Encontrar el viaje y actualizar su estado en la base de datos
       const tripToUpdate = trips.find(t => t.id_Cotizaciones === tripId);
       if (!tripToUpdate) {
         alert('Error: No se encontró el viaje');
         return;
       }
       
-      console.log(`✅ Completando viaje ${tripToUpdate.id_Envio}`);
+      console.log(`✅ Completando viaje ${tripToUpdate.id_Envio} - Estado actual: ${tripToUpdate.trip_status}`);
       
-      // Actualizar el estado en la tabla General a "Completado"
+      // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'Completado' })
@@ -253,7 +249,7 @@ const Viajes: React.FC = () => {
 
       console.log(`✅ Viaje ${tripToUpdate.id_Envio} completado - Estado: Completado`);
       
-      // Recargar todos los datos desde la base de datos para mantener consistencia
+      // Recargar datos
       await fetchTrips();
       
       alert('Viaje completado exitosamente');
