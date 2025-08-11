@@ -147,138 +147,82 @@ const OperadorCotizaciones: React.FC = () => {
 
     // FUNCIÓN NUEVA Y CORREGIDA para buscar teléfono del dador
     const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
-      try {
-        console.log(`🔍 NUEVA BÚSQUEDA para: "${nombreDador}"`);
+  try {
+    console.log(`🔍 BÚSQUEDA SIN FILTRO DE ROL para: "${nombreDador}"`);
+    
+    if (!nombreDador || nombreDador.trim() === '') {
+      return null;
+    }
+
+    // MOSTRAR TODOS los usuarios con teléfono (SIN filtro de Rol_Operativo)
+    console.log(`🔍 TODOS los usuarios con teléfono (SIN filtro de rol):`);
+    const { data: todosUsuarios } = await supabase
+      .from('Usuarios')
+      .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
+      .not('Telefono', 'is', null)
+      .not('Telefono', 'eq', '')
+      .limit(20);
+    
+    console.log(`📊 Total usuarios encontrados:`, todosUsuarios?.length || 0);
+    
+    if (todosUsuarios && todosUsuarios.length > 0) {
+      todosUsuarios.forEach((user, index) => {
+        const fullName = user.Tipo_Persona === 'Física' 
+          ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+          : user.Nombre;
         
-        if (!nombreDador || nombreDador.trim() === '') {
-          return null;
-        }
-
-        const dadorNormalizado = nombreDador.trim();
+        console.log(`  ${index + 1}. 📋 "${fullName}"`);
+        console.log(`     Rol: "${user.Rol_Operativo}" | Tipo: ${user.Tipo_Persona} | Tel: ${user.Telefono}`);
         
-        // Función auxiliar para normalizar texto
-        const normalizeText = (text: string) => {
-          return text
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^\w\s]/g, '')
-            .trim();
-        };
-
-        // PRIMERO: Debug - mostrar todos los dadores disponibles
-        console.log(`🔍 DEBUG - Dadores disponibles en la BD:`);
-        const { data: allDadores } = await supabase
-          .from('Usuarios')
-          .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
-          .eq('Rol_Operativo', 'dador')
-          .not('Telefono', 'is', null)
-          .not('Telefono', 'eq', '');
-        
-        if (allDadores) {
-          allDadores.forEach(dador => {
-            const fullName = dador.Tipo_Persona === 'Física' 
-              ? `${dador.Nombre} ${dador.Apellido || ''}`.trim()
-              : dador.Nombre;
-            console.log(`  📋 "${fullName}" (${dador.Tipo_Persona}) - Tel: ${dador.Telefono}`);
-            
-            // Mostrar comparación directa
-            if (fullName.toLowerCase().includes('andres') || fullName.toLowerCase().includes('consiglio')) {
-              console.log(`  🎯 CANDIDATO POTENCIAL: "${fullName}" vs "${dadorNormalizado}"`);
-              console.log(`     Normalizado: "${normalizeText(fullName)}" vs "${normalizeText(dadorNormalizado)}"`);
-            }
-          });
+        // Destacar candidatos
+        if (fullName.toLowerCase().includes('andres') || 
+            fullName.toLowerCase().includes('consiglio') ||
+            user.Nombre?.toLowerCase().includes('andres') ||
+            user.Apellido?.toLowerCase().includes('consiglio')) {
+          console.log(`     🎯 ¡CANDIDATO POTENCIAL!`);
         }
+      });
+    } else {
+      console.log(`❌ NO HAY USUARIOS con teléfono en la base de datos`);
+    }
 
-        // MÉTODO 1: Búsqueda exacta para personas físicas
-        if (dadorNormalizado.includes(' ')) {
-          const palabras = dadorNormalizado.split(' ');
-          const nombre = palabras[0];
-          const apellido = palabras.slice(1).join(' ');
-          
-          console.log(`📞 MÉTODO 1: Búsqueda exacta Nombre="${nombre}", Apellido="${apellido}"`);
-          
-          const { data: exactMatch } = await supabase
-            .from('Usuarios')
-            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .eq('Nombre', nombre)
-            .eq('Apellido', apellido)
-            .eq('Tipo_Persona', 'Física')
-            .eq('Rol_Operativo', 'dador')
-            .not('Telefono', 'is', null)
-            .not('Telefono', 'eq', '')
-            .maybeSingle();
-          
-          console.log(`  📞 Resultado método 1:`, exactMatch);
-          
-          if (exactMatch?.Telefono) {
-            console.log(`✅ ENCONTRADO método 1: ${exactMatch.Telefono}`);
-            return exactMatch.Telefono;
-          }
-        }
+    // Buscar específicamente Andrés Consiglio SIN filtro de rol
+    console.log(`🔍 Búsqueda específica de Andrés/Andres Consiglio:`);
+    const { data: andresConsiglio } = await supabase
+      .from('Usuarios')
+      .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
+      .or('Nombre.eq.Andres,Nombre.eq.Andrés')
+      .eq('Apellido', 'Consiglio')
+      .not('Telefono', 'is', null)
+      .not('Telefono', 'eq', '');
+    
+    console.log(`📋 Resultado búsqueda específica:`, andresConsiglio);
+    
+    if (andresConsiglio && andresConsiglio.length > 0) {
+      const user = andresConsiglio[0];
+      console.log(`✅ ENCONTRADO: ${user.Telefono}`);
+      console.log(`📋 Detalles: Nombre="${user.Nombre}", Apellido="${user.Apellido}", Rol="${user.Rol_Operativo}"`);
+      return user.Telefono;
+    }
 
-        // MÉTODO 2: Búsqueda con variaciones de acentos
-        if (dadorNormalizado.toLowerCase().includes('andres') && dadorNormalizado.toLowerCase().includes('consiglio')) {
-          console.log(`📞 MÉTODO 2: Búsqueda específica para Andrés Consiglio`);
-          
-          const variacionesNombre = ['Andres', 'Andrés'];
-          const variacionesApellido = ['Consiglio'];
-          
-          for (const nombreVar of variacionesNombre) {
-            for (const apellidoVar of variacionesApellido) {
-              console.log(`  📞 Probando: "${nombreVar}" + "${apellidoVar}"`);
-              
-              const { data: variationMatch } = await supabase
-                .from('Usuarios')
-                .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-                .eq('Nombre', nombreVar)
-                .eq('Apellido', apellidoVar)
-                .eq('Tipo_Persona', 'Física')
-                .eq('Rol_Operativo', 'dador')
-                .not('Telefono', 'is', null)
-                .not('Telefono', 'eq', '')
-                .maybeSingle();
-              
-              console.log(`  📞 Resultado "${nombreVar}" + "${apellidoVar}":`, variationMatch);
-              
-              if (variationMatch?.Telefono) {
-                console.log(`✅ ENCONTRADO método 2: ${variationMatch.Telefono}`);
-                return variationMatch.Telefono;
-              }
-            }
-          }
-        }
+    // También buscar sin filtro de teléfono para ver si existe pero sin teléfono
+    console.log(`🔍 Verificar si existe Andrés Consiglio sin teléfono:`);
+    const { data: andresSinTel } = await supabase
+      .from('Usuarios')
+      .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
+      .or('Nombre.eq.Andres,Nombre.eq.Andrés')
+      .eq('Apellido', 'Consiglio');
+    
+    console.log(`📋 Andrés Consiglio (con o sin teléfono):`, andresSinTel);
 
-        // MÉTODO 3: Búsqueda por normalización
-        console.log(`📞 MÉTODO 3: Búsqueda por texto normalizado`);
-        if (allDadores) {
-          const dadorNormalized = normalizeText(dadorNormalizado);
-          console.log(`  📞 Buscando coincidencia para: "${dadorNormalized}"`);
-          
-          for (const user of allDadores) {
-            const fullName = user.Tipo_Persona === 'Física' 
-              ? `${user.Nombre} ${user.Apellido || ''}`.trim()
-              : user.Nombre;
-            
-            const userNormalized = normalizeText(fullName);
-            
-            console.log(`    📞 Comparando "${userNormalized}" con "${dadorNormalized}"`);
-            
-            if (userNormalized === dadorNormalized) {
-              console.log(`✅ ENCONTRADO método 3: ${user.Telefono}`);
-              return user.Telefono;
-            }
-          }
-        }
-
-        console.log(`❌ NO ENCONTRADO para: "${dadorNormalizado}"`);
-        return null;
-        
-      } catch (error) {
-        console.error('❌ Error en búsqueda de teléfono:', error);
-        return null;
-      }
-    };
+    console.log(`❌ NO ENCONTRADO teléfono para: "${nombreDador}"`);
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error en búsqueda:', error);
+    return null;
+  }
+};
 
     // Buscar teléfonos usando la función corregida
     console.log('🚀 Iniciando búsqueda de teléfonos...');
