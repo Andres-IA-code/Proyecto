@@ -149,11 +149,11 @@ const OperadorCotizaciones: React.FC = () => {
       const quotesWithPhones = await Promise.all(
         transformedData.map(async (quote) => {
           try {
-            // Buscar el teléfono del dador de carga por nombre
+            // Buscar el teléfono del dador de carga por nombre exacto o similar
             const { data: userData, error: userError } = await supabase
               .from('Usuarios')
               .select('Telefono')
-              .or(`Nombre.eq.${quote.Nombre_Dador},Nombre.ilike.%${quote.Nombre_Dador.split(' ')[0]}%`)
+              .or(`Nombre.eq."${quote.Nombre_Dador}",Nombre.ilike."%${quote.Nombre_Dador}%"`)
               .limit(1)
               .maybeSingle();
 
@@ -162,6 +162,7 @@ const OperadorCotizaciones: React.FC = () => {
               return { ...quote, dador_telefono: null };
             }
 
+            console.log(`Teléfono encontrado para ${quote.Nombre_Dador}:`, userData?.Telefono);
             return { ...quote, dador_telefono: userData?.Telefono || null };
           } catch (err) {
             console.error('Error fetching phone for quote:', quote.id_Cotizaciones, err);
@@ -198,7 +199,7 @@ const OperadorCotizaciones: React.FC = () => {
             const { data: userData, error: userError } = await supabase
               .from('Usuarios')
               .select('Telefono')
-              .or(`Nombre.eq.${quote.Nombre_Dador},Nombre.ilike.%${quote.Nombre_Dador.split(' ')[0]}%`)
+              .or(`Nombre.eq."${quote.Nombre_Dador}",Nombre.ilike."%${quote.Nombre_Dador}%"`)
               .limit(1)
               .maybeSingle();
 
