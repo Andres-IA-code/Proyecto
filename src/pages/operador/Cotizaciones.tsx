@@ -755,23 +755,13 @@ const OperadorCotizaciones: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="border-t pt-6">
-                <div className="flex space-x-3">
+                <div className="flex justify-center">
                   <button
                     onClick={() => setShowDetailsModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                   >
                     Cerrar
                   </button>
-                  {selectedTab === 'accepted' && (
-                    <>
-                      <button className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors">
-                        Iniciar Viaje
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                        Contactar Cliente
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
