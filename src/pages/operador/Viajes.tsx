@@ -179,6 +179,19 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
+      // Update the trip status in the database by updating the General table
+      const { error: updateError } = await supabase
+        .from('General')
+        .update({ Estado: 'En Curso' })
+        .eq('id_Envio', trips.find(t => t.id_Cotizaciones === tripId)?.id_Envio);
+
+      if (updateError) {
+        console.error('Error updating trip status:', updateError);
+        alert('Error al iniciar el viaje');
+        return;
+      }
+
+      // Update local state only after successful database update
       setTrips(prev => prev.map(trip => 
         trip.id_Cotizaciones === tripId 
           ? { ...trip, trip_status: 'en-curso' }
@@ -198,6 +211,19 @@ const Viajes: React.FC = () => {
     try {
       setUpdatingTrip(tripId);
       
+      // Update the trip status in the database by updating the General table
+      const { error: updateError } = await supabase
+        .from('General')
+        .update({ Estado: 'Completado' })
+        .eq('id_Envio', trips.find(t => t.id_Cotizaciones === tripId)?.id_Envio);
+
+      if (updateError) {
+        console.error('Error updating trip status:', updateError);
+        alert('Error al completar el viaje');
+        return;
+      }
+
+      // Update local state only after successful database update
       setTrips(prev => prev.map(trip => 
         trip.id_Cotizaciones === tripId 
           ? { ...trip, trip_status: 'completado' }
