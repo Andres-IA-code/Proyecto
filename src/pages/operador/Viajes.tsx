@@ -131,6 +131,7 @@ const Viajes: React.FC = () => {
             tripStatus = 'cancelado';
             break;
           default:
+            // Si el estado es "Solicitado", "Pendiente", etc., se considera programado
             tripStatus = 'programado';
             break;
         }
@@ -197,9 +198,11 @@ const Viajes: React.FC = () => {
         return;
       }
       
+      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio} - Estado actual: ${tripToUpdate.trip_status}`);
+      
       const { error: updateError } = await supabase
         .from('General')
-        .update({ Estado: 'En Curso' })
+        .update({ Estado: 'En curso' })
         .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
@@ -208,10 +211,12 @@ const Viajes: React.FC = () => {
         return;
       }
 
+      console.log(`✅ Estado actualizado en BD a "En curso" para viaje ${tripToUpdate.id_Envio}`);
+      
       // Recargar todos los datos desde la base de datos para mantener consistencia
       await fetchTrips();
       
-      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado exitosamente`);
+      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado exitosamente - Datos recargados`);
       alert('Viaje iniciado exitosamente');
     } catch (err) {
       console.error('Error:', err);
