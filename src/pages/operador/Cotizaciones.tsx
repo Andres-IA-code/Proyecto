@@ -154,15 +154,52 @@ const OperadorCotizaciones: React.FC = () => {
             // Estrategia mejorada: Buscar por múltiples métodos
             let phoneNumber = null;
             
+            // Debug: First check what users exist in the database
+            const { data: allUsers, error: debugError } = await supabase
+              .from('Usuarios')
+              .select('Nombre, Apellido, Telefono, Tipo_Persona')
+              .not('Telefono', 'is', null)
+              .not('Telefono', 'eq', '')
+              .limit(10);
+            
+            if (allUsers) {
+              console.log('📋 Usuarios con teléfono disponibles:');
+              allUsers.forEach(u => {
+                const nombreCompleto = u.Tipo_Persona === 'Física' ? `${u.Nombre} ${u.Apellido || ''}`.trim() : u.Nombre;
+                console.log(`  - "${nombreCompleto}" (${u.Tipo_Persona}) - Tel: ${u.Telefono}`);
+                console.log(`    Coincide con "${quote.Nombre_Dador}"? ${nombreCompleto === quote.Nombre_Dador ? 'SÍ' : 'NO'}`);
+              });
+            }
+
             // Método 1: Búsqueda exacta por nombre completo
             console.log(`📞 Método 1: Búsqueda exacta por "${quote.Nombre_Dador}"`);
-            const { data: exactMatch } = await supabase
+            let { data: exactMatch } = await supabase
               .from('Usuarios')
               .select('Telefono, Nombre, Apellido, Tipo_Persona')
               .eq('Nombre', quote.Nombre_Dador)
               .not('Telefono', 'is', null)
               .not('Telefono', 'eq', '')
               .maybeSingle();
+            
+            console.log(`  Resultado método 1:`, exactMatch);
+            
+            // Try also searching for business names (juridical persons)
+            if (!exactMatch) {
+              console.log(`📞 Método 1b: Búsqueda para persona jurídica`);
+              const { data: businessMatch } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .eq('Nombre', quote.Nombre_Dador)
+                .eq('Tipo_Persona', 'Jurídica')
+                .not('Telefono', 'is', null)
+                .not('Telefono', 'eq', '')
+                .maybeSingle();
+              
+              if (businessMatch) {
+                exactMatch = businessMatch;
+                console.log(`  Resultado método 1b:`, exactMatch);
+              }
+            }
             
             if (exactMatch?.Telefono) {
               phoneNumber = exactMatch.Telefono;
@@ -178,11 +215,14 @@ const OperadorCotizaciones: React.FC = () => {
               const { data: nameMatch } = await supabase
                 .from('Usuarios')
                 .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .eq('Tipo_Persona', 'Física')
                 .eq('Nombre', firstName)
                 .eq('Apellido', lastName)
                 .not('Telefono', 'is', null)
                 .not('Telefono', 'eq', '')
                 .maybeSingle();
+              
+              console.log(`  Resultado método 2:`, nameMatch);
               
               if (nameMatch?.Telefono) {
                 phoneNumber = nameMatch.Telefono;
@@ -196,11 +236,13 @@ const OperadorCotizaciones: React.FC = () => {
               const { data: caseInsensitiveMatch } = await supabase
                 .from('Usuarios')
                 .select('Telefono, Nombre, Apellido, Tipo_Persona')
-                .ilike('Nombre', quote.Nombre_Dador)
+                .ilike('Nombre', `%${quote.Nombre_Dador}%`)
                 .not('Telefono', 'is', null)
                 .not('Telefono', 'eq', '')
                 .limit(1)
                 .maybeSingle();
+              
+              console.log(`  Resultado método 3:`, caseInsensitiveMatch);
               
               if (caseInsensitiveMatch?.Telefono) {
                 phoneNumber = caseInsensitiveMatch.Telefono;
@@ -224,9 +266,21 @@ const OperadorCotizaciones: React.FC = () => {
                   ? `${user.Nombre} ${user.Apellido || ''}`.trim()
                   : user.Nombre;
                 
-                return fullName.toLowerCase().includes(quote.Nombre_Dador?.toLowerCase() || '') ||
-                       (quote.Nombre_Dador?.toLowerCase() || '').includes(fullName.toLowerCase());
+                const dadorName = quote.Nombre_Dador?.toLowerCase() || '';
+                const userName = fullName.toLowerCase();
+                
+                console.log(`    Comparando "${userName}" con "${dadorName}"`);
+                
+                // More flexible matching
+                return userName === dadorName ||
+                       userName.includes(dadorName) ||
+                       dadorName.includes(userName) ||
+                       // Try without accents
+                       userName.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === 
+                       dadorName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
               });
+              
+              console.log(`  Usuario encontrado por similitud:`, match);
               
               if (match?.Telefono) {
                 phoneNumber = match.Telefono;
@@ -236,20 +290,21 @@ const OperadorCotizaciones: React.FC = () => {
             
             if (!phoneNumber) {
               console.log(`❌ No se encontró teléfono para: "${quote.Nombre_Dador}"`);
+              console.log(`🔍 Verificando si existe usuario con nombre similar...`);
               
-              // Debug: Mostrar todos los usuarios para comparación
-              const { data: debugUsers } = await supabase
+              // Final attempt: Check if there's a user with "Andrés" (with accent)
+              const { data: accentMatch } = await supabase
                 .from('Usuarios')
-                .select('Nombre, Apellido, Telefono, Tipo_Persona')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .or('Nombre.eq.Andrés,Nombre.ilike.%Andrés%')
                 .not('Telefono', 'is', null)
                 .not('Telefono', 'eq', '')
-                .limit(10);
+                .maybeSingle();
               
-              console.log('📋 Usuarios con teléfono disponibles:', debugUsers?.map(u => ({
-                nombre_completo: u.Tipo_Persona === 'Física' ? `${u.Nombre} ${u.Apellido || ''}`.trim() : u.Nombre,
-                telefono: u.Telefono,
-                tipo: u.Tipo_Persona
-              })));
+              if (accentMatch?.Telefono) {
+                phoneNumber = accentMatch.Telefono;
+                console.log(`✅ Encontrado con acento: ${phoneNumber}`);
+              }
             }
 
             return { ...quote, dador_telefono: phoneNumber };
