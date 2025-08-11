@@ -46,21 +46,98 @@ const OperadorCotizaciones: React.FC = () => {
   }, []);
 
   const fetchQuotes = async () => {
-  try {
-    setLoading(true);
-    setError('');
-    
-    setCancelledQuotes(transformedCancelledData);
-    console.log('✅ Cotizaciones aceptadas encontradas:', transformedData.length);
-    console.log('✅ Cotizaciones canceladas encontradas:', transformedCancelledData.length);
-    
-  } catch (err) {
-    console.error('❌ Error inesperado:', err);
-    setError('Error inesperado al cargar las cotizaciones');
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+      setError('');
+      
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        setError('Usuario no autenticado');
+        return;
+      }
+
+      // Get current user's data to find their name
+      const { data: userData } = await supabase
+        .from('Usuarios')
+        .select('Nombre, Apellido, Tipo_Persona')
+        .eq('auth_user_id', currentUser.id)
+        .single();
+
+      if (!userData) {
+        setError('No se encontraron datos del usuario');
+        return;
+      }
+
+      const operatorName = userData.Tipo_Persona === 'Física' 
+        ? `${userData.Nombre} ${userData.Apellido || ''}`.trim()
+        : userData.Nombre;
+
+      // Fetch quotes with related data
+      const { data: quotesData, error: quotesError } = await supabase
+        .from('Cotizaciones')
+        .select(`
+          *,
+          General!inner(
+            *,
+            Usuarios!inner(
+              Telefono,
+              Nombre,
+              Apellido,
+              Tipo_Persona
+            )
+          )
+        `)
+        .eq('Nombre_Operador', operatorName);
+
+      if (quotesError) {
+        console.error('Error fetching quotes:', quotesError);
+        setError('Error al cargar las cotizaciones');
+        return;
+      }
+
+      // Transform and separate data
+      const transformedData: AcceptedQuote[] = [];
+      const transformedCancelledData: AcceptedQuote[] = [];
+
+      quotesData?.forEach(quote => {
+        const transformedQuote: AcceptedQuote = {
+          ...quote,
+          dador_telefono: quote.General?.Usuarios?.Telefono,
+          envio_origen: quote.General?.Origen,
+          envio_destino: quote.General?.Destino,
+          envio_distancia: quote.General?.Distancia,
+          envio_tipo_carga: quote.General?.Tipo_Carga,
+          envio_peso: quote.General?.Peso,
+          envio_tipo_vehiculo: quote.General?.Tipo_Vehiculo,
+          envio_fecha_retiro: quote.General?.Fecha_Retiro,
+          envio_horario_retiro: quote.General?.Horario_Retiro,
+          envio_observaciones: quote.General?.Observaciones,
+          envio_tipo_carroceria: quote.General?.Tipo_Carroceria,
+          envio_parada_programada: quote.General?.Parada_Programada,
+          envio_dimension_largo: quote.General?.Dimension_Largo,
+          envio_dimension_ancho: quote.General?.Dimension_Ancho,
+          envio_dimension_alto: quote.General?.Dimension_Alto,
+        };
+
+        if (quote.Estado === 'Aceptada') {
+          transformedData.push(transformedQuote);
+        } else if (quote.Estado === 'Cancelada') {
+          transformedCancelledData.push(transformedQuote);
+        }
+      });
+
+      setAcceptedQuotes(transformedData);
+      setCancelledQuotes(transformedCancelledData);
+      console.log('✅ Cotizaciones aceptadas encontradas:', transformedData.length);
+      console.log('✅ Cotizaciones canceladas encontradas:', transformedCancelledData.length);
+      
+    } catch (err) {
+      console.error('❌ Error inesperado:', err);
+      setError('Error inesperado al cargar las cotizaciones');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     try {
