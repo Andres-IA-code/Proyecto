@@ -335,9 +335,9 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Primero actualizar los contadores en la tabla Viajes
+      // PASO 1: Actualizar contadores en la tabla Viajes PRIMERO
       if (viajeCounters) {
-        console.log('Contadores actuales:', viajeCounters);
+        console.log('🔢 Contadores actuales antes de iniciar:', viajeCounters);
         
         const updatedCounters = {
           Viaje_Programado: Math.max(0, viajeCounters.Viaje_Programado - 1),
@@ -345,7 +345,7 @@ const Viajes: React.FC = () => {
           Viaje_Completados: viajeCounters.Viaje_Completados
         };
 
-        console.log('Nuevos contadores:', updatedCounters);
+        console.log('🔢 Nuevos contadores calculados:', updatedCounters);
 
         const { data: updatedCountersData, error: countersError } = await supabase
           .from('Viajes')
@@ -358,13 +358,20 @@ const Viajes: React.FC = () => {
           console.error('Error updating counters:', countersError);
           alert('Error al actualizar contadores');
           return;
-        } else {
-          setViajeCounters(updatedCountersData);
-          console.log('Contadores actualizados exitosamente:', updatedCountersData);
         }
+
+        console.log('✅ Contadores actualizados en BD:', updatedCountersData);
+        
+        // Actualizar estado local inmediatamente
+        setViajeCounters(updatedCountersData);
+      } else {
+        console.error('❌ No hay contadores disponibles');
+        alert('Error: No se encontraron contadores de viajes');
+        return;
       }
 
-      // Actualizar el estado en la tabla General
+      // PASO 2: Actualizar el estado en la tabla General
+      console.log(`📝 Actualizando estado del envío ${tripToUpdate.id_Envio} a "Activo"`);
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'Activo' })
@@ -376,7 +383,9 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Actualizar el estado local del viaje inmediatamente
+      console.log('✅ Estado del envío actualizado en BD');
+
+      // PASO 3: Actualizar el estado local del viaje inmediatamente
       setTrips(prevTrips => 
         prevTrips.map(trip => 
           trip.id_Cotizaciones === tripId 
@@ -385,7 +394,9 @@ const Viajes: React.FC = () => {
         )
       );
       
+      console.log('✅ Estado local actualizado');
       alert('Viaje iniciado exitosamente');
+      
     } catch (err) {
       console.error('Error:', err);
       alert('Error al iniciar el viaje');
@@ -412,9 +423,9 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Primero actualizar contadores en la tabla Viajes
+      // PASO 1: Actualizar contadores en la tabla Viajes PRIMERO
       if (viajeCounters) {
-        console.log('Contadores actuales antes de completar:', viajeCounters);
+        console.log('🔢 Contadores actuales antes de completar:', viajeCounters);
         
         const updatedCounters = {
           Viaje_Programado: viajeCounters.Viaje_Programado,
@@ -422,7 +433,7 @@ const Viajes: React.FC = () => {
           Viaje_Completados: viajeCounters.Viaje_Completados + 1
         };
 
-        console.log('Nuevos contadores al completar:', updatedCounters);
+        console.log('🔢 Nuevos contadores calculados:', updatedCounters);
 
         const { data: updatedCountersData, error: countersError } = await supabase
           .from('Viajes')
@@ -435,13 +446,20 @@ const Viajes: React.FC = () => {
           console.error('Error updating counters:', countersError);
           alert('Error al actualizar contadores');
           return;
-        } else {
-          setViajeCounters(updatedCountersData);
-          console.log('Contadores actualizados exitosamente:', updatedCountersData);
         }
+
+        console.log('✅ Contadores actualizados en BD:', updatedCountersData);
+        
+        // Actualizar estado local inmediatamente
+        setViajeCounters(updatedCountersData);
+      } else {
+        console.error('❌ No hay contadores disponibles');
+        alert('Error: No se encontraron contadores de viajes');
+        return;
       }
 
-      // Actualizar el estado en la tabla General
+      // PASO 2: Actualizar el estado en la tabla General
+      console.log(`📝 Actualizando estado del envío ${tripToUpdate.id_Envio} a "Completado"`);
       const { error: updateError } = await supabase
         .from('General')
         .update({ Estado: 'Completado' })
@@ -453,7 +471,9 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Actualizar el estado local del viaje inmediatamente
+      console.log('✅ Estado del envío actualizado en BD');
+
+      // PASO 3: Actualizar el estado local del viaje inmediatamente
       setTrips(prevTrips => 
         prevTrips.map(trip => 
           trip.id_Cotizaciones === tripId 
@@ -462,7 +482,9 @@ const Viajes: React.FC = () => {
         )
       );
       
+      console.log('✅ Estado local actualizado');
       alert('Viaje completado exitosamente');
+      
     } catch (err) {
       console.error('Error:', err);
       alert('Error al completar el viaje');
