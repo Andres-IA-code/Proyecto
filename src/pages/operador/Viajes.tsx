@@ -85,7 +85,7 @@ const Viajes: React.FC = () => {
         .from('Viajes')
         .select('*')
         .eq('id_Usuario', currentUser.profile.id_Usuario)
-        .single();
+        .maybeSingle();
 
       if (countersError) {
         console.error('Error fetching counters:', countersError);
@@ -458,7 +458,7 @@ const Viajes: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchTrips}
+            onClick={fetchTripsAndCounters}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             <RefreshCw size={16} className="mr-2" />
