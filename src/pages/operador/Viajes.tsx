@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Truck, Calendar, MapPin, Clock, Package, DollarSign, AlertCircle, Filter, ChevronDown, User, Route, Weight, Play, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { supabase, getCurrentUser } from '../../lib/supabase';
 
+interface ViajeCounters {
+  id_Viaje: number;
+  id_Usuario: number;
+  Viaje_Programado: number;
+  Viaje_Curso: number;
+  Viaje_Completados: number;
+}
+
 interface Trip {
   id_Cotizaciones: number;
   id_Envio: number;
@@ -46,6 +54,7 @@ const statusLabels = {
 
 const Viajes: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [viajeCounters, setViajeCounters] = useState<ViajeCounters | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -54,10 +63,10 @@ const Viajes: React.FC = () => {
   const [updatingTrip, setUpdatingTrip] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchTrips();
+    fetchTripsAndCounters();
   }, []);
 
-  const fetchTrips = async () => {
+  const fetchTripsAndCounters = async () => {
     try {
       setLoading(true);
       setError('');
@@ -67,6 +76,24 @@ const Viajes: React.FC = () => {
         setError('Usuario no autenticado');
         return;
       }
+
+      // Fetch or create trip counters for this user
+      await initializeViajeCounters(currentUser.profile.id_Usuario);
+      
+      // Fetch current counters
+      const { data: countersData, error: countersError } = await supabase
+        .from('Viajes')
+        .select('*')
+        .eq('id_Usuario', currentUser.profile.id_Usuario)
+        .single();
+
+      if (countersError) {
+        console.error('Error fetching counters:', countersError);
+        setError('Error al cargar los contadores de viajes');
+        return;
+      }
+
+      setViajeCounters(countersData);
 
       // Construir el nombre del operador según el tipo de persona
       const nombreOperador = currentUser.profile.Tipo_Persona === 'Física' 
@@ -165,6 +192,87 @@ const Viajes: React.FC = () => {
     }
   };
 
+  const initializeViajeCounters = async (userId: number) => {
+    try {
+      // Check if counters exist for this user
+      const { data: existingCounters, error: checkError } = await supabase
+        .from('Viajes')
+        .select('id_Viaje')
+        .eq('id_Usuario', userId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing counters:', checkError);
+        return;
+      }
+
+      // If no counters exist, create them
+      if (!existingCounters) {
+        console.log('Creating initial trip counters for user:', userId);
+        
+        const { error: insertError } = await supabase
+          .from('Viajes')
+          .insert([{
+            id_Usuario: userId,
+            Viaje_Programado: 0,
+            Viaje_Curso: 0,
+            Viaje_Completados: 0
+          }]);
+
+        if (insertError) {
+          console.error('Error creating initial counters:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing counters:', error);
+    }
+  };
+
+  const updateViajeCounters = async (action: 'start' | 'complete') => {
+    if (!viajeCounters) return;
+
+    try {
+      let updatedCounters;
+      
+      if (action === 'start') {
+        // Iniciar: Programados -1, En Curso +1
+        updatedCounters = {
+          Viaje_Programado: Math.max(0, viajeCounters.Viaje_Programado - 1),
+          Viaje_Curso: viajeCounters.Viaje_Curso + 1,
+          Viaje_Completados: viajeCounters.Viaje_Completados
+        };
+      } else {
+        // Completar: En Curso -1, Completados +1
+        updatedCounters = {
+          Viaje_Programado: viajeCounters.Viaje_Programado,
+          Viaje_Curso: Math.max(0, viajeCounters.Viaje_Curso - 1),
+          Viaje_Completados: viajeCounters.Viaje_Completados + 1
+        };
+      }
+
+      console.log(`Updating counters for ${action}:`, updatedCounters);
+
+      const { data, error } = await supabase
+        .from('Viajes')
+        .update(updatedCounters)
+        .eq('id_Usuario', viajeCounters.id_Usuario)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating counters:', error);
+        throw error;
+      }
+
+      setViajeCounters(data);
+      console.log('Counters updated successfully:', data);
+      
+    } catch (error) {
+      console.error('Error updating trip counters:', error);
+      throw error;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('es-ES', {
@@ -195,7 +303,7 @@ const Viajes: React.FC = () => {
         return;
       }
       
-      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio} - Estado actual: ${tripToUpdate.trip_status}`);
+      console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio}`);
       
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
@@ -209,10 +317,11 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      console.log(`✅ Viaje ${tripToUpdate.id_Envio} iniciado - Estado: En Curso`);
+      // Actualizar contadores en tabla Viajes
+      await updateViajeCounters('start');
       
-      // Recargar datos
-      await fetchTrips();
+      // Recargar datos de viajes
+      await fetchTripsAndCounters();
       
       alert('Viaje iniciado exitosamente');
     } catch (err) {
@@ -233,7 +342,7 @@ const Viajes: React.FC = () => {
         return;
       }
       
-      console.log(`✅ Completando viaje ${tripToUpdate.id_Envio} - Estado actual: ${tripToUpdate.trip_status}`);
+      console.log(`✅ Completando viaje ${tripToUpdate.id_Envio}`);
       
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
@@ -247,10 +356,11 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      console.log(`✅ Viaje ${tripToUpdate.id_Envio} completado - Estado: Completado`);
+      // Actualizar contadores en tabla Viajes
+      await updateViajeCounters('complete');
       
-      // Recargar datos
-      await fetchTrips();
+      // Recargar datos de viajes
+      await fetchTripsAndCounters();
       
       alert('Viaje completado exitosamente');
     } catch (err) {
@@ -300,15 +410,6 @@ const Viajes: React.FC = () => {
     return trip.trip_status === filterStatus;
   });
 
-  const getStatusCounts = () => {
-    return {
-      programado: trips.filter(t => t.trip_status === 'programado').length,
-      enCurso: trips.filter(t => t.trip_status === 'en-curso').length,
-      completado: trips.filter(t => t.trip_status === 'completado').length,
-    };
-  };
-
-  const statusCounts = getStatusCounts();
 
   if (loading) {
     return (
