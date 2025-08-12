@@ -126,12 +126,15 @@ const Viajes: React.FC = () => {
         let tripStatus: 'programado' | 'en-curso' | 'completado' | 'cancelado' = 'programado';
         
         // Mapear el estado de la tabla General al estado del viaje
-        const estadoGeneral = trip.General?.Estado?.toLowerCase();
+        const estadoGeneral = trip.General?.Estado?.toLowerCase().trim();
+        
+        console.log(`Viaje ${trip.id_Envio}: Estado en BD = "${trip.General?.Estado}" -> Mapeado a:`, estadoGeneral);
         
         switch (estadoGeneral) {
           case 'activo':
           case 'en curso':
           case 'en_curso':
+          case 'en-curso':
             tripStatus = 'en-curso';
             break;
           case 'completado':
@@ -143,10 +146,15 @@ const Viajes: React.FC = () => {
           case 'rechazado':
             tripStatus = 'cancelado';
             break;
+          case 'aceptada':
+          case 'pendiente':
+          case 'solicitado':
           default:
             tripStatus = 'programado';
             break;
         }
+        
+        console.log(`Viaje ${trip.id_Envio}: Estado final mapeado = "${tripStatus}"`);
 
         return {
           ...trip,
@@ -324,7 +332,7 @@ const Viajes: React.FC = () => {
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
-        .update({ Estado: 'En curso' })
+        .update({ Estado: 'Activo' })
         .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
