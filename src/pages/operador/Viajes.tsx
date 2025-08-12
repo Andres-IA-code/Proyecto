@@ -210,19 +210,20 @@ const Viajes: React.FC = () => {
       if (!existingCounters) {
         console.log('Creating initial trip counters for user:', userId);
         
-        const { error: insertError } = await supabase
+        const { error: upsertError } = await supabase
           .from('Viajes')
-          .insert([{
+          .upsert([{
             id_Usuario: userId,
             Viaje_Programado: 0,
             Viaje_Curso: 0,
             Viaje_Completados: 0
-          }])
-          .select()
-          .maybeSingle();
+          }], {
+            onConflict: 'id_Usuario',
+            ignoreDuplicates: true
+          });
 
-        if (insertError) {
-          console.error('Error creating initial counters:', insertError);
+        if (upsertError) {
+          console.error('Error creating initial counters:', upsertError);
         }
       }
     } catch (error) {
