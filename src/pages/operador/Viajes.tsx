@@ -80,21 +80,6 @@ const Viajes: React.FC = () => {
       // Fetch or create trip counters for this user
       await initializeViajeCounters(currentUser.profile.id_Usuario);
       
-      // Fetch current counters
-      const { data: countersData, error: countersError } = await supabase
-        .from('Viajes')
-        .select('*')
-        .eq('id_Usuario', currentUser.profile.id_Usuario)
-        .maybeSingle();
-
-      if (countersError) {
-        console.error('Error fetching counters:', countersError);
-        setError('Error al cargar los contadores de viajes');
-        return;
-      }
-
-      setViajeCounters(countersData);
-
       // Construir el nombre del operador según el tipo de persona
       const nombreOperador = currentUser.profile.Tipo_Persona === 'Física' 
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
@@ -108,6 +93,7 @@ const Viajes: React.FC = () => {
         .select(`
           *,
           General!inner(
+            Estado,
             Origen,
             Destino,
             Distancia,
@@ -140,22 +126,28 @@ const Viajes: React.FC = () => {
         let tripStatus: 'programado' | 'en-curso' | 'completado' | 'cancelado' = 'programado';
         
         // Mapear el estado de la tabla General al estado del viaje
-        const estadoGeneral = trip.General?.Estado;
+        const estadoGeneral = trip.General?.Estado?.toLowerCase();
         
-        switch (estadoGeneral?.toLowerCase()) {
+        switch (estadoGeneral) {
           case 'en curso':
           case 'en-curso':
+          case 'activo':
             tripStatus = 'en-curso';
             break;
           case 'en curso':
             tripStatus = 'en-curso';
             break;
           case 'completado':
+          case 'entregado':
+          case 'finalizado':
             tripStatus = 'completado';
             break;
           case 'cancelado':
+          case 'rechazado':
             tripStatus = 'cancelado';
             break;
+          case 'solicitado':
+          case 'pendiente':
           default:
             tripStatus = 'programado';
             break;
@@ -163,6 +155,7 @@ const Viajes: React.FC = () => {
 
         return {
           ...trip,
+          envio_estado: trip.General?.Estado,
           envio_origen: trip.General?.Origen,
           envio_destino: trip.General?.Destino,
           envio_distancia: trip.General?.Distancia,
@@ -182,7 +175,32 @@ const Viajes: React.FC = () => {
       });
 
       setTrips(transformedData);
+      
+      // Calcular contadores dinámicamente basándose en el estado real de los viajes
+      const calculatedCounters = {
+        id_Usuario: currentUser.profile.id_Usuario,
+        Viaje_Programado: transformedData.filter(trip => trip.trip_status === 'programado').length,
+        Viaje_Curso: transformedData.filter(trip => trip.trip_status === 'en-curso').length,
+        Viaje_Completados: transformedData.filter(trip => trip.trip_status === 'completado').length,
+      };
+      
+      // Actualizar los contadores en la base de datos
+      const { data: updatedCounters, error: updateError } = await supabase
+        .from('Viajes')
+        .upsert([calculatedCounters], {
+          onConflict: 'id_Usuario'
+        })
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating calculated counters:', updateError);
+      } else {
+        setViajeCounters(updatedCounters);
+      }
+      
       console.log('Viajes encontrados:', transformedData.length);
+      console.log('Contadores calculados:', calculatedCounters);
       
     } catch (err) {
       console.error('Error inesperado:', err);
@@ -311,7 +329,7 @@ const Viajes: React.FC = () => {
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
-        .update({ Estado: 'En curso' })
+        .update({ Estado: 'Activo' })
         .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
@@ -320,9 +338,6 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Actualizar contadores en tabla Viajes
-      await updateViajeCounters('start');
-      
       // Recargar datos de viajes
       await fetchTripsAndCounters();
       
@@ -359,9 +374,6 @@ const Viajes: React.FC = () => {
         return;
       }
 
-      // Actualizar contadores en tabla Viajes
-      await updateViajeCounters('complete');
-      
       // Recargar datos de viajes
       await fetchTripsAndCounters();
       
