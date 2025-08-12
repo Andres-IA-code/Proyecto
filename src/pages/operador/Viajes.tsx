@@ -129,12 +129,9 @@ const Viajes: React.FC = () => {
         const estadoGeneral = trip.General?.Estado?.toLowerCase();
         
         switch (estadoGeneral) {
+          case 'activo':
           case 'en curso':
           case 'en-curso':
-          case 'activo':
-            tripStatus = 'en-curso';
-            break;
-          case 'en curso':
             tripStatus = 'en-curso';
             break;
           case 'completado':
@@ -148,6 +145,7 @@ const Viajes: React.FC = () => {
             break;
           case 'solicitado':
           case 'pendiente':
+          case 'aceptada':
           default:
             tripStatus = 'programado';
             break;
@@ -329,7 +327,7 @@ const Viajes: React.FC = () => {
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
-        .update({ Estado: 'Activo' })
+        .update({ Estado: 'En curso' })
         .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
