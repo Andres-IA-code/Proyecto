@@ -329,6 +329,12 @@ const Viajes: React.FC = () => {
       
       console.log(`🚀 Iniciando viaje ${tripToUpdate.id_Envio}`);
       
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        alert('Error: Usuario no autenticado');
+        return;
+      }
+
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
@@ -339,6 +345,31 @@ const Viajes: React.FC = () => {
         console.error('Error updating trip status:', updateError);
         alert('Error al iniciar el viaje');
         return;
+      }
+
+      // Actualizar contadores en la tabla Viajes
+      if (viajeCounters) {
+        const updatedCounters = {
+          Viaje_Programado: Math.max(0, viajeCounters.Viaje_Programado - 1),
+          Viaje_Curso: viajeCounters.Viaje_Curso + 1,
+          Viaje_Completados: viajeCounters.Viaje_Completados
+        };
+
+        console.log('Actualizando contadores:', updatedCounters);
+
+        const { data: updatedCountersData, error: countersError } = await supabase
+          .from('Viajes')
+          .update(updatedCounters)
+          .eq('id_Usuario', currentUser.profile.id_Usuario)
+          .select()
+          .single();
+
+        if (countersError) {
+          console.error('Error updating counters:', countersError);
+        } else {
+          setViajeCounters(updatedCountersData);
+          console.log('Contadores actualizados exitosamente:', updatedCountersData);
+        }
       }
 
       // Recargar datos de viajes
@@ -365,6 +396,12 @@ const Viajes: React.FC = () => {
       
       console.log(`✅ Completando viaje ${tripToUpdate.id_Envio}`);
       
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        alert('Error: Usuario no autenticado');
+        return;
+      }
+
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
@@ -375,6 +412,31 @@ const Viajes: React.FC = () => {
         console.error('Error updating trip status:', updateError);
         alert('Error al completar el viaje');
         return;
+      }
+
+      // Actualizar contadores en la tabla Viajes
+      if (viajeCounters) {
+        const updatedCounters = {
+          Viaje_Programado: viajeCounters.Viaje_Programado,
+          Viaje_Curso: Math.max(0, viajeCounters.Viaje_Curso - 1),
+          Viaje_Completados: viajeCounters.Viaje_Completados + 1
+        };
+
+        console.log('Actualizando contadores al completar:', updatedCounters);
+
+        const { data: updatedCountersData, error: countersError } = await supabase
+          .from('Viajes')
+          .update(updatedCounters)
+          .eq('id_Usuario', currentUser.profile.id_Usuario)
+          .select()
+          .single();
+
+        if (countersError) {
+          console.error('Error updating counters:', countersError);
+        } else {
+          setViajeCounters(updatedCountersData);
+          console.log('Contadores actualizados exitosamente:', updatedCountersData);
+        }
       }
 
       // Recargar datos de viajes
