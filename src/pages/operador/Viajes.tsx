@@ -142,9 +142,11 @@ const Viajes: React.FC = () => {
         // Mapear el estado de la tabla General al estado del viaje
         const estadoGeneral = trip.General?.Estado;
         
-        console.log(`Viaje ${trip.id_Envio} - Estado en BD: "${estadoGeneral}"`);
-        
         switch (estadoGeneral?.toLowerCase()) {
+          case 'en curso':
+          case 'en-curso':
+            tripStatus = 'en-curso';
+            break;
           case 'en curso':
             tripStatus = 'en-curso';
             break;
@@ -158,8 +160,6 @@ const Viajes: React.FC = () => {
             tripStatus = 'programado';
             break;
         }
-        
-        console.log(`Viaje ${trip.id_Envio} - Estado mapeado: "${tripStatus}"`);
 
         return {
           ...trip,
@@ -310,7 +310,7 @@ const Viajes: React.FC = () => {
       // Actualizar el estado en la tabla General
       const { error: updateError } = await supabase
         .from('General')
-        .update({ Estado: 'En Curso' })
+        .update({ Estado: 'En curso' })
         .eq('id_Envio', tripToUpdate.id_Envio);
 
       if (updateError) {
@@ -711,7 +711,7 @@ const Viajes: React.FC = () => {
                       ) : (
                         <>
                           <CheckCircle size={14} className="mr-1" />
-                          Completar
+                          Completar Viaje
                         </>
                       )}
                     </button>
