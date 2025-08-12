@@ -217,7 +217,9 @@ const Viajes: React.FC = () => {
             Viaje_Programado: 0,
             Viaje_Curso: 0,
             Viaje_Completados: 0
-          }]);
+          }])
+          .select()
+          .maybeSingle();
 
         if (insertError) {
           console.error('Error creating initial counters:', insertError);
@@ -436,7 +438,7 @@ const Viajes: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar viajes</h3>
               <p className="text-gray-600 mb-4">{error}</p>
               <button
-                onClick={fetchTrips}
+                onClick={fetchTripsAndCounters}
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
               >
                 Reintentar
@@ -473,7 +475,7 @@ const Viajes: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm font-medium">Viajes Programados</p>
-              <p className="text-3xl font-bold">{statusCounts.programado}</p>
+              <p className="text-3xl font-bold">{viajeCounters?.Viaje_Programado ?? 0}</p>
               <p className="text-blue-100 text-xs mt-1">Listos para iniciar</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-full p-3">
@@ -486,7 +488,7 @@ const Viajes: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-100 text-sm font-medium">En Curso</p>
-              <p className="text-3xl font-bold">{statusCounts.enCurso}</p>
+              <p className="text-3xl font-bold">{viajeCounters?.Viaje_Curso ?? 0}</p>
               <p className="text-green-100 text-xs mt-1">Viajes activos</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-full p-3">
@@ -499,7 +501,7 @@ const Viajes: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-100 text-sm font-medium">Completados</p>
-              <p className="text-3xl font-bold">{statusCounts.completado}</p>
+              <p className="text-3xl font-bold">{viajeCounters?.Viaje_Completados ?? 0}</p>
               <p className="text-gray-100 text-xs mt-1">Este mes</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-full p-3">
@@ -522,9 +524,9 @@ const Viajes: React.FC = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="all">Todos los estados ({trips.length})</option>
-            <option value="programado">Programados ({statusCounts.programado})</option>
-            <option value="en-curso">En Curso ({statusCounts.enCurso})</option>
-            <option value="completado">Completados ({statusCounts.completado})</option>
+            <option value="programado">Programados ({viajeCounters?.Viaje_Programado ?? 0})</option>
+            <option value="en-curso">En Curso ({viajeCounters?.Viaje_Curso ?? 0})</option>
+            <option value="completado">Completados ({viajeCounters?.Viaje_Completados ?? 0})</option>
           </select>
         </div>
       </div>
