@@ -179,31 +179,37 @@ const Viajes: React.FC = () => {
 
       setTrips(transformedData);
       
-      // Calcular contadores dinámicamente basándose en el estado real de los viajes
-      const calculatedCounters = {
-        id_Usuario: currentUser.profile.id_Usuario,
-        Viaje_Programado: transformedData.filter(trip => trip.trip_status === 'programado').length,
-        Viaje_Curso: transformedData.filter(trip => trip.trip_status === 'en-curso').length,
-        Viaje_Completados: transformedData.filter(trip => trip.trip_status === 'completado').length,
-      };
-      
-      // Actualizar los contadores en la base de datos
-      const { data: updatedCounters, error: updateError } = await supabase
+      // Obtener los contadores actuales de la tabla Viajes (NO recalcular)
+      const { data: currentCounters, error: countersError } = await supabase
         .from('Viajes')
-        .upsert([calculatedCounters], {
-          onConflict: 'id_Usuario'
-        })
         .select()
+        .eq('id_Usuario', currentUser.profile.id_Usuario)
         .single();
 
-      if (updateError) {
-        console.error('Error updating calculated counters:', updateError);
+      if (countersError) {
+        console.error('Error fetching current counters:', countersError);
+        // Si no existen contadores, crear unos iniciales basados en el estado actual
+        const initialCounters = {
+          id_Usuario: currentUser.profile.id_Usuario,
+          Viaje_Programado: transformedData.filter(trip => trip.trip_status === 'programado').length,
+          Viaje_Curso: transformedData.filter(trip => trip.trip_status === 'en-curso').length,
+          Viaje_Completados: transformedData.filter(trip => trip.trip_status === 'completado').length,
+        };
+        
+        const { data: newCounters, error: createError } = await supabase
+          .from('Viajes')
+          .upsert([initialCounters], { onConflict: 'id_Usuario' })
+          .select()
+          .single();
+          
+        if (!createError) {
+          setViajeCounters(newCounters);
+        }
       } else {
-        setViajeCounters(updatedCounters);
+        // Usar los contadores existentes de la base de datos
+        setViajeCounters(currentCounters);
+        console.log('Contadores cargados desde BD:', currentCounters);
       }
-      
-      console.log('Viajes encontrados:', transformedData.length);
-      console.log('Contadores calculados:', calculatedCounters);
       
     } catch (err) {
       console.error('Error inesperado:', err);
