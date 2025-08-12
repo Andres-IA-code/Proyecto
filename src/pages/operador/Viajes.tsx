@@ -197,7 +197,7 @@ const Viajes: React.FC = () => {
       // Check if counters exist for this user
       const { data: existingCounters, error: checkError } = await supabase
         .from('Viajes')
-        .select('id_Viaje')
+        .select('id_Usuario')
         .eq('id_Usuario', userId)
         .maybeSingle();
 
