@@ -803,26 +803,6 @@ const Viajes: React.FC = () => {
                     Ver Detalles
                   </button>
                   
-                  {trip.trip_status === 'programado' && (
-                    <button
-                      onClick={() => handleStartTrip(trip.id_Cotizaciones)}
-                      disabled={updatingTrip === trip.id_Cotizaciones}
-                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                    >
-                      {updatingTrip === trip.id_Cotizaciones ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Iniciando...
-                        </>
-                      ) : (
-                        <>
-                          <Play size={14} className="mr-1" />
-                          Iniciar
-                        </>
-                      )}
-                    </button>
-                  )}
-                  
                   {trip.trip_status === 'en-curso' && (
                     <button
                       onClick={() => handleCompleteTrip(trip.id_Cotizaciones)}
