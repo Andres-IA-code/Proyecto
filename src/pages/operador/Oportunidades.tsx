@@ -42,6 +42,42 @@ const OperadorOportunidades: React.FC = () => {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [quoteAmount, setQuoteAmount] = useState('');
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
+  const [quotedOpportunities, setQuotedOpportunities] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    // Load quoted opportunities from localStorage on component mount
+    loadQuotedOpportunities();
+  }, []);
+
+  const loadQuotedOpportunities = () => {
+    try {
+      const stored = localStorage.getItem('quotedOpportunities');
+      if (stored) {
+        const quotedIds = JSON.parse(stored);
+        setQuotedOpportunities(new Set(quotedIds));
+        console.log('Loaded quoted opportunities from localStorage:', quotedIds);
+      }
+    } catch (error) {
+      console.error('Error loading quoted opportunities:', error);
+    }
+  };
+
+  const saveQuotedOpportunity = (opportunityId: number) => {
+    try {
+      const currentQuoted = JSON.parse(localStorage.getItem('quotedOpportunities') || '[]');
+      const updatedQuoted = [...currentQuoted, opportunityId];
+      localStorage.setItem('quotedOpportunities', JSON.stringify(updatedQuoted));
+      setQuotedOpportunities(new Set(updatedQuoted));
+      console.log('Saved quoted opportunity to localStorage:', opportunityId);
+    } catch (error) {
+      console.error('Error saving quoted opportunity:', error);
+    }
+  };
+
+  const isOpportunityQuoted = (opportunity: Opportunity): boolean => {
+    const opportunityId = opportunity.id_Envio || opportunity.id_envio || opportunity.id;
+    return opportunityId ? quotedOpportunities.has(opportunityId) : false;
+  };
 
 
   useEffect(() => {
@@ -147,6 +183,12 @@ const OperadorOportunidades: React.FC = () => {
       setShowQuoteModal(false);
       setSelectedOpportunity(null);
       setQuoteAmount('');
+      
+      // Mark this opportunity as quoted permanently
+      const opportunityId = selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id;
+      if (opportunityId) {
+        saveQuotedOpportunity(opportunityId);
+      }
       
       // Show success message with more details
       alert(`¡Cotización enviada exitosamente!\n\nMonto: $${parseFloat(quoteAmount).toLocaleString()}\nEnvío: ${selectedOpportunity.Origen} → ${selectedOpportunity.Destino}\nVigencia: 7 días`);
@@ -381,13 +423,23 @@ const OperadorOportunidades: React.FC = () => {
                   )}
 
                   {/* Action Button */}
-                  <button
-                    onClick={() => handleQuoteOpportunity(opportunity)}
-                    className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center"
-                  >
-                    <Plus size={20} className="mr-2" />
-                    Enviar Cotización
-                  </button>
+                  {isOpportunityQuoted(opportunity) ? (
+                    <button
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-400 text-white font-medium rounded-lg cursor-not-allowed flex items-center justify-center"
+                    >
+                      <Plus size={20} className="mr-2" />
+                      Cotización Enviada
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleQuoteOpportunity(opportunity)}
+                      className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center"
+                    >
+                      <Plus size={20} className="mr-2" />
+                      Enviar Cotización
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
