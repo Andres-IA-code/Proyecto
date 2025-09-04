@@ -66,6 +66,101 @@ const Viajes: React.FC = () => {
     fetchTripsAndCounters();
   }, []);
 
+  // Función optimizada para buscar teléfono del dador
+  const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
+    try {
+      console.log(`🔍 Buscando teléfono para dador: "${nombreDador}"`);
+      
+      if (!nombreDador || nombreDador.trim() === '') {
+        return null;
+      }
+
+      const dadorNormalizado = nombreDador.trim();
+      
+      const normalizeText = (text: string): string => {
+        return text
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^\w\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      // Búsqueda exacta por nombre completo para empresas (Jurídica)
+      const { data: businessMatch } = await supabase
+        .from('Usuarios')
+        .select('Telefono')
+        .eq('Nombre', dadorNormalizado)
+        .eq('Tipo_Persona', 'Jurídica')
+        .ilike('Rol_Operativo', '%dador%')
+        .not('Telefono', 'is', null)
+        .not('Telefono', 'eq', '')
+        .maybeSingle();
+      
+      if (businessMatch?.Telefono) {
+        console.log(`✅ Empresa encontrada: ${businessMatch.Telefono}`);
+        return businessMatch.Telefono;
+      }
+
+      // Búsqueda por nombre y apellido separados para personas físicas
+      if (dadorNormalizado.includes(' ')) {
+        const palabras = dadorNormalizado.split(' ');
+        const nombre = palabras[0];
+        const apellido = palabras.slice(1).join(' ');
+        
+        const { data: exactNameMatch } = await supabase
+          .from('Usuarios')
+          .select('Telefono')
+          .eq('Nombre', nombre)
+          .eq('Apellido', apellido)
+          .eq('Tipo_Persona', 'Física')
+          .ilike('Rol_Operativo', '%dador%')
+          .not('Telefono', 'is', null)
+          .not('Telefono', 'eq', '')
+          .maybeSingle();
+        
+        if (exactNameMatch?.Telefono) {
+          console.log(`✅ Persona física encontrada: ${exactNameMatch.Telefono}`);
+          return exactNameMatch.Telefono;
+        }
+      }
+
+      // Búsqueda flexible usando ILIKE
+      const { data: flexibleMatches } = await supabase
+        .from('Usuarios')
+        .select('Telefono, Nombre, Apellido, Tipo_Persona')
+        .ilike('Rol_Operativo', '%dador%')
+        .or(`Nombre.ilike.%${dadorNormalizado}%,Apellido.ilike.%${dadorNormalizado}%`)
+        .not('Telefono', 'is', null)
+        .not('Telefono', 'eq', '')
+        .limit(5);
+      
+      if (flexibleMatches && flexibleMatches.length > 0) {
+        for (const user of flexibleMatches) {
+          const fullName = user.Tipo_Persona === 'Física' 
+            ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+            : user.Nombre;
+          
+          const userNormalized = normalizeText(fullName);
+          const dadorNormalized = normalizeText(dadorNormalizado);
+          
+          if (userNormalized === dadorNormalized) {
+            console.log(`✅ Coincidencia flexible encontrada: ${user.Telefono}`);
+            return user.Telefono;
+          }
+        }
+      }
+
+      console.log(`❌ No se encontró teléfono para: "${dadorNormalizado}"`);
+      return null;
+      
+    } catch (error) {
+      console.error('Error buscando teléfono del dador:', error);
+      return null;
+    }
+  };
+
   const fetchTripsAndCounters = async () => {
     try {
       setLoading(true);
