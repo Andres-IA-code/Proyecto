@@ -1139,10 +1139,15 @@ const Viajes: React.FC = () => {
                       handleStartTrip(selectedTrip.id_Cotizaciones);
                       setShowDetailsModal(false);
                     }}
-                    className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                   disabled={selectedTrip.trip_status === 'completado'}
+                   className={`flex-1 px-4 py-3 font-medium rounded-lg transition-colors flex items-center justify-center ${
+                     selectedTrip.trip_status === 'completado'
+                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                       : 'bg-green-600 text-white hover:bg-green-700'
+                   }`}
                   >
                     <Play size={16} className="mr-2" />
-                    Iniciar Viaje
+                   {selectedTrip.trip_status === 'completado' ? 'Viaje Completado' : 'Iniciar Viaje'}
                   </button>
                 )}
                 {selectedTrip.trip_status === 'en-curso' && (
@@ -1157,6 +1162,15 @@ const Viajes: React.FC = () => {
                     Completar Viaje
                   </button>
                 )}
+               {selectedTrip.trip_status === 'completado' && (
+                 <button
+                   disabled={true}
+                   className="flex-1 px-4 py-3 bg-gray-300 text-gray-500 font-medium rounded-lg cursor-not-allowed flex items-center justify-center"
+                 >
+                   <CheckCircle size={16} className="mr-2" />
+                   Viaje Completado
+                 </button>
+               )}
               </div>
             </div>
           </div>
