@@ -61,10 +61,43 @@ const Viajes: React.FC = () => {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [updatingTrip, setUpdatingTrip] = useState<number | null>(null);
+  const [completedTrips, setCompletedTrips] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    // Load completed trips from localStorage on component mount
+    loadCompletedTrips();
     fetchTripsAndCounters();
   }, []);
+
+  const loadCompletedTrips = () => {
+    try {
+      const stored = localStorage.getItem('completedTrips');
+      if (stored) {
+        const completedIds = JSON.parse(stored);
+        setCompletedTrips(new Set(completedIds));
+        console.log('Loaded completed trips from localStorage:', completedIds);
+      }
+    } catch (error) {
+      console.error('Error loading completed trips:', error);
+    }
+  };
+
+  const saveCompletedTrip = (tripId: number) => {
+    try {
+      const currentCompleted = JSON.parse(localStorage.getItem('completedTrips') || '[]');
+      const updatedCompleted = [...currentCompleted, tripId];
+      localStorage.setItem('completedTrips', JSON.stringify(updatedCompleted));
+      setCompletedTrips(new Set(updatedCompleted));
+      console.log('Saved completed trip to localStorage:', tripId);
+    } catch (error) {
+      console.error('Error saving completed trip:', error);
+    }
+  };
+
+  const isTripCompleted = (trip: Trip): boolean => {
+    const tripId = trip.id_Cotizaciones;
+    return completedTrips.has(tripId) || trip.trip_status === 'completado';
+  };
 
   // Función optimizada para buscar teléfono del dador
   const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
@@ -583,6 +616,9 @@ const Viajes: React.FC = () => {
         )
       );
       
+      // PASO 4: Guardar en localStorage que este viaje está completado
+      saveCompletedTrip(tripId);
+      
       console.log('✅ Estado local actualizado');
       alert('Viaje completado exitosamente');
       
@@ -917,6 +953,16 @@ const Viajes: React.FC = () => {
                       )}
                     </button>
                   )}
+                  
+                  {isTripCompleted(trip) && (
+                    <button
+                      disabled
+                      className="flex-1 px-3 py-2 text-sm font-medium text-gray-500 bg-gray-300 rounded-lg cursor-not-allowed transition-colors flex items-center justify-center"
+                    >
+                      <CheckCircle size={14} className="mr-1" />
+                      Viaje Completado
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1162,7 +1208,7 @@ const Viajes: React.FC = () => {
                     Completar Viaje
                   </button>
                 )}
-               {selectedTrip.trip_status === 'completado' && (
+               {isTripCompleted(selectedTrip) && (
                  <button
                    disabled={true}
                    className="flex-1 px-4 py-3 bg-gray-300 text-gray-500 font-medium rounded-lg cursor-not-allowed flex items-center justify-center"
