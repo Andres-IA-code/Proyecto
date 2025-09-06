@@ -629,7 +629,7 @@ const Viajes: React.FC = () => {
       );
       
       // PASO 4: Guardar en localStorage que este viaje está completado
-      saveCompletedTrip(tripId);
+      saveTripState(tripId, 'completado');
       
       console.log('✅ Estado local actualizado');
       alert('Viaje completado exitosamente');
@@ -676,28 +676,14 @@ const Viajes: React.FC = () => {
     return parts[0] || fullAddress;
   };
 
+  const isTripCompleted = (trip: Trip): boolean => {
+    return getTripState(trip) === 'completado';
+  };
+
   const filteredTrips = trips.filter(trip => {
     if (filterStatus === 'all') return true;
-    return trip.trip_status === filterStatus;
+    return getTripState(trip) === filterStatus;
   });
-
-  const saveCompletedTrip = (tripId: number) => {
-    try {
-      const stored = localStorage.getItem('completedTrips');
-      const completedTrips = stored ? JSON.parse(stored) : [];
-      if (!completedTrips.includes(tripId)) {
-        completedTrips.push(tripId);
-        localStorage.setItem('completedTrips', JSON.stringify(completedTrips));
-        setCompletedTrips(new Set(completedTrips));
-      }
-    } catch (error) {
-      console.error('Error saving completed trip:', error);
-    }
-  };
-
-  const isTripCompleted = (trip: Trip): boolean => {
-    return completedTrips.has(trip.id_Cotizaciones) || trip.trip_status === 'completado';
-  };
 
   if (loading) {
     return (
@@ -840,8 +826,8 @@ const Viajes: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className={`px-3 py-1 text-xs rounded-full font-medium border ${statusStyles[trip.trip_status]}`}>
-                      {statusLabels[trip.trip_status]}
+                    <span className={`px-3 py-1 text-xs rounded-full font-medium border ${statusStyles[getTripState(trip)]}`}>
+                      {statusLabels[getTripState(trip)]}
                     </span>
                     <div className="text-lg font-bold text-green-600 mt-1">
                       ${trip.Oferta?.toLocaleString()}
@@ -963,7 +949,7 @@ const Viajes: React.FC = () => {
                     Ver Detalles
                   </button>
                   
-                  {trip.trip_status === 'programado' && (
+                  {getTripState(trip) === 'programado' && (
                     <button
                       onClick={() => handleStartTrip(trip.id_Cotizaciones)}
                       disabled={updatingTrip === trip.id_Cotizaciones}
@@ -983,7 +969,7 @@ const Viajes: React.FC = () => {
                     </button>
                   )}
                   
-                  {trip.trip_status === 'en-curso' && (
+                  {getTripState(trip) === 'en-curso' && (
                     <button
                       onClick={() => handleCompleteTrip(trip.id_Cotizaciones)}
                       disabled={updatingTrip === trip.id_Cotizaciones}
@@ -1066,8 +1052,8 @@ const Viajes: React.FC = () => {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-blue-800 mb-4">Estado del Viaje</h3>
                   <div className="flex items-center justify-between">
-                    <span className={`px-4 py-2 text-sm rounded-full font-medium border ${statusStyles[selectedTrip.trip_status]}`}>
-                      {statusLabels[selectedTrip.trip_status]}
+                    <span className={`px-4 py-2 text-sm rounded-full font-medium border ${statusStyles[getTripState(selectedTrip)]}`}>
+                      {statusLabels[getTripState(selectedTrip)]}
                     </span>
                     <div className="text-right">
                       <div className="text-sm text-gray-600">Cotización creada</div>
@@ -1220,7 +1206,7 @@ const Viajes: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
-            <div className="border-t pt-6">
+            <div className="border-t border-gray-200 p-6">
               <div className="flex space-x-3">
                 <button
                   onClick={() => setShowDetailsModal(false)}
@@ -1228,24 +1214,24 @@ const Viajes: React.FC = () => {
                 >
                   Cerrar
                 </button>
-                {selectedTrip.trip_status === 'programado' && (
+                {getTripState(selectedTrip) === 'programado' && (
                   <button
                     onClick={() => {
                       handleStartTrip(selectedTrip.id_Cotizaciones);
                       setShowDetailsModal(false);
                     }}
-                   disabled={selectedTrip.trip_status === 'completado'}
-                   className={`flex-1 px-4 py-3 font-medium rounded-lg transition-colors flex items-center justify-center ${
-                     selectedTrip.trip_status === 'completado'
-                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                       : 'bg-green-600 text-white hover:bg-green-700'
-                   }`}
+                    disabled={getTripState(selectedTrip) === 'completado'}
+                    className={`flex-1 px-4 py-3 font-medium rounded-lg transition-colors flex items-center justify-center ${
+                      getTripState(selectedTrip) === 'completado'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                   >
                     <Play size={16} className="mr-2" />
-                   {selectedTrip.trip_status === 'completado' ? 'Viaje Completado' : 'Iniciar Viaje'}
+                    {getTripState(selectedTrip) === 'completado' ? 'Viaje Completado' : 'Iniciar Viaje'}
                   </button>
                 )}
-                {selectedTrip.trip_status === 'en-curso' && (
+                {getTripState(selectedTrip) === 'en-curso' && (
                   <button
                     onClick={() => {
                       handleCompleteTrip(selectedTrip.id_Cotizaciones);
@@ -1257,15 +1243,15 @@ const Viajes: React.FC = () => {
                     Completar Viaje
                   </button>
                 )}
-               {isTripCompleted(selectedTrip) && (
-                 <button
-                   disabled={true}
-                   className="flex-1 px-4 py-3 bg-gray-300 text-gray-500 font-medium rounded-lg cursor-not-allowed flex items-center justify-center"
-                 >
-                   <CheckCircle size={16} className="mr-2" />
-                   Viaje Completado
-                 </button>
-               )}
+                {getTripState(selectedTrip) === 'completado' && (
+                  <button
+                    disabled={true}
+                    className="flex-1 px-4 py-3 bg-gray-300 text-gray-500 font-medium rounded-lg cursor-not-allowed flex items-center justify-center"
+                  >
+                    <CheckCircle size={16} className="mr-2" />
+                    Viaje Completado
+                  </button>
+                )}
               </div>
             </div>
           </div>
