@@ -148,171 +148,95 @@ const OperadorCotizaciones: React.FC = () => {
       // Función optimizada para buscar teléfono del dador
       const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
         try {
-          console.log(`🔍 Iniciando búsqueda de teléfono para: "${nombreDador}"`);
+          console.log(`🔍 Buscando teléfono para dador: "${nombreDador}"`);
           
           if (!nombreDador || nombreDador.trim() === '') {
-            console.log('❌ Nombre del dador está vacío');
+            console.log('❌ Nombre vacío');
             return null;
           }
 
           const dadorNormalizado = nombreDador.trim();
           
-          // Función auxiliar para normalizar texto (quitar acentos y normalizar)
           const normalizeText = (text: string) => {
             return text
               .toLowerCase()
               .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-              .replace(/[^\w\s]/g, '') // Quitar caracteres especiales
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^\w\s]/g, '')
+              .replace(/\s+/g, ' ')
               .trim();
           };
 
-          // MÉTODO 1: Búsqueda exacta por nombre completo para empresas (Jurídica)
-          console.log(`📞 Método 1: Búsqueda exacta para empresas`);
+          // Búsqueda exacta por nombre completo para empresas (Jurídica)
           const { data: businessMatch } = await supabase
             .from('Usuarios')
-            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .select('Telefono')
             .eq('Nombre', dadorNormalizado)
             .eq('Tipo_Persona', 'Jurídica')
-            .eq('Rol_Operativo', 'dador')
+            .ilike('Rol_Operativo', '%dador%')
             .not('Telefono', 'is', null)
             .not('Telefono', 'eq', '')
             .maybeSingle();
           
           if (businessMatch?.Telefono) {
-            console.log(`✅ Método 1 - Encontrada empresa: ${businessMatch.Telefono}`);
+            console.log(`✅ Empresa encontrada: ${businessMatch.Telefono}`);
             return businessMatch.Telefono;
           }
 
-          // MÉTODO 2: Búsqueda por nombre y apellido separados para personas físicas
+          // Búsqueda por nombre y apellido separados para personas físicas
           if (dadorNormalizado.includes(' ')) {
-            console.log(`📞 Método 2: Búsqueda por nombre y apellido separados`);
             const palabras = dadorNormalizado.split(' ');
             const nombre = palabras[0];
             const apellido = palabras.slice(1).join(' ');
             
-            console.log(`  Buscando: Nombre="${nombre}", Apellido="${apellido}"`);
-            
-            // Buscar con nombre y apellido exactos
             const { data: exactNameMatch } = await supabase
               .from('Usuarios')
-              .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+              .select('Telefono')
               .eq('Nombre', nombre)
               .eq('Apellido', apellido)
               .eq('Tipo_Persona', 'Física')
-              .eq('Rol_Operativo', 'dador')
+              .ilike('Rol_Operativo', '%dador%')
               .not('Telefono', 'is', null)
               .not('Telefono', 'eq', '')
               .maybeSingle();
             
             if (exactNameMatch?.Telefono) {
-              console.log(`✅ Método 2a - Encontrado por nombre+apellido: ${exactNameMatch.Telefono}`);
+              console.log(`✅ Persona física encontrada: ${exactNameMatch.Telefono}`);
               return exactNameMatch.Telefono;
-            }
-
-            // Probar variaciones con acentos
-            const nombreVariations = [nombre, nombre.replace('e', 'é')];
-            const apellidoVariations = [apellido, apellido.replace('e', 'é')];
-            
-            for (const nombreVar of nombreVariations) {
-              for (const apellidoVar of apellidoVariations) {
-                console.log(`  Probando variación: "${nombreVar}" + "${apellidoVar}"`);
-                
-                const { data: variationMatch } = await supabase
-                  .from('Usuarios')
-                  .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-                  .eq('Nombre', nombreVar)
-                  .eq('Apellido', apellidoVar)
-                  .eq('Tipo_Persona', 'Física')
-                  .eq('Rol_Operativo', 'dador')
-                  .not('Telefono', 'is', null)
-                  .not('Telefono', 'eq', '')
-                  .maybeSingle();
-                
-                if (variationMatch?.Telefono) {
-                  console.log(`✅ Método 2b - Encontrado con variación: ${variationMatch.Telefono}`);
-                  return variationMatch.Telefono;
-                }
-              }
             }
           }
 
-          // MÉTODO 3: Búsqueda por ILIKE para encontrar coincidencias parciales
-          console.log(`📞 Método 3: Búsqueda ILIKE`);
-          const { data: ilikeMatches } = await supabase
+          // Búsqueda flexible usando ILIKE
+          const { data: flexibleMatches } = await supabase
             .from('Usuarios')
-            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .eq('Rol_Operativo', 'dador')
+            .select('Telefono, Nombre, Apellido, Tipo_Persona')
+            .ilike('Rol_Operativo', '%dador%')
+            .or(`Nombre.ilike.%${dadorNormalizado}%,Apellido.ilike.%${dadorNormalizado}%`)
             .not('Telefono', 'is', null)
             .not('Telefono', 'eq', '')
-            .limit(20);
+            .limit(5);
           
-          if (ilikeMatches && ilikeMatches.length > 0) {
-            console.log(`  Analizando ${ilikeMatches.length} dadores...`);
-            
-            const dadorNormalized = normalizeText(dadorNormalizado);
-            
-            for (const user of ilikeMatches) {
+          if (flexibleMatches && flexibleMatches.length > 0) {
+            for (const user of flexibleMatches) {
               const fullName = user.Tipo_Persona === 'Física' 
                 ? `${user.Nombre} ${user.Apellido || ''}`.trim()
                 : user.Nombre;
               
+              const dadorNormalized = normalizeText(dadorNormalizado);
               const userNormalized = normalizeText(fullName);
               
-              console.log(`    Comparando "${userNormalized}" con "${dadorNormalized}"`);
-              
               if (userNormalized === dadorNormalized) {
-                console.log(`✅ Método 3 - Coincidencia exacta normalizada: ${user.Telefono}`);
+                console.log(`✅ Coincidencia flexible encontrada: ${user.Telefono}`);
                 return user.Telefono;
               }
             }
-          }
-
-          // MÉTODO 4: Búsqueda específica para "Andres Consiglio" vs "Andrés Consiglio"
-          if (dadorNormalizado.toLowerCase().includes('andres') && dadorNormalizado.toLowerCase().includes('consiglio')) {
-            console.log(`📞 Método 4: Búsqueda específica para Andrés Consiglio`);
-            
-            const { data: andresMatches } = await supabase
-              .from('Usuarios')
-              .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-              .or('Nombre.eq.Andres,Nombre.eq.Andrés')
-              .eq('Apellido', 'Consiglio')
-              .eq('Tipo_Persona', 'Física')
-              .eq('Rol_Operativo', 'dador')
-              .not('Telefono', 'is', null)
-              .not('Telefono', 'eq', '')
-              .maybeSingle();
-            
-            if (andresMatches?.Telefono) {
-              console.log(`✅ Método 4 - Encontrado Andrés Consiglio: ${andresMatches.Telefono}`);
-              return andresMatches.Telefono;
-            }
-          }
-
-          // MÉTODO 5: Debug - mostrar todos los dadores disponibles
-          console.log(`🔍 Debug - Dadores disponibles en la base de datos:`);
-          const { data: allDadores } = await supabase
-            .from('Usuarios')
-            .select('Nombre, Apellido, Tipo_Persona, Telefono, Rol_Operativo')
-            .eq('Rol_Operativo', 'dador')
-            .not('Telefono', 'is', null)
-            .not('Telefono', 'eq', '')
-            .limit(10);
-          
-          if (allDadores) {
-            allDadores.forEach(dador => {
-              const fullName = dador.Tipo_Persona === 'Física' 
-                ? `${dador.Nombre} ${dador.Apellido || ''}`.trim()
-                : dador.Nombre;
-              console.log(`  - "${fullName}" (${dador.Tipo_Persona}) - Tel: ${dador.Telefono}`);
-            });
           }
 
           console.log(`❌ No se encontró teléfono para: "${dadorNormalizado}"`);
           return null;
           
         } catch (error) {
-          console.error('Error en búsqueda de teléfono:', error);
+          console.error('Error buscando teléfono del dador:', error);
           return null;
         }
       };
@@ -320,7 +244,9 @@ const OperadorCotizaciones: React.FC = () => {
       // Buscar teléfonos de los dadores de carga usando la función mejorada
       const quotesWithPhones = await Promise.all(
         transformedData.map(async (quote) => {
+          console.log(`🔍 Buscando teléfono para: "${quote.Nombre_Dador}"`);
           const phoneNumber = await findDadorPhone(quote.Nombre_Dador);
+          console.log(`📞 Resultado: ${phoneNumber || 'No encontrado'}`);
           return { ...quote, dador_telefono: phoneNumber };
         })
       );
