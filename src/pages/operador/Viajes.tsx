@@ -62,41 +62,53 @@ const Viajes: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [updatingTrip, setUpdatingTrip] = useState<number | null>(null);
   const [completedTrips, setCompletedTrips] = useState<Set<number>>(new Set());
+  const [tripStates, setTripStates] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
-    // Load completed trips from localStorage on component mount
-    loadCompletedTrips();
+    // Load trip states from localStorage on component mount
+    loadTripStates();
     fetchTripsAndCounters();
   }, []);
 
-  const loadCompletedTrips = () => {
+  const loadTripStates = () => {
     try {
-      const stored = localStorage.getItem('completedTrips');
+      const stored = localStorage.getItem('tripStates');
       if (stored) {
-        const completedIds = JSON.parse(stored);
-        setCompletedTrips(new Set(completedIds));
-        console.log('Loaded completed trips from localStorage:', completedIds);
+        const states = JSON.parse(stored);
+        setTripStates(new Map(states));
+        console.log('Loaded trip states from localStorage:', states);
       }
     } catch (error) {
-      console.error('Error loading completed trips:', error);
+      console.error('Error loading trip states:', error);
     }
   };
 
-  const saveCompletedTrip = (tripId: number) => {
+  const saveTripState = (tripId: number, state: string) => {
     try {
-      const currentCompleted = JSON.parse(localStorage.getItem('completedTrips') || '[]');
-      const updatedCompleted = [...currentCompleted, tripId];
-      localStorage.setItem('completedTrips', JSON.stringify(updatedCompleted));
-      setCompletedTrips(new Set(updatedCompleted));
-      console.log('Saved completed trip to localStorage:', tripId);
+      const currentStates = new Map(tripStates);
+      currentStates.set(tripId, state);
+      setTripStates(currentStates);
+      
+      // Save to localStorage as array of [key, value] pairs
+      const statesArray = Array.from(currentStates.entries());
+      localStorage.setItem('tripStates', JSON.stringify(statesArray));
+      console.log('Saved trip state to localStorage:', tripId, state);
     } catch (error) {
-      console.error('Error saving completed trip:', error);
+      console.error('Error saving trip state:', error);
     }
   };
 
-  const isTripCompleted = (trip: Trip): boolean => {
+  const getTripState = (trip: Trip): 'programado' | 'en-curso' | 'completado' | 'cancelado' => {
     const tripId = trip.id_Cotizaciones;
-    return completedTrips.has(tripId) || trip.trip_status === 'completado';
+    
+    // Check localStorage state first (user actions override database)
+    const localState = tripStates.get(tripId);
+    if (localState) {
+      return localState as 'programado' | 'en-curso' | 'completado' | 'cancelado';
+    }
+    
+    // Fallback to database state
+    return trip.trip_status;
   };
 
   // Función optimizada para buscar teléfono del dador
