@@ -620,8 +620,16 @@ const Viajes: React.FC = () => {
       console.log('✅ Estado del envío actualizado en BD');
 
       // PASO 3: Actualizar el estado local del viaje inmediatamente
-      // Guardar el nuevo estado en localStorage
-      saveTripState(tripId, 'completado');
+      setTrips(prevTrips => 
+        prevTrips.map(trip => 
+          trip.id_Cotizaciones === tripId 
+            ? { ...trip, trip_status: 'completado' as const }
+            : trip
+        )
+      );
+      
+      // PASO 4: Guardar en localStorage que este viaje está completado
+      saveCompletedTrip(tripId);
       
       console.log('✅ Estado local actualizado');
       alert('Viaje completado exitosamente');
@@ -673,6 +681,23 @@ const Viajes: React.FC = () => {
     return trip.trip_status === filterStatus;
   });
 
+  const saveCompletedTrip = (tripId: number) => {
+    try {
+      const stored = localStorage.getItem('completedTrips');
+      const completedTrips = stored ? JSON.parse(stored) : [];
+      if (!completedTrips.includes(tripId)) {
+        completedTrips.push(tripId);
+        localStorage.setItem('completedTrips', JSON.stringify(completedTrips));
+        setCompletedTrips(new Set(completedTrips));
+      }
+    } catch (error) {
+      console.error('Error saving completed trip:', error);
+    }
+  };
+
+  const isTripCompleted = (trip: Trip): boolean => {
+    return completedTrips.has(trip.id_Cotizaciones) || trip.trip_status === 'completado';
+  };
 
   if (loading) {
     return (
@@ -937,6 +962,26 @@ const Viajes: React.FC = () => {
                   >
                     Ver Detalles
                   </button>
+                  
+                  {trip.trip_status === 'programado' && (
+                    <button
+                      onClick={() => handleStartTrip(trip.id_Cotizaciones)}
+                      disabled={updatingTrip === trip.id_Cotizaciones}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                    >
+                      {updatingTrip === trip.id_Cotizaciones ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Iniciando...
+                        </>
+                      ) : (
+                        <>
+                          <Play size={14} className="mr-1" />
+                          Iniciar Viaje
+                        </>
+                      )}
+                    </button>
+                  )}
                   
                   {trip.trip_status === 'en-curso' && (
                     <button
