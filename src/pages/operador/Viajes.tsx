@@ -620,16 +620,8 @@ const Viajes: React.FC = () => {
       console.log('✅ Estado del envío actualizado en BD');
 
       // PASO 3: Actualizar el estado local del viaje inmediatamente
-      setTrips(prevTrips => 
-        prevTrips.map(trip => 
-          trip.id_Cotizaciones === tripId 
-            ? { ...trip, trip_status: 'completado' as const }
-            : trip
-        )
-      );
-      
-      // PASO 4: Guardar en localStorage que este viaje está completado
-      saveCompletedTrip(tripId);
+      // Guardar el nuevo estado en localStorage
+      saveTripState(tripId, 'completado');
       
       console.log('✅ Estado local actualizado');
       alert('Viaje completado exitosamente');
