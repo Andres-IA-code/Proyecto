@@ -836,7 +836,7 @@ const OperadorCotizaciones: React.FC = () => {
                             {selectedQuote.dador_telefono}
                           </a>
                         ) : (
-                          <span className="text-red-500">No disponible</span>
+                          <span className="text-gray-500">Buscando...</span>
                         )}
                       </div>
                     </div>
