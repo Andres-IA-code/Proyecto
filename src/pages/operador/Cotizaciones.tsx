@@ -68,7 +68,6 @@ const OperadorCotizaciones: React.FC = () => {
         .select(`
           *,
           General!inner(
-            id_Usuario,
             Origen,
             Destino,
             Peso,
@@ -82,23 +81,8 @@ const OperadorCotizaciones: React.FC = () => {
             Dimension_Largo,
             Dimension_Ancho,
             Dimension_Alto,
-            Distancia
-          ),
-          dador:Usuarios!Cotizaciones_id_Usuario_fkey(
-            id_Usuario,
-            Nombre,
-            Apellido,
-            Tipo_Persona,
-            Correo,
-            Telefono
-          ),
-          operador:Usuarios!Cotizaciones_id_Operador_fkey(
-            id_Usuario,
-            Nombre,
-            Apellido,
-            Tipo_Persona,
-            Correo,
-            Telefono
+            Distancia,
+            id_Usuario
           )
         `)
         .eq('id_Operador', currentUser.profile.id_Usuario)
@@ -127,15 +111,8 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
         envio_distancia: quote.General?.Distancia,
-        // Información del dador de carga
-        dador_correo: quote.dador?.Correo,
-        dador_telefono: quote.dador?.Telefono,
-        dador_nombre_completo: quote.dador?.Tipo_Persona === 'Física' 
-          ? `${quote.dador?.Nombre} ${quote.dador?.Apellido || ''}`.trim()
-          : quote.dador?.Nombre,
-        // Información del operador
-        operador_correo: quote.operador?.Correo,
-        operador_telefono: quote.operador?.Telefono,
+        // ID del usuario dador para consultas posteriores
+        dador_id_usuario: quote.General?.id_Usuario,
       }));
 
       setQuotes(transformedData);
