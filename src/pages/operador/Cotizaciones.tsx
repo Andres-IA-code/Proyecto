@@ -37,12 +37,17 @@ interface Quote {
 
 
 // Componente para mostrar información del dador
-const DadorInfo: React.FC<{ idUsuario: number }> = ({ idUsuario }) => {
+const DadorInfo: React.FC<{ idUsuario?: number }> = ({ idUsuario }) => {
   const [dadorData, setDadorData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDadorData = async () => {
+      if (!idUsuario) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('Usuarios')
@@ -542,8 +547,8 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  {selectedQuote.id_Envio ? (
-                    <DadorInfo idEnvio={selectedQuote.id_Envio} />
+                  {selectedQuote.dador_id_usuario ? (
+                    <DadorInfo idUsuario={selectedQuote.dador_id_usuario} />
                   ) : (
                     <div className="text-sm text-gray-500">
                       Información del dador no disponible
