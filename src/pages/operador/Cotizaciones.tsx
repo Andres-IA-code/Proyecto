@@ -157,82 +157,109 @@ const OperadorCotizaciones: React.FC = () => {
 
           const dadorNormalizado = nombreDador.trim();
           
-          const normalizeText = (text: string) => {
-            return text
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^\w\s]/g, '')
-              .replace(/\s+/g, ' ')
-              .trim();
-          };
-
-          // Búsqueda exacta por nombre completo para empresas (Jurídica)
-          const { data: businessMatch } = await supabase
+          // 1. Búsqueda exacta por nombre completo
+          console.log('🔍 Paso 1: Búsqueda exacta por nombre completo');
+          const { data: exactMatch, error: exactError } = await supabase
             .from('Usuarios')
-            .select('Telefono')
+            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
             .eq('Nombre', dadorNormalizado)
-            .eq('Tipo_Persona', 'Jurídica')
-            .ilike('Rol_Operativo', '%dador%')
             .not('Telefono', 'is', null)
             .not('Telefono', 'eq', '')
+            .not('Telefono', 'eq', '+54 9 ')
             .maybeSingle();
           
-          if (businessMatch?.Telefono) {
-            console.log(`✅ Empresa encontrada: ${businessMatch.Telefono}`);
-            return businessMatch.Telefono;
+          if (exactError) {
+            console.error('Error en búsqueda exacta:', exactError);
+          } else if (exactMatch?.Telefono) {
+            console.log(`✅ Coincidencia exacta encontrada: ${exactMatch.Telefono}`);
+            return exactMatch.Telefono;
           }
 
-          // Búsqueda por nombre y apellido separados para personas físicas
+          // 2. Búsqueda por nombre y apellido separados (para personas físicas)
+          console.log('🔍 Paso 2: Búsqueda por nombre y apellido separados');
           if (dadorNormalizado.includes(' ')) {
             const palabras = dadorNormalizado.split(' ');
             const nombre = palabras[0];
             const apellido = palabras.slice(1).join(' ');
             
-            const { data: exactNameMatch } = await supabase
+            console.log(`Buscando: Nombre="${nombre}", Apellido="${apellido}"`);
+            
+            const { data: nameMatch, error: nameError } = await supabase
               .from('Usuarios')
-              .select('Telefono')
+              .select('Telefono, Nombre, Apellido, Tipo_Persona')
               .eq('Nombre', nombre)
               .eq('Apellido', apellido)
-              .eq('Tipo_Persona', 'Física')
-              .ilike('Rol_Operativo', '%dador%')
               .not('Telefono', 'is', null)
               .not('Telefono', 'eq', '')
+              .not('Telefono', 'eq', '+54 9 ')
               .maybeSingle();
             
-            if (exactNameMatch?.Telefono) {
-              console.log(`✅ Persona física encontrada: ${exactNameMatch.Telefono}`);
-              return exactNameMatch.Telefono;
+            if (nameError) {
+              console.error('Error en búsqueda por nombre/apellido:', nameError);
+            } else if (nameMatch?.Telefono) {
+              console.log(`✅ Coincidencia por nombre/apellido: ${nameMatch.Telefono}`);
+              return nameMatch.Telefono;
             }
           }
 
-          // Búsqueda flexible usando ILIKE
-          const { data: flexibleMatches } = await supabase
+          // 3. Búsqueda flexible usando ILIKE (buscar en cualquier parte del nombre)
+          console.log('🔍 Paso 3: Búsqueda flexible con ILIKE');
+          const { data: flexibleMatches, error: flexibleError } = await supabase
             .from('Usuarios')
-            .select('Telefono, Nombre, Apellido, Tipo_Persona')
-            .ilike('Rol_Operativo', '%dador%')
-            .or(`Nombre.ilike.%${dadorNormalizado}%,Apellido.ilike.%${dadorNormalizado}%`)
+            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .or(`Nombre.ilike.%${dadorNormalizado}%`)
             .not('Telefono', 'is', null)
             .not('Telefono', 'eq', '')
+            .not('Telefono', 'eq', '+54 9 ')
             .limit(5);
           
-          if (flexibleMatches && flexibleMatches.length > 0) {
-            for (const user of flexibleMatches) {
+          if (flexibleError) {
+            console.error('Error en búsqueda flexible:', flexibleError);
+          } else if (flexibleMatches && flexibleMatches.length > 0) {
+            console.log(`📋 Encontrados ${flexibleMatches.length} usuarios con nombres similares:`);
+            flexibleMatches.forEach((user, index) => {
               const fullName = user.Tipo_Persona === 'Física' 
                 ? `${user.Nombre} ${user.Apellido || ''}`.trim()
                 : user.Nombre;
+              console.log(`  ${index + 1}. ${fullName} (${user.Tipo_Persona}) - Tel: ${user.Telefono} - Rol: ${user.Rol_Operativo}`);
+            });
+            
+            // Retornar el primer resultado que tenga rol de dador
+            const dadorMatch = flexibleMatches.find(user => 
+              user.Rol_Operativo?.toLowerCase().includes('dador')
+            );
+            
+            if (dadorMatch?.Telefono) {
+              console.log(`✅ Dador encontrado en búsqueda flexible: ${dadorMatch.Telefono}`);
+              return dadorMatch.Telefono;
+            }
+          }
+
+          // 4. Búsqueda por apellido si el nombre tiene múltiples palabras
+          console.log('🔍 Paso 4: Búsqueda por apellido');
+          if (dadorNormalizado.includes(' ')) {
+            const apellidoPosible = dadorNormalizado.split(' ').pop();
+            if (apellidoPosible && apellidoPosible.length > 2) {
+              const { data: apellidoMatch, error: apellidoError } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .ilike('Apellido', `%${apellidoPosible}%`)
+                .not('Telefono', 'is', null)
+                .not('Telefono', 'eq', '')
+                .not('Telefono', 'eq', '+54 9 ')
+                .maybeSingle();
               
-              const dadorNormalized = normalizeText(dadorNormalizado);
-              const userNormalized = normalizeText(fullName);
-              
-              if (userNormalized === dadorNormalized) {
-                console.log(`✅ Coincidencia flexible encontrada: ${user.Telefono}`);
-                return user.Telefono;
+              if (apellidoError) {
+                console.error('Error en búsqueda por apellido:', apellidoError);
+              } else if (apellidoMatch?.Telefono) {
+                console.log(`✅ Coincidencia por apellido: ${apellidoMatch.Telefono}`);
+                return apellidoMatch.Telefono;
               }
             }
           }
 
           console.log(`❌ No se encontró teléfono para: "${dadorNormalizado}"`);
+          console.log('💡 Sugerencia: Verifica que el nombre del dador coincida exactamente con el registrado en Usuarios');
           return null;
           
         } catch (error) {
