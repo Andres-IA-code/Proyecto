@@ -377,7 +377,7 @@ const OperadorCotizaciones: React.FC = () => {
           console.log('🔍 DIAGNÓSTICO: Consultando estructura de tabla Usuarios');
           const { data: allUsers, error: diagError } = await supabase
             .from('Usuarios')
-            .select('id, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
             .limit(20);
           
           if (diagError) {
@@ -390,7 +390,7 @@ const OperadorCotizaciones: React.FC = () => {
                 const fullName = user.Tipo_Persona === 'Física' 
                   ? `${user.Nombre} ${user.Apellido || ''}`.trim()
                   : user.Nombre;
-                console.log(`  ${index + 1}. ID: ${user.id} | "${fullName}" | Tel: "${user.Telefono}" | Rol: ${user.Rol_Operativo}`);
+                console.log(`  ${index + 1}. ID: ${user.id_Usuario} | "${fullName}" | Tel: "${user.Telefono}" | Rol: ${user.Rol_Operativo}`);
               });
               
               // Buscar usuarios que sean dadores de carga
