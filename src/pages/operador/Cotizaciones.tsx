@@ -111,7 +111,7 @@ const OperadorCotizaciones: React.FC = () => {
             )
           )
         `)
-        .eq('Nombre_Operador', nombreOperador)
+        .eq('id_Operador', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
