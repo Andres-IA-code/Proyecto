@@ -35,10 +35,10 @@ interface Quote {
 }
 
 interface PhoneDisplayProps {
-  dadorName: string;
+  idUsuario: number;
 }
 
-const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
+const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ idUsuario }) => {
   const [phone, setPhone] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -46,111 +46,49 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
     const findPhone = async () => {
       try {
         setLoading(true);
-        console.log('🔍 Buscando teléfono para dador:', dadorName);
+        console.log('🔍 Buscando teléfono para usuario ID:', idUsuario);
 
-        if (!dadorName || dadorName.trim() === '') {
-          console.log('❌ Nombre del dador vacío');
+        if (!idUsuario) {
+          console.log('❌ ID de usuario no válido');
           setPhone('No disponible');
           setLoading(false);
           return;
         }
 
-        // Estrategia 1: Búsqueda exacta por nombre completo
-        console.log('📞 Estrategia 1: Búsqueda exacta por nombre completo');
-        let { data: usuarios, error } = await supabase
+        // Búsqueda directa por ID de usuario
+        console.log('📞 Buscando usuario por ID:', idUsuario);
+        const { data: usuario, error } = await supabase
           .from('Usuarios')
-          .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-          .eq('Nombre', dadorName.trim())
-          .not('Telefono', 'is', null)
-          .neq('Telefono', '')
-          .neq('Telefono', '+54 9 ');
+          .select('id_Usuario, Telefono, Nombre, Apellido')
+          .eq('id_Usuario', idUsuario)
+          .single();
 
-        console.log('📋 Resultados estrategia 1:', usuarios);
+        console.log('📋 Usuario encontrado:', usuario);
 
         if (error) {
-          console.error('❌ Error en estrategia 1:', error);
-        }
-
-        // Si no encontró nada, intentar separar nombre y apellido
-        if (!usuarios || usuarios.length === 0) {
-          console.log('📞 Estrategia 2: Búsqueda por nombre y apellido separados');
-          const nameParts = dadorName.trim().split(' ');
-          
-          if (nameParts.length >= 2) {
-            const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' ');
-            
-            console.log('🔍 Buscando:', { firstName, lastName });
-            
-            const { data: usuarios2, error: error2 } = await supabase
-              .from('Usuarios')
-              .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-              .eq('Nombre', firstName)
-              .eq('Apellido', lastName)
-              .not('Telefono', 'is', null)
-              .neq('Telefono', '')
-              .neq('Telefono', '+54 9 ');
-
-            console.log('📋 Resultados estrategia 2:', usuarios2);
-            usuarios = usuarios2;
-            error = error2;
-          }
-        }
-
-        // Si aún no encontró nada, búsqueda flexible
-        if (!usuarios || usuarios.length === 0) {
-          console.log('📞 Estrategia 3: Búsqueda flexible con ILIKE');
-          const { data: usuarios3, error: error3 } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`)
-            .not('Telefono', 'is', null)
-            .neq('Telefono', '')
-            .neq('Telefono', '+54 9 ');
-
-          console.log('📋 Resultados estrategia 3:', usuarios3);
-          usuarios = usuarios3;
-          error = error3;
-        }
-
-        if (error) {
-          console.error('❌ Error buscando teléfono:', error);
+          console.error('❌ Error buscando usuario:', error);
           setPhone('Error al buscar');
           setLoading(false);
           return;
         }
 
-        if (!usuarios || usuarios.length === 0) {
-          console.log('❌ No se encontró usuario con teléfono para:', dadorName);
-          
-          // Diagnóstico: buscar si existe el usuario sin filtrar por teléfono
-          const { data: allUsers, error: diagError } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`);
-          
-          if (diagError) {
-            console.error('❌ Error en diagnóstico:', diagError);
-          } else {
-            console.log('🔍 Usuarios encontrados (sin filtro de teléfono):', allUsers);
-          }
-          
+        if (!usuario) {
+          console.log('❌ No se encontró usuario con ID:', idUsuario);
           setPhone('No registrado');
           setLoading(false);
           return;
         }
 
-        // Priorizar usuarios con rol "dador"
-        const dadorUsers = usuarios.filter(u => 
-          u.Rol_Operativo?.toLowerCase().includes('dador')
-        );
+        console.log('✅ Usuario encontrado:', usuario);
+        console.log('📞 Teléfono encontrado:', usuario.Telefono);
 
-        const selectedUser = dadorUsers.length > 0 ? dadorUsers[0] : usuarios[0];
-        
-        console.log('✅ Usuario seleccionado:', selectedUser);
-        console.log('📞 Teléfono encontrado:', selectedUser.Telefono);
-
-        setPhone(selectedUser.Telefono || 'No registrado');
+        // Verificar si el teléfono es válido
+        const telefono = usuario.Telefono;
+        if (!telefono || telefono.trim() === '' || telefono === '+54 9 ') {
+          setPhone('No registrado');
+        } else {
+          setPhone(telefono);
+        }
 
       } catch (error) {
         console.error('❌ Error inesperado buscando teléfono:', error);
@@ -161,7 +99,7 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
     };
 
     findPhone();
-  }, [dadorName]);
+  }, [idUsuario]);
 
   if (loading) {
     return <span className="text-gray-500">Buscando...</span>;
@@ -183,10 +121,10 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
 };
 
 interface EmailDisplayProps {
-  dadorName: string;
+  idUsuario: number;
 }
 
-const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
+const EmailDisplay: React.FC<EmailDisplayProps> = ({ idUsuario }) => {
   const [email, setEmail] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -194,123 +132,49 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
     const findEmail = async () => {
       try {
         setLoading(true);
-        console.log('📧 Buscando email para dador:', dadorName);
+        console.log('📧 Buscando email para usuario ID:', idUsuario);
 
-        if (!dadorName || dadorName.trim() === '') {
-          console.log('❌ Nombre del dador vacío');
+        if (!idUsuario) {
+          console.log('❌ ID de usuario no válido');
           setEmail('No disponible');
           setLoading(false);
           return;
         }
 
-        // Primero, buscar en todas las tablas posibles para email
-        console.log('📧 Estrategia 1: Búsqueda exacta por nombre completo en tabla Usuarios');
-        let { data: usuarios, error } = await supabase
+        // Búsqueda directa por ID de usuario
+        console.log('📧 Buscando usuario por ID:', idUsuario);
+        const { data: usuario, error } = await supabase
           .from('Usuarios')
-          .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-          .eq('Nombre', dadorName.trim());
+          .select('id_Usuario, Correo, Nombre, Apellido')
+          .eq('id_Usuario', idUsuario)
+          .single();
 
-        console.log('📋 Resultados estrategia 1 (todos los usuarios):', usuarios);
-
-        // Filtrar solo usuarios con email válido
-        if (usuarios && usuarios.length > 0) {
-          usuarios = usuarios.filter(u => {
-            const email = u.Correo;
-            return email && email.trim() !== '' && email.includes('@');
-          });
-          console.log('📧 Usuarios con email válido:', usuarios);
-        }
-
-        // Estrategia 2: Búsqueda por nombre y apellido separados
-        if (!usuarios || usuarios.length === 0) {
-          console.log('📧 Estrategia 2: Búsqueda por nombre y apellido separados');
-          const nameParts = dadorName.trim().split(' ');
-          
-          if (nameParts.length >= 2) {
-            const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' ');
-            
-            console.log('🔍 Buscando por partes:', { firstName, lastName });
-            
-            const { data: usuarios2, error: error2 } = await supabase
-              .from('Usuarios')
-              .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-              .eq('Nombre', firstName)
-              .eq('Apellido', lastName);
-
-            if (usuarios2) {
-              usuarios = usuarios2.filter(u => {
-                const email = u.Correo;
-                return email && email.trim() !== '' && email.includes('@');
-              });
-            }
-            console.log('📋 Resultados estrategia 2:', usuarios);
-          }
-        }
-
-        // Estrategia 3: Búsqueda flexible con ILIKE
-        if (!usuarios || usuarios.length === 0) {
-          console.log('📧 Estrategia 3: Búsqueda flexible con ILIKE');
-          const { data: usuarios3, error: error3 } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`);
-
-          if (usuarios3) {
-            usuarios = usuarios3.filter(u => {
-              const email = u.Correo;
-              return email && email.trim() !== '' && email.includes('@');
-            });
-          }
-          console.log('📋 Resultados estrategia 3:', usuarios);
-        }
+        console.log('📋 Usuario encontrado:', usuario);
 
         if (error) {
-          console.error('❌ Error buscando email:', error);
+          console.error('❌ Error buscando usuario:', error);
           setEmail('Error al buscar');
           setLoading(false);
           return;
         }
 
-        if (!usuarios || usuarios.length === 0) {
-          console.log('❌ No se encontró usuario con email para:', dadorName);
-          
-          // Diagnóstico: buscar si existe el usuario sin filtrar por email
-          const { data: allUsers, error: diagError } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`);
-          
-          if (diagError) {
-            console.error('❌ Error en diagnóstico:', diagError);
-          } else {
-            console.log('🔍 Usuarios encontrados (sin filtro de email):', allUsers);
-            console.log('🔍 Campos de email disponibles:', allUsers?.map(u => ({
-              nombre: u.Nombre,
-              apellido: u.Apellido,
-              correo: u.Correo
-            })));
-          }
-          
+        if (!usuario) {
+          console.log('❌ No se encontró usuario con ID:', idUsuario);
           setEmail('No registrado');
           setLoading(false);
           return;
         }
 
-        // Priorizar usuarios con rol "dador"
-        const dadorUsers = usuarios.filter(u => 
-          u.Rol_Operativo?.toLowerCase().includes('dador')
-        );
+        console.log('✅ Usuario encontrado:', usuario);
+        console.log('📧 Email encontrado:', usuario.Correo);
 
-        const selectedUser = dadorUsers.length > 0 ? dadorUsers[0] : usuarios[0];
-        
-        console.log('✅ Usuario seleccionado para email:', selectedUser);
-        
-        // Obtener el email del campo disponible
-        const foundEmail = selectedUser.Correo || null;
-        console.log('📧 Email encontrado:', foundEmail);
-
-        setEmail(foundEmail || 'No registrado');
+        // Verificar si el email es válido
+        const correo = usuario.Correo;
+        if (!correo || correo.trim() === '' || !correo.includes('@')) {
+          setEmail('No registrado');
+        } else {
+          setEmail(correo);
+        }
 
       } catch (error) {
         console.error('❌ Error inesperado buscando email:', error);
@@ -321,7 +185,7 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
     };
 
     findEmail();
-  }, [dadorName]);
+  }, [idUsuario]);
 
   if (loading) {
     return <span className="text-gray-500">Buscando...</span>;
@@ -755,11 +619,11 @@ const OperadorCotizaciones: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Correo:</span>
-                      <EmailDisplay dadorName={selectedQuote.Nombre_Dador || ''} />
+                      <EmailDisplay idUsuario={selectedQuote.id_Usuario} />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Teléfono de Contacto:</span>
-                      <PhoneDisplay dadorName={selectedQuote.Nombre_Dador || ''} />
+                      <PhoneDisplay idUsuario={selectedQuote.id_Usuario} />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">ID Envío:</span>
