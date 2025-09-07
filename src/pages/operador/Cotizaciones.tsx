@@ -13,6 +13,9 @@ interface Quote {
   Fecha: string;
   Vigencia: string;
   Estado: string;
+  Oferta: number;
+  Nombre_Operador?: string;
+  Nombre_Dador?: string;
   // Datos del envío desde la tabla General
   envio_origen?: string;
   envio_destino?: string;
@@ -28,28 +31,118 @@ interface Quote {
   envio_dimension_ancho?: number;
   envio_dimension_alto?: number;
   envio_distancia?: number;
-  // Información del dador
-  dador_nombre?: string;
-  dador_apellido?: string;
-  dador_tipo_persona?: string;
-  dador_correo?: string;
-  dador_telefono?: string;
-  envio_peso?: string;
-  envio_tipo_carga?: string;
-  envio_observaciones?: string;
-  envio_fecha_retiro?: string;
-  envio_horario_retiro?: string;
-  envio_parada_programada?: string;
-  envio_tipo_vehiculo?: string;
-  envio_tipo_carroceria?: string;
-  envio_dimension_largo?: number;
-  envio_dimension_ancho?: number;
-  envio_dimension_alto?: number;
-  envio_distancia?: number;
-  dador_correo?: string;
-  dador_telefono?: string;
+  // ID del usuario dador para buscar información
+  dador_id_usuario?: number;
 }
 
+
+// Componente para mostrar información del dador
+const DadorInfo: React.FC<{ idUsuario: number }> = ({ idUsuario }) => {
+  const [dadorData, setDadorData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDadorData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('Usuarios')
+          .select('Nombre, Apellido, Tipo_Persona, Correo, Telefono')
+          .eq('id_Usuario', idUsuario)
+          .single();
+
+        if (error) {
+          console.error('Error fetching dador data:', error);
+          return;
+        }
+
+        setDadorData(data);
+      } catch (err) {
+        console.error('Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDadorData();
+  }, [idUsuario]);
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center">
+          <User className="h-4 w-4 text-gray-400 mr-2" />
+          <span className="text-gray-500 mr-2">Nombre:</span>
+          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="flex items-center">
+          <Mail className="h-4 w-4 text-gray-400 mr-2" />
+          <span className="text-gray-500 mr-2">Correo:</span>
+          <div className="h-4 w-40 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="flex items-center">
+          <Phone className="h-4 w-4 text-gray-400 mr-2" />
+          <span className="text-gray-500 mr-2">Teléfono:</span>
+          <div className="h-4 w-36 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dadorData) {
+    return (
+      <div className="space-y-2 text-sm text-gray-500">
+        <div>Información del dador no disponible</div>
+      </div>
+    );
+  }
+
+  const displayName = dadorData.Tipo_Persona === 'Física' 
+    ? `${dadorData.Nombre || ''} ${dadorData.Apellido || ''}`.trim()
+    : dadorData.Nombre || 'No especificado';
+
+  return (
+    <div className="space-y-2 text-sm">
+      <div className="flex items-center">
+        <User className="h-4 w-4 text-gray-400 mr-2" />
+        <span className="text-gray-500 mr-2">Nombre:</span>
+        <span className="font-medium text-gray-900">{displayName}</span>
+      </div>
+      <div className="flex items-center">
+        <Mail className="h-4 w-4 text-gray-400 mr-2" />
+        <span className="text-gray-500 mr-2">Correo:</span>
+        {dadorData.Correo ? (
+          <a 
+            href={`mailto:${dadorData.Correo}`}
+            className="font-medium text-blue-600 hover:text-blue-800 underline"
+          >
+            {dadorData.Correo}
+          </a>
+        ) : (
+          <span className="text-gray-400">No disponible</span>
+        )}
+      </div>
+      <div className="flex items-center">
+        <Phone className="h-4 w-4 text-gray-400 mr-2" />
+        <span className="text-gray-500 mr-2">Teléfono:</span>
+        {dadorData.Telefono ? (
+          <a 
+            href={`tel:${dadorData.Telefono}`}
+            className="font-medium text-blue-600 hover:text-blue-800 underline"
+          >
+            {dadorData.Telefono}
+          </a>
+        ) : (
+          <span className="text-gray-400">No disponible</span>
+        )}
+      </div>
+      <div className="flex items-center">
+        <Package className="h-4 w-4 text-gray-400 mr-2" />
+        <span className="text-gray-500 mr-2">ID Envío:</span>
+        <span className="font-medium text-gray-900">#{idUsuario}</span>
+      </div>
+    </div>
+  );
+};
 
 const OperadorCotizaciones: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -68,25 +161,15 @@ const OperadorCotizaciones: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        setError('Usuario no autenticado');
-        return;
-      }
+      console.log('Buscando todas las cotizaciones...');
 
-      // Construir el nombre del operador según el tipo de persona
-      const nombreOperador = currentUser.profile.Tipo_Persona === 'Física' 
-        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
-        : currentUser.profile.Nombre;
-
-      console.log('Buscando cotizaciones para operador:', nombreOperador);
-
-      // Buscar cotizaciones del operador actual usando Nombre_Operador
+      // Buscar TODAS las cotizaciones para ver qué datos hay disponibles
       const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
           General!inner(
+            id_Usuario,
             Origen,
             Destino,
             Peso,
@@ -100,18 +183,9 @@ const OperadorCotizaciones: React.FC = () => {
             Dimension_Largo,
             Dimension_Ancho,
             Dimension_Alto,
-            Distancia,
-            id_Usuario,
-            Usuarios!inner(
-              Nombre,
-              Apellido,
-              Tipo_Persona,
-              Correo,
-              Telefono
-            )
+            Distancia
           )
         `)
-        .eq('id_Operador', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
@@ -137,16 +211,13 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
         envio_distancia: quote.General?.Distancia,
-        // Información del dador desde la tabla Usuarios
-        dador_nombre: quote.General?.Usuarios?.Nombre,
-        dador_apellido: quote.General?.Usuarios?.Apellido,
-        dador_tipo_persona: quote.General?.Usuarios?.Tipo_Persona,
-        dador_correo: quote.General?.Usuarios?.Correo,
-        dador_telefono: quote.General?.Usuarios?.Telefono,
+        // ID del usuario dador para buscar información después
+        dador_id_usuario: quote.General?.id_Usuario,
       }));
 
       setQuotes(transformedData);
       console.log('Cotizaciones encontradas:', transformedData.length);
+      console.log('Datos de cotizaciones:', transformedData);
       
     } catch (err) {
       console.error('Error inesperado:', err);
@@ -471,51 +542,13 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">Nombre:</span>
-                      <span className="font-medium text-gray-900">
-                        {selectedQuote.dador_tipo_persona === 'Física' 
-                          ? `${selectedQuote.dador_nombre || ''} ${selectedQuote.dador_apellido || ''}`.trim()
-                          : selectedQuote.dador_nombre || 'No especificado'
-                        }
-                      </span>
+                  {selectedQuote.dador_id_usuario ? (
+                    <DadorInfo idUsuario={selectedQuote.dador_id_usuario} />
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      Información del dador no disponible
                     </div>
-                    <div className="flex items-center">
-                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">Correo:</span>
-                      {selectedQuote.dador_correo ? (
-                        <a 
-                          href={`mailto:${selectedQuote.dador_correo}`}
-                          className="font-medium text-blue-600 hover:text-blue-800 underline"
-                        >
-                          {selectedQuote.dador_correo}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">No disponible</span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">Teléfono:</span>
-                      {selectedQuote.dador_telefono ? (
-                        <a 
-                          href={`tel:${selectedQuote.dador_telefono}`}
-                          className="font-medium text-blue-600 hover:text-blue-800 underline"
-                        >
-                          {selectedQuote.dador_telefono}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">No disponible</span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      <Package className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">ID Envío:</span>
-                      <span className="font-medium text-gray-900">#{selectedQuote.id_Envio}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
