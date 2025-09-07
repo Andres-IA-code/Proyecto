@@ -13,13 +13,27 @@ interface Quote {
   Fecha: string;
   Vigencia: string;
   Estado: string;
-  Scoring: number;
-  Oferta: number;
-  Nombre_Operador: string;
-  Nombre_Dador: string;
   // Datos del envío desde la tabla General
   envio_origen?: string;
   envio_destino?: string;
+  envio_peso?: string;
+  envio_tipo_carga?: string;
+  envio_observaciones?: string;
+  envio_fecha_retiro?: string;
+  envio_horario_retiro?: string;
+  envio_parada_programada?: string;
+  envio_tipo_vehiculo?: string;
+  envio_tipo_carroceria?: string;
+  envio_dimension_largo?: number;
+  envio_dimension_ancho?: number;
+  envio_dimension_alto?: number;
+  envio_distancia?: number;
+  // Información del dador
+  dador_nombre?: string;
+  dador_apellido?: string;
+  dador_tipo_persona?: string;
+  dador_correo?: string;
+  dador_telefono?: string;
   envio_peso?: string;
   envio_tipo_carga?: string;
   envio_observaciones?: string;
@@ -82,7 +96,14 @@ const OperadorCotizaciones: React.FC = () => {
             Dimension_Ancho,
             Dimension_Alto,
             Distancia,
-            id_Usuario
+            id_Usuario,
+            Usuarios!inner(
+              Nombre,
+              Apellido,
+              Tipo_Persona,
+              Correo,
+              Telefono
+            )
           )
         `)
         .eq('id_Operador', currentUser.profile.id_Usuario)
@@ -111,8 +132,12 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
         envio_distancia: quote.General?.Distancia,
-        // ID del usuario dador para consultas posteriores
-        dador_id_usuario: quote.General?.id_Usuario,
+        // Información del dador desde la tabla Usuarios
+        dador_nombre: quote.General?.Usuarios?.Nombre,
+        dador_apellido: quote.General?.Usuarios?.Apellido,
+        dador_tipo_persona: quote.General?.Usuarios?.Tipo_Persona,
+        dador_correo: quote.General?.Usuarios?.Correo,
+        dador_telefono: quote.General?.Usuarios?.Telefono,
       }));
 
       setQuotes(transformedData);
@@ -441,9 +466,51 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  {selectedQuote.dador_id_usuario && (
-                    <DadorContactInfo idUsuario={selectedQuote.dador_id_usuario} />
-                  )}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">Nombre:</span>
+                      <span className="font-medium text-gray-900">
+                        {selectedQuote.dador_tipo_persona === 'Física' 
+                          ? `${selectedQuote.dador_nombre || ''} ${selectedQuote.dador_apellido || ''}`.trim()
+                          : selectedQuote.dador_nombre || 'No especificado'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">Correo:</span>
+                      {selectedQuote.dador_correo ? (
+                        <a 
+                          href={`mailto:${selectedQuote.dador_correo}`}
+                          className="font-medium text-blue-600 hover:text-blue-800 underline"
+                        >
+                          {selectedQuote.dador_correo}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No disponible</span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">Teléfono:</span>
+                      {selectedQuote.dador_telefono ? (
+                        <a 
+                          href={`tel:${selectedQuote.dador_telefono}`}
+                          className="font-medium text-blue-600 hover:text-blue-800 underline"
+                        >
+                          {selectedQuote.dador_telefono}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No disponible</span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <Package className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">ID Envío:</span>
+                      <span className="font-medium text-gray-900">#{selectedQuote.id_Envio}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
