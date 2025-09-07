@@ -187,3 +187,5 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
     </a>
   );
 };
+
+export default PhoneDisplay;
