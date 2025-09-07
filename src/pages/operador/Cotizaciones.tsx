@@ -542,8 +542,8 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  {selectedQuote.dador_id_usuario ? (
-                    <DadorInfo idUsuario={selectedQuote.dador_id_usuario} />
+                  {selectedQuote.id_Envio ? (
+                    <DadorInfo idEnvio={selectedQuote.id_Envio} />
                   ) : (
                     <div className="text-sm text-gray-500">
                       Información del dador no disponible
