@@ -276,6 +276,9 @@ const QuoteManagement: React.FC = () => {
                       Operador
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contacto Operador
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -306,6 +309,18 @@ const QuoteManagement: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {quote.Nombre_Operador || 'No especificado'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm">
+                            <div className="font-medium text-gray-900">{quote.Nombre_Operador || 'No especificado'}</div>
+                            {quote.Email && (
+                              <div className="text-xs text-blue-600">
+                                <a href={`mailto:${quote.Email}`} className="hover:underline">
+                                  {quote.Email}
+                                </a>
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
