@@ -48,7 +48,7 @@ const DadorInfo: React.FC<{ idUsuario: number }> = ({ idUsuario }) => {
           .from('Usuarios')
           .select('Nombre, Apellido, Tipo_Persona, Correo, Telefono')
           .eq('id_Usuario', idUsuario)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching dador data:', error);
