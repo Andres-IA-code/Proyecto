@@ -441,44 +441,9 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Nombre:</span>
-                      <span className="text-gray-900">{selectedQuote.dador_nombre_completo || selectedQuote.Nombre_Dador || 'No especificado'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Correo:</span>
-                      {selectedQuote.dador_correo ? (
-                        <a 
-                          href={`mailto:${selectedQuote.dador_correo}`} 
-                          className="text-blue-600 hover:text-blue-800 underline"
-                          title={`Enviar email a ${selectedQuote.dador_correo}`}
-                        >
-                          {selectedQuote.dador_correo}
-                        </a>
-                      ) : (
-                        <span className="text-gray-500">No disponible</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Teléfono de Contacto:</span>
-                      {selectedQuote.dador_telefono ? (
-                        <a 
-                          href={`tel:${selectedQuote.dador_telefono}`} 
-                          className="text-blue-600 hover:text-blue-800 underline"
-                          title={`Llamar a ${selectedQuote.dador_telefono}`}
-                        >
-                          {selectedQuote.dador_telefono}
-                        </a>
-                      ) : (
-                        <span className="text-gray-500">No disponible</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">ID Envío:</span>
-                      <span className="text-gray-900">#{selectedQuote.id_Envio}</span>
-                    </div>
-                  </div>
+                  {selectedQuote.dador_id_usuario && (
+                    <DadorContactInfo idUsuario={selectedQuote.dador_id_usuario} />
+                  )}
                 </div>
               </div>
 
