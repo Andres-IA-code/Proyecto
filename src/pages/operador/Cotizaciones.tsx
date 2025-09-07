@@ -32,6 +32,8 @@ interface Quote {
   envio_dimension_ancho?: number;
   envio_dimension_alto?: number;
   envio_distancia?: number;
+  dador_correo?: string;
+  dador_telefono?: string;
 }
 
 interface PhoneDisplayProps {
@@ -255,7 +257,11 @@ const OperadorCotizaciones: React.FC = () => {
             Dimension_Largo,
             Dimension_Ancho,
             Dimension_Alto,
-            Distancia
+            Distancia,
+            Usuarios!inner(
+              Correo,
+              Telefono
+            )
           )
         `)
         .eq('Nombre_Operador', nombreOperador)
@@ -284,6 +290,8 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
         envio_distancia: quote.General?.Distancia,
+        dador_correo: quote.General?.Usuarios?.Correo,
+        dador_telefono: quote.General?.Usuarios?.Telefono,
       }));
 
       setQuotes(transformedData);
@@ -619,11 +627,31 @@ const OperadorCotizaciones: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Correo:</span>
-                      <EmailDisplay idUsuario={selectedQuote.id_Usuario} />
+                      {selectedQuote.dador_correo ? (
+                        <a 
+                          href={`mailto:${selectedQuote.dador_correo}`} 
+                          className="text-blue-600 hover:text-blue-800 underline"
+                          title={`Enviar email a ${selectedQuote.dador_correo}`}
+                        >
+                          {selectedQuote.dador_correo}
+                        </a>
+                      ) : (
+                        <span className="text-gray-500">No disponible</span>
+                      )}
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Teléfono de Contacto:</span>
-                      <PhoneDisplay idUsuario={selectedQuote.id_Usuario} />
+                      {selectedQuote.dador_telefono ? (
+                        <a 
+                          href={`tel:${selectedQuote.dador_telefono}`} 
+                          className="text-blue-600 hover:text-blue-800 underline"
+                          title={`Llamar a ${selectedQuote.dador_telefono}`}
+                        >
+                          {selectedQuote.dador_telefono}
+                        </a>
+                      ) : (
+                        <span className="text-gray-500">No disponible</span>
+                      )}
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">ID Envío:</span>
