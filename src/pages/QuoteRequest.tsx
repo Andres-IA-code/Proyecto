@@ -245,7 +245,8 @@ const QuoteRequest: React.FC = () => {
           : null,
         Nombre_Dador: currentUser.profile.Tipo_Persona === 'Física' 
           ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
-          : currentUser.profile.Nombre
+          : currentUser.profile.Nombre,
+        Email: currentUser.profile.Correo
       };
 
       console.log('Guardando datos del envío:', shipmentData);
