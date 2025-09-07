@@ -124,12 +124,16 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
           console.log('❌ No se encontró usuario con teléfono para:', dadorName);
           
           // Diagnóstico: buscar si existe el usuario sin filtrar por teléfono
-          const { data: allUsers } = await supabase
+          const { data: allUsers, error: diagError } = await supabase
             .from('Usuarios')
             .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
             .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`);
           
-          console.log('🔍 Usuarios encontrados (sin filtro de teléfono):', allUsers);
+          if (diagError) {
+            console.error('❌ Error en diagnóstico:', diagError);
+          } else {
+            console.log('🔍 Usuarios encontrados (sin filtro de teléfono):', allUsers);
+          }
           
           setPhone('No registrado');
           setLoading(false);
