@@ -37,22 +37,22 @@ interface Quote {
 
 
 // Componente para mostrar información del dador
-const DadorInfo: React.FC<{ idUsuario?: number }> = ({ idUsuario }) => {
+const DadorInfo: React.FC<{ idEnvio?: number }> = ({ idEnvio }) => {
   const [dadorData, setDadorData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDadorData = async () => {
-      if (!idUsuario) {
+      if (!idEnvio) {
         setLoading(false);
         return;
       }
 
       try {
         const { data, error } = await supabase
-          .from('Usuarios')
-          .select('Nombre, Apellido, Tipo_Persona, Correo, Telefono')
-          .eq('id_Usuario', idUsuario)
+          .from('General')
+          .select('Nombre_Dador, Email')
+          .eq('id_Envio', idEnvio)
           .maybeSingle();
 
         if (error) {
@@ -69,7 +69,7 @@ const DadorInfo: React.FC<{ idUsuario?: number }> = ({ idUsuario }) => {
     };
 
     fetchDadorData();
-  }, [idUsuario]);
+  }, [idEnvio]);
 
   if (loading) {
     return (
@@ -110,31 +110,17 @@ const DadorInfo: React.FC<{ idUsuario?: number }> = ({ idUsuario }) => {
       <div className="flex items-center">
         <User className="h-4 w-4 text-gray-400 mr-2" />
         <span className="text-gray-500 mr-2">Nombre:</span>
-        <span className="font-medium text-gray-900">{displayName}</span>
+        <span className="font-medium text-gray-900">{dadorData.Nombre_Dador || 'No especificado'}</span>
       </div>
       <div className="flex items-center">
         <Mail className="h-4 w-4 text-gray-400 mr-2" />
         <span className="text-gray-500 mr-2">Correo:</span>
-        {dadorData.Correo ? (
+        {dadorData.Email ? (
           <a 
-            href={`mailto:${dadorData.Correo}`}
+            href={`mailto:${dadorData.Email}`}
             className="font-medium text-blue-600 hover:text-blue-800 underline"
           >
-            {dadorData.Correo}
-          </a>
-        ) : (
-          <span className="text-gray-400">No disponible</span>
-        )}
-      </div>
-      <div className="flex items-center">
-        <Phone className="h-4 w-4 text-gray-400 mr-2" />
-        <span className="text-gray-500 mr-2">Teléfono:</span>
-        {dadorData.Telefono ? (
-          <a 
-            href={`tel:${dadorData.Telefono}`}
-            className="font-medium text-blue-600 hover:text-blue-800 underline"
-          >
-            {dadorData.Telefono}
+            {dadorData.Email}
           </a>
         ) : (
           <span className="text-gray-400">No disponible</span>
@@ -143,7 +129,7 @@ const DadorInfo: React.FC<{ idUsuario?: number }> = ({ idUsuario }) => {
       <div className="flex items-center">
         <Package className="h-4 w-4 text-gray-400 mr-2" />
         <span className="text-gray-500 mr-2">ID Envío:</span>
-        <span className="font-medium text-gray-900">#{idUsuario}</span>
+        <span className="font-medium text-gray-900">#{idEnvio}</span>
       </div>
     </div>
   );
@@ -547,34 +533,7 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">Nombre:</span>
-                      <span className="font-medium text-gray-900">
-                        {selectedQuote.Nombre_Dador || 'No especificado'}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">Correo:</span>
-                      {selectedQuote.Email ? (
-                        <a 
-                          href={`mailto:${selectedQuote.Email}`}
-                          className="font-medium text-blue-600 hover:text-blue-800 underline"
-                        >
-                          {selectedQuote.Email}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">No disponible</span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      <Package className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-gray-500 mr-2">ID Envío:</span>
-                      <span className="font-medium text-gray-900">#{selectedQuote.id_Envio}</span>
-                    </div>
-                  </div>
+                  <DadorInfo idEnvio={selectedQuote.id_Envio} />
                 </div>
               </div>
 
