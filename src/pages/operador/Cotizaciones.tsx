@@ -145,7 +145,7 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_alto: quote.General?.Dimension_Alto,
       }));
 
-      // Función optimizada para buscar teléfono del dador
+      // Función optimizada para buscar teléfono del dador con debugging mejorado
       const findDadorPhone = async (nombreDador: string): Promise<string | null> => {
         try {
           console.log(`🔍 Buscando teléfono para dador: "${nombreDador}"`);
@@ -166,13 +166,14 @@ const OperadorCotizaciones: React.FC = () => {
             .not('Telefono', 'is', null)
             .not('Telefono', 'eq', '')
             .not('Telefono', 'eq', '+54 9 ')
-            .maybeSingle();
+            .limit(1);
           
+          console.log('📋 Resultado búsqueda exacta:', exactMatch);
           if (exactError) {
-            console.error('Error en búsqueda exacta:', exactError);
-          } else if (exactMatch?.Telefono) {
-            console.log(`✅ Coincidencia exacta encontrada: ${exactMatch.Telefono}`);
-            return exactMatch.Telefono;
+            console.error('❌ Error en búsqueda exacta:', exactError);
+          } else if (exactMatch && exactMatch.length > 0 && exactMatch[0]?.Telefono) {
+            console.log(`✅ Coincidencia exacta encontrada: ${exactMatch[0].Telefono}`);
+            return exactMatch[0].Telefono;
           }
 
           // 2. Búsqueda por nombre y apellido separados (para personas físicas)
@@ -186,19 +187,20 @@ const OperadorCotizaciones: React.FC = () => {
             
             const { data: nameMatch, error: nameError } = await supabase
               .from('Usuarios')
-              .select('Telefono, Nombre, Apellido, Tipo_Persona')
+              .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
               .eq('Nombre', nombre)
               .eq('Apellido', apellido)
               .not('Telefono', 'is', null)
               .not('Telefono', 'eq', '')
               .not('Telefono', 'eq', '+54 9 ')
-              .maybeSingle();
+              .limit(1);
             
+            console.log('📋 Resultado búsqueda nombre/apellido:', nameMatch);
             if (nameError) {
-              console.error('Error en búsqueda por nombre/apellido:', nameError);
-            } else if (nameMatch?.Telefono) {
-              console.log(`✅ Coincidencia por nombre/apellido: ${nameMatch.Telefono}`);
-              return nameMatch.Telefono;
+              console.error('❌ Error en búsqueda por nombre/apellido:', nameError);
+            } else if (nameMatch && nameMatch.length > 0 && nameMatch[0]?.Telefono) {
+              console.log(`✅ Coincidencia por nombre/apellido: ${nameMatch[0].Telefono}`);
+              return nameMatch[0].Telefono;
             }
           }
 
@@ -207,14 +209,15 @@ const OperadorCotizaciones: React.FC = () => {
           const { data: flexibleMatches, error: flexibleError } = await supabase
             .from('Usuarios')
             .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${dadorNormalizado}%`)
+            .ilike('Nombre', `%${dadorNormalizado}%`)
             .not('Telefono', 'is', null)
             .not('Telefono', 'eq', '')
             .not('Telefono', 'eq', '+54 9 ')
-            .limit(5);
+            .limit(10);
           
+          console.log('📋 Resultados búsqueda flexible:', flexibleMatches);
           if (flexibleError) {
-            console.error('Error en búsqueda flexible:', flexibleError);
+            console.error('❌ Error en búsqueda flexible:', flexibleError);
           } else if (flexibleMatches && flexibleMatches.length > 0) {
             console.log(`📋 Encontrados ${flexibleMatches.length} usuarios con nombres similares:`);
             flexibleMatches.forEach((user, index) => {
@@ -224,7 +227,20 @@ const OperadorCotizaciones: React.FC = () => {
               console.log(`  ${index + 1}. ${fullName} (${user.Tipo_Persona}) - Tel: ${user.Telefono} - Rol: ${user.Rol_Operativo}`);
             });
             
-            // Retornar el primer resultado que tenga rol de dador
+            // Buscar coincidencia exacta en los resultados flexibles
+            const exactFlexibleMatch = flexibleMatches.find(user => {
+              const fullName = user.Tipo_Persona === 'Física' 
+                ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+                : user.Nombre;
+              return fullName.toLowerCase() === dadorNormalizado.toLowerCase();
+            });
+            
+            if (exactFlexibleMatch?.Telefono) {
+              console.log(`✅ Coincidencia exacta en búsqueda flexible: ${exactFlexibleMatch.Telefono}`);
+              return exactFlexibleMatch.Telefono;
+            }
+            
+            // Si no hay coincidencia exacta, buscar dador de carga
             const dadorMatch = flexibleMatches.find(user => 
               user.Rol_Operativo?.toLowerCase().includes('dador')
             );
@@ -233,6 +249,13 @@ const OperadorCotizaciones: React.FC = () => {
               console.log(`✅ Dador encontrado en búsqueda flexible: ${dadorMatch.Telefono}`);
               return dadorMatch.Telefono;
             }
+            
+            // Si no hay dador específico, retornar el primer resultado
+            const firstMatch = flexibleMatches[0];
+            if (firstMatch?.Telefono) {
+              console.log(`✅ Usando primer resultado de búsqueda flexible: ${firstMatch.Telefono}`);
+              return firstMatch.Telefono;
+            }
           }
 
           // 4. Búsqueda por apellido si el nombre tiene múltiples palabras
@@ -240,30 +263,73 @@ const OperadorCotizaciones: React.FC = () => {
           if (dadorNormalizado.includes(' ')) {
             const apellidoPosible = dadorNormalizado.split(' ').pop();
             if (apellidoPosible && apellidoPosible.length > 2) {
-              const { data: apellidoMatch, error: apellidoError } = await supabase
+              console.log(`Buscando por apellido: "${apellidoPosible}"`);
+              
+              const { data: apellidoMatches, error: apellidoError } = await supabase
                 .from('Usuarios')
-                .select('Telefono, Nombre, Apellido, Tipo_Persona')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
                 .ilike('Apellido', `%${apellidoPosible}%`)
                 .not('Telefono', 'is', null)
                 .not('Telefono', 'eq', '')
                 .not('Telefono', 'eq', '+54 9 ')
-                .maybeSingle();
+                .limit(5);
               
+              console.log('📋 Resultados búsqueda por apellido:', apellidoMatches);
               if (apellidoError) {
-                console.error('Error en búsqueda por apellido:', apellidoError);
-              } else if (apellidoMatch?.Telefono) {
-                console.log(`✅ Coincidencia por apellido: ${apellidoMatch.Telefono}`);
-                return apellidoMatch.Telefono;
+                console.error('❌ Error en búsqueda por apellido:', apellidoError);
+              } else if (apellidoMatches && apellidoMatches.length > 0) {
+                const firstApellidoMatch = apellidoMatches[0];
+                if (firstApellidoMatch?.Telefono) {
+                  console.log(`✅ Coincidencia por apellido: ${firstApellidoMatch.Telefono}`);
+                  return firstApellidoMatch.Telefono;
+                }
               }
             }
           }
 
+          // 5. Búsqueda adicional sin filtros estrictos de teléfono
+          console.log('🔍 Paso 5: Búsqueda sin filtros estrictos de teléfono');
+          const { data: allMatches, error: allError } = await supabase
+            .from('Usuarios')
+            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .or(`Nombre.ilike.%${dadorNormalizado}%,Apellido.ilike.%${dadorNormalizado}%`)
+            .limit(10);
+          
+          console.log('📋 Todos los resultados sin filtro de teléfono:', allMatches);
+          if (allError) {
+            console.error('❌ Error en búsqueda sin filtros:', allError);
+          } else if (allMatches && allMatches.length > 0) {
+            console.log(`📋 Encontrados ${allMatches.length} usuarios sin filtro de teléfono:`);
+            allMatches.forEach((user, index) => {
+              const fullName = user.Tipo_Persona === 'Física' 
+                ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+                : user.Nombre;
+              console.log(`  ${index + 1}. ${fullName} - Tel: "${user.Telefono}" - Rol: ${user.Rol_Operativo}`);
+            });
+            
+            // Buscar uno que tenga algún teléfono válido
+            const withPhone = allMatches.find(user => 
+              user.Telefono && 
+              user.Telefono.trim() !== '' && 
+              user.Telefono !== '+54 9 ' &&
+              user.Telefono.length > 5
+            );
+            
+            if (withPhone?.Telefono) {
+              console.log(`✅ Usuario con teléfono encontrado: ${withPhone.Telefono}`);
+              return withPhone.Telefono;
+            }
+          }
+
           console.log(`❌ No se encontró teléfono para: "${dadorNormalizado}"`);
-          console.log('💡 Sugerencia: Verifica que el nombre del dador coincida exactamente con el registrado en Usuarios');
+          console.log('💡 Sugerencias de debugging:');
+          console.log('  1. Verifica el nombre exacto en la tabla Usuarios');
+          console.log('  2. Revisa si el campo Telefono tiene datos válidos');
+          console.log('  3. Verifica la estructura de la tabla Usuarios');
           return null;
           
         } catch (error) {
-          console.error('Error buscando teléfono del dador:', error);
+          console.error('❌ Error general buscando teléfono del dador:', error);
           return null;
         }
       };
@@ -727,7 +793,7 @@ const OperadorCotizaciones: React.FC = () => {
                     Detalles del Viaje #{selectedQuote.id_Envio}
                   </h2>
                   <p className="text-gray-500 mt-1">
-                    Cotización #{selectedQuote.id_Cotizaciones} - Aceptada
+                    Cotización #{selectedQuote.id_Cotizaciones} - {selectedTab === 'accepted' ? 'Aceptada' : 'Rechazada'}
                   </p>
                 </div>
                 <button
@@ -741,14 +807,18 @@ const OperadorCotizaciones: React.FC = () => {
 
             <div className="p-6 space-y-6">
               {/* Financial Summary */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-green-800 mb-4">Resumen Financiero</h3>
+              <div className={`${selectedTab === 'accepted' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} border rounded-lg p-6`}>
+                <h3 className={`text-lg font-semibold ${selectedTab === 'accepted' ? 'text-green-800' : 'text-red-800'} mb-4`}>
+                  {selectedTab === 'accepted' ? 'Resumen Financiero' : 'Cotización Rechazada'}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600">
+                    <div className={`text-3xl font-bold ${selectedTab === 'accepted' ? 'text-green-600' : 'text-red-600'}`}>
                       ${selectedQuote.Oferta?.toLocaleString()}
                     </div>
-                    <div className="text-sm text-gray-600">Precio Total Asignado</div>
+                    <div className="text-sm text-gray-600">
+                      {selectedTab === 'accepted' ? 'Precio Total Asignado' : 'Precio Rechazado'}
+                    </div>
                   </div>
                   {selectedQuote.envio_distancia && (
                     <div className="text-center">
@@ -789,12 +859,14 @@ const OperadorCotizaciones: React.FC = () => {
                             {selectedQuote.dador_telefono}
                           </a>
                         ) : (
-                          <span className="text-gray-500">Buscando...</span>
+                          <span className="text-gray-500">No disponible</span>
                         )}
                       </div>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-700">Fecha de Aceptación:</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {selectedTab === 'accepted' ? 'Fecha de Aceptación:' : 'Fecha de Rechazo:'}
+                      </span>
                       <div className="text-gray-900">{formatDateTime(selectedQuote.Fecha)}</div>
                     </div>
                     <div>
