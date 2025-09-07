@@ -181,6 +181,137 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
   );
 };
 
+interface EmailDisplayProps {
+  dadorName: string;
+}
+
+const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
+  const [email, setEmail] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const findEmail = async () => {
+      try {
+        setLoading(true);
+        console.log('📧 Buscando email para dador:', dadorName);
+
+        if (!dadorName || dadorName.trim() === '') {
+          console.log('❌ Nombre del dador vacío');
+          setEmail('No disponible');
+          setLoading(false);
+          return;
+        }
+
+        // Estrategia 1: Búsqueda exacta por nombre completo
+        console.log('📧 Estrategia 1: Búsqueda exacta por nombre completo');
+        let { data: usuarios, error } = await supabase
+          .from('Usuarios')
+          .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+          .eq('Nombre', dadorName.trim())
+          .not('Correo', 'is', null)
+          .neq('Correo', '');
+
+        console.log('📋 Resultados estrategia 1:', usuarios);
+
+        if (error) {
+          console.error('❌ Error en estrategia 1:', error);
+        }
+
+        // Si no encontró nada, intentar separar nombre y apellido
+        if (!usuarios || usuarios.length === 0) {
+          console.log('📧 Estrategia 2: Búsqueda por nombre y apellido separados');
+          const nameParts = dadorName.trim().split(' ');
+          
+          if (nameParts.length >= 2) {
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ');
+            
+            console.log('🔍 Buscando:', { firstName, lastName });
+            
+            const { data: usuarios2, error: error2 } = await supabase
+              .from('Usuarios')
+              .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+              .eq('Nombre', firstName)
+              .eq('Apellido', lastName)
+              .not('Correo', 'is', null)
+              .neq('Correo', '');
+
+            console.log('📋 Resultados estrategia 2:', usuarios2);
+            usuarios = usuarios2;
+            error = error2;
+          }
+        }
+
+        // Si aún no encontró nada, búsqueda flexible
+        if (!usuarios || usuarios.length === 0) {
+          console.log('📧 Estrategia 3: Búsqueda flexible con ILIKE');
+          const { data: usuarios3, error: error3 } = await supabase
+            .from('Usuarios')
+            .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`)
+            .not('Correo', 'is', null)
+            .neq('Correo', '');
+
+          console.log('📋 Resultados estrategia 3:', usuarios3);
+          usuarios = usuarios3;
+          error = error3;
+        }
+
+        if (error) {
+          console.error('❌ Error buscando email:', error);
+          setEmail('Error al buscar');
+          setLoading(false);
+          return;
+        }
+
+        if (!usuarios || usuarios.length === 0) {
+          console.log('❌ No se encontró usuario con email para:', dadorName);
+          setEmail('No registrado');
+          setLoading(false);
+          return;
+        }
+
+        // Priorizar usuarios con rol "dador"
+        const dadorUsers = usuarios.filter(u => 
+          u.Rol_Operativo?.toLowerCase().includes('dador')
+        );
+
+        const selectedUser = dadorUsers.length > 0 ? dadorUsers[0] : usuarios[0];
+        
+        console.log('✅ Usuario seleccionado para email:', selectedUser);
+        console.log('📧 Email encontrado:', selectedUser.Correo);
+
+        setEmail(selectedUser.Correo || 'No registrado');
+
+      } catch (error) {
+        console.error('❌ Error inesperado buscando email:', error);
+        setEmail('Error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    findEmail();
+  }, [dadorName]);
+
+  if (loading) {
+    return <span className="text-gray-500">Buscando...</span>;
+  }
+
+  if (!email || email === 'No registrado' || email === 'Error' || email === 'Error al buscar') {
+    return <span className="text-gray-500">No disponible</span>;
+  }
+
+  return (
+    <a 
+      href={`mailto:${email}`} 
+      className="text-blue-600 hover:text-blue-800 underline"
+    >
+      {email}
+    </a>
+  );
+};
+
 const OperadorCotizaciones: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -591,6 +722,10 @@ const OperadorCotizaciones: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Nombre:</span>
                       <span className="text-gray-900">{selectedQuote.Nombre_Dador || 'No especificado'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Correo:</span>
+                      <EmailDisplay dadorName={selectedQuote.Nombre_Dador || ''} />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Teléfono de Contacto:</span>
