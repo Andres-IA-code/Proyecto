@@ -547,13 +547,34 @@ const OperadorCotizaciones: React.FC = () => {
 
                 <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                   <h3 className="font-medium text-gray-800 mb-3">Información del Dador</h3>
-                  {selectedQuote.dador_id_usuario ? (
-                    <DadorInfo idUsuario={selectedQuote.dador_id_usuario} />
-                  ) : (
-                    <div className="text-sm text-gray-500">
-                      Información del dador no disponible
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">Nombre:</span>
+                      <span className="font-medium text-gray-900">
+                        {selectedQuote.Nombre_Dador || 'No especificado'}
+                      </span>
                     </div>
-                  )}
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">Correo:</span>
+                      {selectedQuote.Email ? (
+                        <a 
+                          href={`mailto:${selectedQuote.Email}`}
+                          className="font-medium text-blue-600 hover:text-blue-800 underline"
+                        >
+                          {selectedQuote.Email}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No disponible</span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <Package className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-500 mr-2">ID Envío:</span>
+                      <span className="font-medium text-gray-900">#{selectedQuote.id_Envio}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
