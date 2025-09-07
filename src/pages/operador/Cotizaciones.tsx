@@ -15,9 +15,10 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
         setLoading(true);
         console.log('🔍 Buscando teléfono para dador:', dadorName);
 
-        if (!dadorName || dadorName.trim() === '') {
-          console.log('❌ Nombre del dador vacío');
-          setPhone('No disponible');
+        // Verificar si dadorName está definido y no es null/undefined/vacío
+        if (!dadorName || dadorName === 'undefined' || dadorName === 'null' || dadorName.trim() === '') {
+          console.log('❌ Nombre del dador vacío o undefined:', dadorName);
+          setPhone('Nombre no disponible');
           setLoading(false);
           return;
         }
@@ -26,9 +27,8 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
         const partes = nombreCompleto.split(' ');
 
         let usuarios: any[] = [];
-        let error: any = null;
 
-        // Estrategia 1: Búsqueda por nombre y apellido separados (PRIORITARIA)
+        // Estrategia 1: Búsqueda por nombre y apellido separados
         if (partes.length >= 2) {
           console.log('📞 Estrategia 1: Búsqueda por nombre y apellido separados');
           const firstName = partes[0];
@@ -42,18 +42,18 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
             .eq('Nombre', firstName)
             .eq('Apellido', lastName);
 
-          console.log('📋 Resultados estrategia 1 (sin filtros):', usuarios1);
+          console.log('📋 Resultados estrategia 1:', usuarios1);
 
           if (error1) {
             console.error('❌ Error en estrategia 1:', error1);
           } else if (usuarios1 && usuarios1.length > 0) {
-            // Filtrar teléfonos válidos después de la consulta
+            // Filtrar teléfonos válidos
             const usuariosConTelefono = usuarios1.filter(u => 
               u.Telefono && 
               u.Telefono.trim() !== '' && 
               u.Telefono.trim() !== '+54 9' && 
               u.Telefono.trim() !== '+54 9 ' &&
-              u.Telefono.length > 10 // Un teléfono válido debe tener más de 10 caracteres
+              u.Telefono.length > 10
             );
             
             console.log('📋 Usuarios con teléfono válido:', usuariosConTelefono);
@@ -64,101 +64,16 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
           }
         }
 
-        // Estrategia 2: Búsqueda exacta por nombre completo
-        if (usuarios.length === 0) {
-          console.log('📞 Estrategia 2: Búsqueda exacta por nombre completo');
-          const { data: usuarios2, error: error2 } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .eq('Nombre', nombreCompleto);
-
-          console.log('📋 Resultados estrategia 2:', usuarios2);
-
-          if (usuarios2 && usuarios2.length > 0) {
-            const usuariosConTelefono = usuarios2.filter(u => 
-              u.Telefono && 
-              u.Telefono.trim() !== '' && 
-              u.Telefono.trim() !== '+54 9' && 
-              u.Telefono.trim() !== '+54 9 ' &&
-              u.Telefono.length > 10
-            );
-            
-            if (usuariosConTelefono.length > 0) {
-              usuarios = usuariosConTelefono;
-            }
-          }
-
-          error = error2;
-        }
-
-        // Estrategia 3: Búsqueda flexible con ILIKE
-        if (usuarios.length === 0) {
-          console.log('📞 Estrategia 3: Búsqueda flexible con ILIKE');
-          const { data: usuarios3, error: error3 } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${nombreCompleto}%,Apellido.ilike.%${nombreCompleto}%`);
-
-          console.log('📋 Resultados estrategia 3:', usuarios3);
-
-          if (usuarios3 && usuarios3.length > 0) {
-            const usuariosConTelefono = usuarios3.filter(u => 
-              u.Telefono && 
-              u.Telefono.trim() !== '' && 
-              u.Telefono.trim() !== '+54 9' && 
-              u.Telefono.trim() !== '+54 9 ' &&
-              u.Telefono.length > 10
-            );
-            
-            if (usuariosConTelefono.length > 0) {
-              usuarios = usuariosConTelefono;
-            }
-          }
-
-          error = error3;
-        }
-
-        if (error) {
-          console.error('❌ Error buscando teléfono:', error);
-          setPhone('Error al buscar');
-          setLoading(false);
-          return;
-        }
-
-        if (usuarios.length === 0) {
+        // Si encontró usuarios
+        if (usuarios.length > 0) {
+          const selectedUser = usuarios[0];
+          console.log('✅ Usuario seleccionado:', selectedUser);
+          console.log('📞 Teléfono encontrado:', selectedUser.Telefono);
+          setPhone(selectedUser.Telefono);
+        } else {
           console.log('❌ No se encontró usuario con teléfono para:', dadorName);
-          
-          // Diagnóstico: buscar si existe el usuario sin filtrar por teléfono
-          const { data: allUsers } = await supabase
-            .from('Usuarios')
-            .select('id_Usuario, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .or(`Nombre.ilike.%${nombreCompleto}%,Apellido.ilike.%${nombreCompleto}%`);
-          
-          console.log('🔍 Usuarios encontrados (sin filtro de teléfono):', allUsers);
-          
-          if (allUsers && allUsers.length > 0) {
-            const userWithBadPhone = allUsers[0];
-            console.log('⚠️ Usuario encontrado pero con teléfono inválido:', userWithBadPhone.Telefono);
-            setPhone('Teléfono no válido');
-          } else {
-            setPhone('No registrado');
-          }
-          
-          setLoading(false);
-          return;
+          setPhone('No encontrado');
         }
-
-        // Priorizar usuarios con rol "dador"
-        const dadorUsers = usuarios.filter(u => 
-          u.Rol_Operativo?.toLowerCase().includes('dador')
-        );
-
-        const selectedUser = dadorUsers.length > 0 ? dadorUsers[0] : usuarios[0];
-        
-        console.log('✅ Usuario seleccionado:', selectedUser);
-        console.log('📞 Teléfono encontrado:', selectedUser.Telefono);
-
-        setPhone(selectedUser.Telefono || 'No registrado');
 
       } catch (error) {
         console.error('❌ Error inesperado buscando teléfono:', error);
@@ -171,15 +86,17 @@ const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ dadorName }) => {
     findPhone();
   }, [dadorName]);
 
+  // Mostrar estado de carga
   if (loading) {
     return <span className="text-gray-500">Buscando...</span>;
   }
 
-  if (!phone || 
-      phone === 'No registrado' || 
-      phone === 'Error' || 
-      phone === 'Error al buscar' ||
-      phone === 'Teléfono no válido') {
+  // Mostrar diferentes estados
+  if (phone === 'Nombre no disponible') {
+    return <span className="text-orange-500">Nombre no disponible</span>;
+  }
+
+  if (!phone || phone === 'No encontrado' || phone === 'Error') {
     return <span className="text-gray-500">{phone || 'No disponible'}</span>;
   }
 
