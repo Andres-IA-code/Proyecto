@@ -2,151 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Package, MapPin, Calendar, Clock, DollarSign, Truck, User, RefreshCw, CheckCircle, AlertCircle, Route, Weight } from 'lucide-react';
 import { supabase, getCurrentUser } from '../../lib/supabase';
 
-// Component to display phone with real-time lookup
-const PhoneDisplay: React.FC<{ nombreDador: string }> = ({ nombreDador }) => {
-  const [phone, setPhone] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const findPhone = async () => {
-      try {
-        setLoading(true);
-        console.log(`🔍 Buscando teléfono para: "${nombreDador}"`);
-        
-        if (!nombreDador || nombreDador.trim() === '') {
-          console.log('❌ Nombre vacío');
-          setPhone(null);
-          setLoading(false);
-          return;
-        }
-
-        const dadorNormalizado = nombreDador.trim();
-        
-        // 1. Búsqueda exacta por nombre completo
-        console.log('🔍 Paso 1: Búsqueda exacta por nombre completo');
-        const { data: exactMatch, error: exactError } = await supabase
-          .from('Usuarios')
-          .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-          .eq('Nombre', dadorNormalizado)
-          .not('Telefono', 'is', null)
-          .not('Telefono', 'eq', '')
-          .not('Telefono', 'eq', '+54 9 ')
-          .limit(1);
-        
-        console.log('📋 Resultado búsqueda exacta:', exactMatch);
-        if (exactError) {
-          console.error('❌ Error en búsqueda exacta:', exactError);
-        } else if (exactMatch && exactMatch.length > 0 && exactMatch[0]?.Telefono) {
-          console.log(`✅ Coincidencia exacta encontrada: ${exactMatch[0].Telefono}`);
-          setPhone(exactMatch[0].Telefono);
-          setLoading(false);
-          return;
-        }
-
-        // 2. Búsqueda por nombre y apellido separados (para personas físicas)
-        console.log('🔍 Paso 2: Búsqueda por nombre y apellido separados');
-        if (dadorNormalizado.includes(' ')) {
-          const palabras = dadorNormalizado.split(' ');
-          const nombre = palabras[0];
-          const apellido = palabras.slice(1).join(' ');
-          
-          console.log(`Buscando: Nombre="${nombre}", Apellido="${apellido}"`);
-          
-          const { data: nameMatch, error: nameError } = await supabase
-            .from('Usuarios')
-            .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-            .eq('Nombre', nombre)
-            .eq('Apellido', apellido)
-            .not('Telefono', 'is', null)
-            .not('Telefono', 'eq', '')
-            .not('Telefono', 'eq', '+54 9 ')
-            .limit(1);
-          
-          console.log('📋 Resultado búsqueda nombre/apellido:', nameMatch);
-          if (nameError) {
-            console.error('❌ Error en búsqueda por nombre/apellido:', nameError);
-          } else if (nameMatch && nameMatch.length > 0 && nameMatch[0]?.Telefono) {
-            console.log(`✅ Coincidencia por nombre/apellido: ${nameMatch[0].Telefono}`);
-            setPhone(nameMatch[0].Telefono);
-            setLoading(false);
-            return;
-          }
-        }
-
-        // 3. Búsqueda flexible usando ILIKE
-        console.log('🔍 Paso 3: Búsqueda flexible con ILIKE');
-        const { data: flexibleMatches, error: flexibleError } = await supabase
-          .from('Usuarios')
-          .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-          .ilike('Nombre', `%${dadorNormalizado}%`)
-          .not('Telefono', 'is', null)
-          .not('Telefono', 'eq', '')
-          .not('Telefono', 'eq', '+54 9 ')
-          .limit(10);
-        
-        console.log('📋 Resultados búsqueda flexible:', flexibleMatches);
-        if (flexibleError) {
-          console.error('❌ Error en búsqueda flexible:', flexibleError);
-        } else if (flexibleMatches && flexibleMatches.length > 0) {
-          console.log(`📋 Encontrados ${flexibleMatches.length} usuarios con nombres similares`);
-          
-          // Buscar coincidencia exacta en los resultados flexibles
-          const exactFlexibleMatch = flexibleMatches.find(user => {
-            const fullName = user.Tipo_Persona === 'Física' 
-              ? `${user.Nombre} ${user.Apellido || ''}`.trim()
-              : user.Nombre;
-            return fullName.toLowerCase() === dadorNormalizado.toLowerCase();
-          });
-          
-          if (exactFlexibleMatch?.Telefono) {
-            console.log(`✅ Coincidencia exacta en búsqueda flexible: ${exactFlexibleMatch.Telefono}`);
-            setPhone(exactFlexibleMatch.Telefono);
-            setLoading(false);
-            return;
-          }
-          
-          // Si no hay coincidencia exacta, usar el primer resultado
-          const firstMatch = flexibleMatches[0];
-          if (firstMatch?.Telefono) {
-            console.log(`✅ Usando primer resultado: ${firstMatch.Telefono}`);
-            setPhone(firstMatch.Telefono);
-            setLoading(false);
-            return;
-          }
-        }
-
-        console.log(`❌ No se encontró teléfono para: "${dadorNormalizado}"`);
-        setPhone(null);
-        
-      } catch (error) {
-        console.error('❌ Error buscando teléfono:', error);
-        setPhone(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    findPhone();
-  }, [nombreDador]);
-
-  if (loading) {
-    return <span className="text-gray-500">Buscando...</span>;
-  }
-
-  if (phone) {
-    return (
-      <a 
-        href={`tel:${phone}`}
-        className="text-blue-600 hover:text-blue-800 underline"
-      >
-        {phone}
-      </a>
-    );
-  }
-
-  return <span className="text-gray-500">No disponible</span>;
-};
-
 interface AcceptedQuote {
   id_Cotizaciones: number;
   id_Usuario: number;
@@ -330,22 +185,74 @@ const OperadorCotizaciones: React.FC = () => {
             
             console.log(`Buscando: Nombre="${nombre}", Apellido="${apellido}"`);
             
+            // Búsqueda directa primero
             const { data: nameMatch, error: nameError } = await supabase
               .from('Usuarios')
               .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
-              .eq('Nombre', nombre)
-              .eq('Apellido', apellido)
-              .not('Telefono', 'is', null)
-              .not('Telefono', 'eq', '')
-              .not('Telefono', 'eq', '+54 9 ')
-              .limit(1);
+              .ilike('Nombre', nombre)
+              .ilike('Apellido', apellido)
+              .limit(5); // Cambié a limit 5 para ver todos los resultados
             
             console.log('📋 Resultado búsqueda nombre/apellido:', nameMatch);
             if (nameError) {
               console.error('❌ Error en búsqueda por nombre/apellido:', nameError);
-            } else if (nameMatch && nameMatch.length > 0 && nameMatch[0]?.Telefono) {
-              console.log(`✅ Coincidencia por nombre/apellido: ${nameMatch[0].Telefono}`);
-              return nameMatch[0].Telefono;
+            } else if (nameMatch && nameMatch.length > 0) {
+              console.log(`📋 Encontrados ${nameMatch.length} usuarios con nombre/apellido coincidente:`);
+              nameMatch.forEach((user, index) => {
+                const fullName = user.Tipo_Persona === 'Física' 
+                  ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+                  : user.Nombre;
+                console.log(`  ${index + 1}. ${fullName} - Tel: "${user.Telefono}" - Rol: ${user.Rol_Operativo}`);
+              });
+              
+              // Buscar el primer usuario que tenga teléfono válido
+              const withValidPhone = nameMatch.find(user => 
+                user.Telefono && 
+                user.Telefono.trim() !== '' && 
+                user.Telefono !== '+54 9 ' &&
+                user.Telefono.length > 5
+              );
+              
+              if (withValidPhone?.Telefono) {
+                console.log(`✅ Coincidencia por nombre/apellido con teléfono válido: ${withValidPhone.Telefono}`);
+                return withValidPhone.Telefono;
+              }
+              
+              // Si no hay teléfono válido, probar con el primero que tenga algún teléfono
+              const firstWithPhone = nameMatch.find(user => user.Telefono);
+              if (firstWithPhone?.Telefono) {
+                console.log(`✅ Usando primer usuario con teléfono: ${firstWithPhone.Telefono}`);
+                return firstWithPhone.Telefono;
+              }
+            }
+            
+            // Variaciones con acentos si no encontró nada
+            const variacionesNombre2 = nombre.toLowerCase() === 'andres' ? ['Andres', 'Andrés', 'ANDRES', 'ANDRÉS'] : [nombre];
+            const variacionesApellido = [apellido, apellido.toUpperCase()];
+            
+            for (const varNombre of variacionesNombre2) {
+              for (const varApellido of variacionesApellido) {
+                if (varNombre === nombre && varApellido === apellido) continue; // Ya se probó arriba
+                
+                console.log(`🔍 Probando combinación con acentos: "${varNombre}" + "${varApellido}"`);
+                
+                const { data: accentMatch, error: accentError } = await supabase
+                  .from('Usuarios')
+                  .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+                  .ilike('Nombre', varNombre)
+                  .ilike('Apellido', varApellido)
+                  .limit(3);
+                
+                if (accentError) {
+                  console.error(`❌ Error en búsqueda ${varNombre}/${varApellido}:`, accentError);
+                } else if (accentMatch && accentMatch.length > 0) {
+                  const withPhone = accentMatch.find(user => user.Telefono && user.Telefono.trim() !== '');
+                  if (withPhone?.Telefono) {
+                    console.log(`✅ Coincidencia con acentos: ${withPhone.Telefono}`);
+                    return withPhone.Telefono;
+                  }
+                }
+              }
             }
           }
 
@@ -463,6 +370,82 @@ const OperadorCotizaciones: React.FC = () => {
             if (withPhone?.Telefono) {
               console.log(`✅ Usuario con teléfono encontrado: ${withPhone.Telefono}`);
               return withPhone.Telefono;
+            }
+          }
+
+          // 6. DIAGNÓSTICO AVANZADO - Ver todos los usuarios para encontrar el problema
+          console.log('🔍 DIAGNÓSTICO: Consultando estructura de tabla Usuarios');
+          const { data: allUsers, error: diagError } = await supabase
+            .from('Usuarios')
+            .select('id, Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .limit(20);
+          
+          if (diagError) {
+            console.error('❌ Error en diagnóstico:', diagError);
+          } else {
+            console.log(`📊 DIAGNÓSTICO: Encontrados ${allUsers?.length || 0} usuarios en total`);
+            if (allUsers && allUsers.length > 0) {
+              console.log('📋 Primeros usuarios en la base de datos:');
+              allUsers.forEach((user, index) => {
+                const fullName = user.Tipo_Persona === 'Física' 
+                  ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+                  : user.Nombre;
+                console.log(`  ${index + 1}. ID: ${user.id} | "${fullName}" | Tel: "${user.Telefono}" | Rol: ${user.Rol_Operativo}`);
+              });
+              
+              // Buscar usuarios que sean dadores de carga
+              const dadores = allUsers.filter(user => 
+                user.Rol_Operativo?.toLowerCase().includes('dador')
+              );
+              
+              if (dadores.length > 0) {
+                console.log(`📋 Dadores de carga encontrados: ${dadores.length}`);
+                dadores.forEach((dador, index) => {
+                  const fullName = dador.Tipo_Persona === 'Física' 
+                    ? `${dador.Nombre} ${dador.Apellido || ''}`.trim()
+                    : dador.Nombre;
+                  console.log(`  Dador ${index + 1}: "${fullName}" - Tel: "${dador.Telefono}"`);
+                });
+              } else {
+                console.log('⚠️  No se encontraron usuarios con rol de dador de carga');
+              }
+            } else {
+              console.log('❌ No hay usuarios en la tabla Usuarios');
+            }
+          }
+
+          // 7. Búsqueda de usuarios con nombres similares (fuzzy)
+          console.log('🔍 Paso 7: Búsqueda fuzzy por palabras individuales');
+          const palabrasNombre = dadorNormalizado.split(' ');
+          
+          for (const palabra of palabrasNombre) {
+            if (palabra.length > 2) {
+              console.log(`🔍 Buscando por palabra: "${palabra}"`);
+              const { data: fuzzyMatches } = await supabase
+                .from('Usuarios')
+                .select('Telefono, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+                .or(`Nombre.ilike.%${palabra}%, Apellido.ilike.%${palabra}%`)
+                .limit(5);
+              
+              if (fuzzyMatches && fuzzyMatches.length > 0) {
+                console.log(`📋 Coincidencias para "${palabra}":`);
+                fuzzyMatches.forEach((user, index) => {
+                  const fullName = user.Tipo_Persona === 'Física' 
+                    ? `${user.Nombre} ${user.Apellido || ''}`.trim()
+                    : user.Nombre;
+                  console.log(`  ${index + 1}. "${fullName}" - Tel: "${user.Telefono}"`);
+                });
+                
+                // Si encontramos coincidencias y tienen teléfono, usar la primera
+                const withValidPhone = fuzzyMatches.find(user => 
+                  user.Telefono && user.Telefono.trim() !== '' && user.Telefono.length > 5
+                );
+                
+                if (withValidPhone?.Telefono) {
+                  console.log(`✅ Usando coincidencia fuzzy para "${palabra}": ${withValidPhone.Telefono}`);
+                  return withValidPhone.Telefono;
+                }
+              }
             }
           }
 
@@ -995,8 +978,17 @@ const OperadorCotizaciones: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-700">Teléfono de Contacto:</span>
-                      <div className="text-gray-900" id="phone-display">
-                        <PhoneDisplay nombreDador={selectedQuote.Nombre_Dador} />
+                      <div className="text-gray-900">
+                        {selectedQuote.dador_telefono ? (
+                          <a 
+                            href={`tel:${selectedQuote.dador_telefono}`}
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            {selectedQuote.dador_telefono}
+                          </a>
+                        ) : (
+                          <span className="text-gray-500">No disponible</span>
+                        )}
                       </div>
                     </div>
                     <div>
