@@ -36,6 +36,177 @@ interface Quote {
   dador_telefono?: string;
 }
 
+interface PhoneDisplayProps {
+  idUsuario: number;
+}
+
+const PhoneDisplay: React.FC<PhoneDisplayProps> = ({ idUsuario }) => {
+  const [phone, setPhone] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const findPhone = async () => {
+      try {
+        setLoading(true);
+        console.log('🔍 Buscando teléfono para usuario ID:', idUsuario);
+
+        if (!idUsuario) {
+          console.log('❌ ID de usuario no válido');
+          setPhone('No disponible');
+          setLoading(false);
+          return;
+        }
+
+        // Búsqueda directa por ID de usuario
+        console.log('📞 Buscando usuario por ID:', idUsuario);
+        const { data: usuario, error } = await supabase
+          .from('Usuarios')
+          .select('id_Usuario, Telefono, Nombre, Apellido')
+          .eq('id_Usuario', idUsuario)
+          .single();
+
+        console.log('📋 Usuario encontrado:', usuario);
+
+        if (error) {
+          console.error('❌ Error buscando usuario:', error);
+          setPhone('Error al buscar');
+          setLoading(false);
+          return;
+        }
+
+        if (!usuario) {
+          console.log('❌ No se encontró usuario con ID:', idUsuario);
+          setPhone('No registrado');
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Usuario encontrado:', usuario);
+        console.log('📞 Teléfono encontrado:', usuario.Telefono);
+
+        // Verificar si el teléfono es válido
+        const telefono = usuario.Telefono;
+        if (!telefono || telefono.trim() === '' || telefono === '+54 9 ') {
+          setPhone('No registrado');
+        } else {
+          setPhone(telefono);
+        }
+
+      } catch (error) {
+        console.error('❌ Error inesperado buscando teléfono:', error);
+        setPhone('Error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    findPhone();
+  }, [idUsuario]);
+
+  if (loading) {
+    return <span className="text-gray-500">Buscando...</span>;
+  }
+
+  if (!phone || phone === 'No registrado' || phone === 'Error' || phone === 'Error al buscar') {
+    return <span className="text-gray-500">No disponible</span>;
+  }
+
+  return (
+    <a 
+      href={`tel:${phone}`} 
+      className="text-blue-600 hover:text-blue-800 underline"
+      title={`Llamar a ${phone}`}
+    >
+      {phone}
+    </a>
+  );
+};
+
+interface EmailDisplayProps {
+  idUsuario: number;
+}
+
+const EmailDisplay: React.FC<EmailDisplayProps> = ({ idUsuario }) => {
+  const [email, setEmail] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const findEmail = async () => {
+      try {
+        setLoading(true);
+        console.log('📧 Buscando email para usuario ID:', idUsuario);
+
+        if (!idUsuario) {
+          console.log('❌ ID de usuario no válido');
+          setEmail('No disponible');
+          setLoading(false);
+          return;
+        }
+
+        // Búsqueda directa por ID de usuario
+        console.log('📧 Buscando usuario por ID:', idUsuario);
+        const { data: usuario, error } = await supabase
+          .from('Usuarios')
+          .select('id_Usuario, Correo, Nombre, Apellido')
+          .eq('id_Usuario', idUsuario)
+          .single();
+
+        console.log('📋 Usuario encontrado:', usuario);
+
+        if (error) {
+          console.error('❌ Error buscando usuario:', error);
+          setEmail('Error al buscar');
+          setLoading(false);
+          return;
+        }
+
+        if (!usuario) {
+          console.log('❌ No se encontró usuario con ID:', idUsuario);
+          setEmail('No registrado');
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Usuario encontrado:', usuario);
+        console.log('📧 Email encontrado:', usuario.Correo);
+
+        // Verificar si el email es válido
+        const correo = usuario.Correo;
+        if (!correo || correo.trim() === '' || !correo.includes('@')) {
+          setEmail('No registrado');
+        } else {
+          setEmail(correo);
+        }
+
+      } catch (error) {
+        console.error('❌ Error inesperado buscando email:', error);
+        setEmail('Error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    findEmail();
+  }, [idUsuario]);
+
+  if (loading) {
+    return <span className="text-gray-500">Buscando...</span>;
+  }
+
+  if (!email || email === 'No registrado' || email === 'Error' || email === 'Error al buscar') {
+    return <span className="text-gray-500">No disponible</span>;
+  }
+
+  return (
+    <a 
+      href={`mailto:${email}`} 
+      className="text-blue-600 hover:text-blue-800 underline"
+      title={`Enviar email a ${email}`}
+    >
+      {email}
+    </a>
+  );
+};
 
 const OperadorCotizaciones: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -136,51 +307,6 @@ const OperadorCotizaciones: React.FC = () => {
         // Información del operador
         operador_correo: quote.operador?.Correo,
         operador_telefono: quote.operador?.Telefono,
-      }));
-
-      setQuotes(transformedData);
-      console.log('Cotizaciones encontradas:', transformedData.length);
-      
-    } catch (err) {
-      console.error('Error inesperado:', err);
-      setError('Error inesperado al cargar las cotizaciones');
-    } finally {
-      setLoading(false);
-    }
-  };
-              Correo,
-              Telefono
-            )
-          )
-        `)
-        .eq('Nombre_Operador', nombreOperador)
-        .order('Fecha', { ascending: false });
-
-      if (fetchError) {
-        console.error('Error fetching quotes:', fetchError);
-        setError('Error al cargar las cotizaciones');
-        return;
-      }
-
-      // Transformar los datos para facilitar el acceso
-      const transformedData = (data || []).map(quote => ({
-        ...quote,
-        envio_origen: quote.General?.Origen,
-        envio_destino: quote.General?.Destino,
-        envio_peso: quote.General?.Peso,
-        envio_tipo_carga: quote.General?.Tipo_Carga,
-        envio_observaciones: quote.General?.Observaciones,
-        envio_fecha_retiro: quote.General?.Fecha_Retiro,
-        envio_horario_retiro: quote.General?.Horario_Retiro,
-        envio_parada_programada: quote.General?.Parada_Programada,
-        envio_tipo_vehiculo: quote.General?.Tipo_Vehiculo,
-        envio_tipo_carroceria: quote.General?.Tipo_Carroceria,
-        envio_dimension_largo: quote.General?.Dimension_Largo,
-        envio_dimension_ancho: quote.General?.Dimension_Ancho,
-        envio_dimension_alto: quote.General?.Dimension_Alto,
-        envio_distancia: quote.General?.Distancia,
-        dador_correo: quote.General?.Usuarios?.Correo,
-        dador_telefono: quote.General?.Usuarios?.Telefono,
       }));
 
       setQuotes(transformedData);
@@ -527,30 +653,10 @@ const OperadorCotizaciones: React.FC = () => {
                       ) : (
                         <span className="text-gray-500">No disponible</span>
                       )}
-                        <a 
-                          href={`mailto:${selectedQuote.dador_correo}`} 
-                          className="text-blue-600 hover:text-blue-800 underline"
-                          title={`Enviar email a ${selectedQuote.dador_correo}`}
-                        >
-                          {selectedQuote.dador_correo}
-                        </a>
-                      ) : (
-                        <span className="text-gray-500">No disponible</span>
-                      )}
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Teléfono de Contacto:</span>
                       {selectedQuote.dador_telefono ? (
-                        <a 
-                          href={`tel:${selectedQuote.dador_telefono}`} 
-                          className="text-blue-600 hover:text-blue-800 underline"
-                          title={`Llamar a ${selectedQuote.dador_telefono}`}
-                        >
-                          {selectedQuote.dador_telefono}
-                        </a>
-                      ) : (
-                        <span className="text-gray-500">No disponible</span>
-                      )}
                         <a 
                           href={`tel:${selectedQuote.dador_telefono}`} 
                           className="text-blue-600 hover:text-blue-800 underline"
