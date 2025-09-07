@@ -74,9 +74,14 @@ const OperadorCotizaciones: React.FC = () => {
         return;
       }
 
-      console.log('Buscando cotizaciones para operador ID:', currentUser.profile.id_Usuario);
+      // Construir el nombre del operador según el tipo de persona
+      const nombreOperador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
 
-      // Buscar cotizaciones del operador actual usando id_Operador
+      console.log('Buscando cotizaciones para operador:', nombreOperador);
+
+      // Buscar cotizaciones del operador actual usando Nombre_Operador
       const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
@@ -106,7 +111,7 @@ const OperadorCotizaciones: React.FC = () => {
             )
           )
         `)
-        .eq('id_Operador', currentUser.profile.id_Usuario)
+        .eq('Nombre_Operador', nombreOperador)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
