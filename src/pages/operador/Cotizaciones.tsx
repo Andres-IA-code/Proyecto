@@ -638,7 +638,7 @@ const OperadorCotizaciones: React.FC = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Nombre:</span>
-                      <span className="text-gray-900">{selectedQuote.dador_nombre_completo || selectedQuote.Nombre_Dador || 'No especificado'}</span>
+                      <span className="text-gray-900">{selectedQuote.Nombre_Dador || 'No especificado'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Correo:</span>
