@@ -207,7 +207,7 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
         console.log('📧 Estrategia 1: Búsqueda exacta por nombre completo en tabla Usuarios');
         let { data: usuarios, error } = await supabase
           .from('Usuarios')
-          .select('id_Usuario, Correo, Email, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+          .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
           .eq('Nombre', dadorName.trim());
 
         console.log('📋 Resultados estrategia 1 (todos los usuarios):', usuarios);
@@ -215,7 +215,7 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
         // Filtrar solo usuarios con email válido
         if (usuarios && usuarios.length > 0) {
           usuarios = usuarios.filter(u => {
-            const email = u.Correo || u.Email;
+            const email = u.Correo;
             return email && email.trim() !== '' && email.includes('@');
           });
           console.log('📧 Usuarios con email válido:', usuarios);
@@ -234,13 +234,13 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
             
             const { data: usuarios2, error: error2 } = await supabase
               .from('Usuarios')
-              .select('id_Usuario, Correo, Email, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+              .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
               .eq('Nombre', firstName)
               .eq('Apellido', lastName);
 
             if (usuarios2) {
               usuarios = usuarios2.filter(u => {
-                const email = u.Correo || u.Email;
+                const email = u.Correo;
                 return email && email.trim() !== '' && email.includes('@');
               });
             }
@@ -253,78 +253,16 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
           console.log('📧 Estrategia 3: Búsqueda flexible con ILIKE');
           const { data: usuarios3, error: error3 } = await supabase
             .from('Usuarios')
-            .select('id_Usuario, Correo, Email, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
             .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`);
 
           if (usuarios3) {
             usuarios = usuarios3.filter(u => {
-              const email = u.Correo || u.Email;
+              const email = u.Correo;
               return email && email.trim() !== '' && email.includes('@');
             });
           }
           console.log('📋 Resultados estrategia 3:', usuarios);
-        }
-
-        // Estrategia 4: Buscar en la tabla General por si hay información del dador ahí
-        if (!usuarios || usuarios.length === 0) {
-          console.log('📧 Estrategia 4: Búsqueda en tabla General');
-          
-          try {
-            const { data: enviosData, error: enviosError } = await supabase
-              .from('General')
-              .select('id_Usuario, Nombre_Dador, Correo_Dador, Email_Dador, Correo, Email')
-              .eq('Nombre_Dador', dadorName.trim());
-
-            console.log('📋 Resultados tabla General:', enviosData);
-
-            if (enviosData && enviosData.length > 0) {
-              const envioConEmail = enviosData.find(e => {
-                const email = e.Correo_Dador || e.Email_Dador || e.Correo || e.Email;
-                return email && email.trim() !== '' && email.includes('@');
-              });
-
-              if (envioConEmail) {
-                const email = envioConEmail.Correo_Dador || envioConEmail.Email_Dador || envioConEmail.Correo || envioConEmail.Email;
-                console.log('✅ Email encontrado en tabla General:', email);
-                setEmail(email);
-                setLoading(false);
-                return;
-              }
-            }
-          } catch (generalError) {
-            console.log('⚠️ Error buscando en tabla General:', generalError);
-          }
-        }
-
-        // Estrategia 5: Buscar en la tabla Cotizaciones por si hay información ahí
-        if (!usuarios || usuarios.length === 0) {
-          console.log('📧 Estrategia 5: Búsqueda en tabla Cotizaciones');
-          
-          try {
-            const { data: cotizacionesData, error: cotizacionesError } = await supabase
-              .from('Cotizaciones')
-              .select('Nombre_Dador, Correo_Dador, Email_Dador')
-              .eq('Nombre_Dador', dadorName.trim());
-
-            console.log('📋 Resultados tabla Cotizaciones:', cotizacionesData);
-
-            if (cotizacionesData && cotizacionesData.length > 0) {
-              const cotizacionConEmail = cotizacionesData.find(c => {
-                const email = c.Correo_Dador || c.Email_Dador;
-                return email && email.trim() !== '' && email.includes('@');
-              });
-
-              if (cotizacionConEmail) {
-                const email = cotizacionConEmail.Correo_Dador || cotizacionConEmail.Email_Dador;
-                console.log('✅ Email encontrado en tabla Cotizaciones:', email);
-                setEmail(email);
-                setLoading(false);
-                return;
-              }
-            }
-          } catch (cotizacionesError) {
-            console.log('⚠️ Error buscando en tabla Cotizaciones:', cotizacionesError);
-          }
         }
 
         if (error) {
@@ -340,7 +278,7 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
           // Diagnóstico: buscar si existe el usuario sin filtrar por email
           const { data: allUsers, error: diagError } = await supabase
             .from('Usuarios')
-            .select('id_Usuario, Correo, Email, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
+            .select('id_Usuario, Correo, Nombre, Apellido, Tipo_Persona, Rol_Operativo')
             .or(`Nombre.ilike.%${dadorName.trim()}%,Apellido.ilike.%${dadorName.trim()}%`);
           
           if (diagError) {
@@ -350,8 +288,7 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
             console.log('🔍 Campos de email disponibles:', allUsers?.map(u => ({
               nombre: u.Nombre,
               apellido: u.Apellido,
-              correo: u.Correo,
-              email: u.Email || 'No tiene campo Email'
+              correo: u.Correo
             })));
           }
           
@@ -370,7 +307,7 @@ const EmailDisplay: React.FC<EmailDisplayProps> = ({ dadorName }) => {
         console.log('✅ Usuario seleccionado para email:', selectedUser);
         
         // Obtener el email del campo disponible
-        const foundEmail = selectedUser.Correo || selectedUser.Email || null;
+        const foundEmail = selectedUser.Correo || null;
         console.log('📧 Email encontrado:', foundEmail);
 
         setEmail(foundEmail || 'No registrado');
