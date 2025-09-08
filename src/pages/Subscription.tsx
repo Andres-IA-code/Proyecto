@@ -12,7 +12,7 @@ const Subscription: React.FC = () => {
       period: '',
       description: 'Perfecto para pequeñas empresas que están comenzando',
       features: [
-        'Hasta 5 envíos por mes',
+        '5 envíos por mes',
         'Seguimiento básico',
         'Soporte por email',
         'Dashboard básico',
