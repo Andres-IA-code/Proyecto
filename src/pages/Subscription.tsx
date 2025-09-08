@@ -25,7 +25,7 @@ const Subscription: React.FC = () => {
     {
       id: 'premium',
       name: 'Premium',
-      price: '$79',
+      price: '$10000',
       period: '/mes',
       description: 'Ideal para empresas en crecimiento con necesidades avanzadas',
       features: [
