@@ -13,6 +13,7 @@ const Subscription: React.FC = () => {
       description: 'Perfecto para pequeñas empresas que están comenzando',
       features: [
         '5 envíos por mes',
+        '5 envíos',
         'Seguimiento básico',
         'Soporte por email',
         'Dashboard básico',
