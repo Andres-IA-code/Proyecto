@@ -89,11 +89,6 @@ const Subscription: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Suscripción</h1>
-        <p className="text-gray-500 mt-1">Gestiona tu plan de suscripción y facturación</p>
-      </div>
-
       {/* Current Plan Status */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
