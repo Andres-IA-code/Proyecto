@@ -318,32 +318,6 @@ const Subscription: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Security Features */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <div className="flex items-center mb-4">
-          <Shield className="h-6 w-6 text-green-600 mr-2" />
-          <h3 className="text-lg font-medium text-gray-900">Seguridad y Protección</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center">
-            <Check className="h-5 w-5 text-green-500 mr-2" />
-            <span className="text-sm text-gray-700">Encriptación SSL de 256 bits</span>
-          </div>
-          <div className="flex items-center">
-            <Check className="h-5 w-5 text-green-500 mr-2" />
-            <span className="text-sm text-gray-700">Cumplimiento PCI DSS</span>
-          </div>
-          <div className="flex items-center">
-            <Check className="h-5 w-5 text-green-500 mr-2" />
-            <span className="text-sm text-gray-700">Respaldo automático de datos</span>
-          </div>
-          <div className="flex items-center">
-            <Check className="h-5 w-5 text-green-500 mr-2" />
-            <span className="text-sm text-gray-700">Soporte 24/7</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
