@@ -44,7 +44,7 @@ const Subscription: React.FC = () => {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: '$199',
+      price: '$30000',
       period: '/mes',
       description: 'Solución completa para grandes operaciones logísticas',
       features: [
