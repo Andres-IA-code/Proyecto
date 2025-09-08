@@ -149,16 +149,6 @@ const Subscription: React.FC = () => {
               <div className="bg-blue-600 h-2 rounded-full" style={{ width: '63.5%' }}></div>
             </div>
           </div>
-          
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-600">Almacenamiento de documentos</span>
-              <span className="font-medium">2.3 GB de 10 GB</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-green-600 h-2 rounded-full" style={{ width: '23%' }}></div>
-            </div>
-          </div>
         </div>
       </div>
 
