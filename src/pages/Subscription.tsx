@@ -214,24 +214,6 @@ const Subscription: React.FC = () => {
       </div>
 
 
-      {/* Payment Method */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Método de Pago</h2>
-        <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-          <div className="flex items-center">
-            <div className="w-12 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
-              <CreditCard className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <div className="font-medium text-gray-900">•••• •••• •••• 4242</div>
-              <div className="text-sm text-gray-500">Vence 12/27</div>
-            </div>
-          </div>
-          <button className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 underline">
-            Cambiar
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
