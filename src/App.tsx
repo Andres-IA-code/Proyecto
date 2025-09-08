@@ -14,6 +14,7 @@ import QuoteManagement from './pages/QuoteManagement';
 import ShipmentTracking from './pages/ShipmentTracking';
 import History from './pages/History';
 import Profile from './pages/Profile';
+import Subscription from './pages/Subscription';
 import OperadorLogistico from './pages/OperadorLogistico';
 import BrokerLogistico from './pages/BrokerLogistico';
 import Solutions from './pages/Solutions';
@@ -85,6 +86,7 @@ function App() {
           <Route path="quotes" element={<QuoteManagement />} />
           <Route path="tracking" element={<ShipmentTracking />} />
           <Route path="history" element={<History />} />
+          <Route path="subscription" element={<Subscription />} />
           <Route path="profile" element={<Profile />} />
         </Route>
       </Routes>

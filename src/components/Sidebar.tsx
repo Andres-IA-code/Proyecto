@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Truck, Package, History, User, LogOut } from 'lucide-react';
+import { Home, Truck, Package, History, User, LogOut, CreditCard } from 'lucide-react';
 import { supabase, getCurrentUser, signOut } from '../lib/supabase';
 
 interface UserData {
@@ -113,6 +113,7 @@ const Sidebar: React.FC = () => {
     { name: 'Solicitar Viaje', path: '/app/quote-request', icon: <Truck size={20} /> },
     { name: 'Cotizaciones', path: '/app/quotes', icon: <Package size={20} /> },
     { name: 'Historial', path: '/app/history', icon: <History size={20} /> },
+    { name: 'Suscripción', path: '/app/subscription', icon: <CreditCard size={20} /> },
     { name: 'Perfil', path: '/app/profile', icon: <User size={20} /> },
   ];
 

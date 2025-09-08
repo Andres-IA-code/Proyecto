@@ -19,6 +19,8 @@ const Header: React.FC = () => {
       return { title: 'Seguimiento', subtitle: 'Rastrear envíos en tiempo real' };
     } else if (path === '/app/history') {
       return { title: '', subtitle: 'Historial de envíos y facturas' };
+    } else if (path === '/app/subscription') {
+      return { title: 'Suscripción', subtitle: 'Gestionar plan y facturación' };
     } else if (path === '/app/profile') {
       return { title: 'Perfil', subtitle: 'Gestionar información personal' };
     }
