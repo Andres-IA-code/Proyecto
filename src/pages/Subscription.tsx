@@ -197,7 +197,6 @@ const Subscription: React.FC = () => {
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-center text-sm">
                         <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                        <span className="text-gray-700">{feature}</span>
                       </li>
                     ))}
                   </ul>
