@@ -8,7 +8,7 @@ const Subscription: React.FC = () => {
     {
       id: 'basic',
       name: 'Básico',
-      price: 'Gratis',
+      price: '10000',
       period: '',
       description: 'Perfecto para pequeñas empresas que están comenzando',
       features: [
