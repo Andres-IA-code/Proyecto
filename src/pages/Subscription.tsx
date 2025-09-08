@@ -8,11 +8,11 @@ const Subscription: React.FC = () => {
     {
       id: 'basic',
       name: 'Básico',
-      price: '$29',
-      period: '/mes',
+      price: 'Gratis',
+      period: '',
       description: 'Perfecto para pequeñas empresas que están comenzando',
       features: [
-        'Hasta 50 envíos por mes',
+        'Hasta 5 envíos por mes',
         'Seguimiento básico',
         'Soporte por email',
         'Dashboard básico',
