@@ -4,6 +4,32 @@ import { CreditCard, Check, Star, Shield, Clock, Users, Zap, Crown } from 'lucid
 const Subscription: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium' | 'enterprise' | null>(null);
 
+  // Function to get shipment limits and usage based on selected plan
+  const getShipmentInfo = () => {
+    if (!selectedPlan) {
+      return { used: 0, limit: 0, display: '0/0' };
+    }
+
+    switch (selectedPlan) {
+      case 'basic':
+        return { used: 3, limit: 5, display: '3/5' };
+      case 'premium':
+        return { used: 127, limit: 200, display: '127/200' };
+      case 'enterprise':
+        return { used: 1250, limit: Infinity, display: '1,250/Ilimitado' };
+      default:
+        return { used: 0, limit: 0, display: '0/0' };
+    }
+  };
+
+  // Function to calculate progress percentage
+  const getProgressPercentage = () => {
+    const { used, limit } = getShipmentInfo();
+    if (limit === Infinity) return 75; // Show 75% for enterprise as example
+    if (limit === 0) return 0;
+    return Math.min((used / limit) * 100, 100);
+  };
+
   const plans = [
     {
       id: 'basic',
@@ -137,7 +163,7 @@ const Subscription: React.FC = () => {
               <Users className="h-8 w-8 text-purple-600 mr-3" />
               <div>
                 <div className="text-sm text-gray-500">Envíos Utilizados</div>
-                <div className="text-xl font-semibold text-gray-900">127/200</div>
+                <div className="text-xl font-semibold text-gray-900">{getShipmentInfo().display}</div>
               </div>
             </div>
           </div>
@@ -151,10 +177,10 @@ const Subscription: React.FC = () => {
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span className="text-gray-600">Envíos este mes</span>
-              <span className="font-medium">127 de 200</span>
+              <span className="font-medium">{getShipmentInfo().display}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '63.5%' }}></div>
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${getProgressPercentage()}%` }}></div>
             </div>
           </div>
         </div>
