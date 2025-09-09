@@ -119,7 +119,13 @@ const Subscription: React.FC = () => {
               <Clock className="h-8 w-8 text-green-600 mr-3" />
               <div>
                 <div className="text-sm text-gray-500">Próxima Facturación</div>
-                <div className="text-xl font-semibold text-gray-900">15 Feb 2025</div>
+                <div className="text-xl font-semibold text-gray-900">
+                  {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                  })}
+                </div>
               </div>
             </div>
           </div>
