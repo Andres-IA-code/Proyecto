@@ -16,7 +16,7 @@ const Subscription: React.FC = () => {
       case 'premium':
         return { used: 127, limit: 200, display: '127/200' };
       case 'enterprise':
-        return { used: 1250, limit: Infinity, display: '1,250/Ilimitado' };
+        return { used: 1250, limit: Infinity, display: 'Ilimitado' };
       default:
         return { used: 0, limit: 0, display: '0/0' };
     }
