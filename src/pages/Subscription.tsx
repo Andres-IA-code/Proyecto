@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CreditCard, Check, Star, Shield, Clock, Users, Zap, Crown } from 'lucide-react';
 
 const Subscription: React.FC = () => {
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium' | 'enterprise'>('basic');
+  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium' | 'enterprise' | null>(null);
 
   const plans = [
     {
@@ -109,7 +109,9 @@ const Subscription: React.FC = () => {
               <Star className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <div className="text-sm text-gray-500">Plan Actual</div>
-                <div className="text-xl font-semibold text-gray-900">Premium</div>
+                <div className="text-xl font-semibold text-gray-900">
+                  {selectedPlan ? plans.find(plan => plan.id === selectedPlan)?.name || '' : ''}
+                </div>
               </div>
             </div>
           </div>
