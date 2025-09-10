@@ -19,37 +19,55 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
   const createPayment = async () => {
     setLoading(true);
     try {
-      // Configurar MercadoPago directamente
-      const client = new MercadoPagoConfig({
-        accessToken: 'TEST-tu-access-token-aqui', // ← Pon tu token aquí
+      // Tu Access Token de MercadoPago
+      const ACCESS_TOKEN = 'APP_USR-3418322195445818-090922-a36386c142316bf9f3b9e994eaef5870-2678265045'; // ← Reemplaza con tu token
+
+      const preferenceData = {
+        items: [
+          {
+            title: title,
+            quantity: 1,
+            unit_price: price,
+            description: description
+          }
+        ],
+        back_urls: {
+          success: `${window.location.origin}/app/subscription?status=success`,
+          failure: `${window.location.origin}/app/subscription?status=failure`,
+          pending: `${window.location.origin}/app/subscription?status=pending`
+        },
+        auto_return: 'approved'
+      };
+
+      // Llamada directa a la API de MercadoPago
+      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(preferenceData)
       });
 
-      const preference = new Preference(client);
+      const data = await response.json();
 
-      const response = await preference.create({
-        body: {
-          items: [
-            {
-              title: title,
-              quantity: 1,
-              unit_price: price,
-              description: description
-            }
-          ],
-          back_urls: {
-            success: `${window.location.origin}/app/subscription?status=success`,
-            failure: `${window.location.origin}/app/subscription?status=failure`,
-            pending: `${window.location.origin}/app/subscription?status=pending`
-          },
-          auto_return: 'approved'
-        }
-      });
+      if (!response.ok) {
+        console.error('MercadoPago API Error:', data);
+        alert(`Error: ${data.message || 'Error al crear la preferencia'}`);
+        return;
+      }
 
       // Redirigir al checkout de MercadoPago
-      window.open(response.init_point, '_blank');
+      if (data.init_point) {
+        window.open(data.init_point, '_blank');
+      } else {
+        console.error('No se recibió init_point:', data);
+        alert('Error: No se pudo obtener el link de pago');
+      }
+
     } catch (error) {
-      console.error('Payment error:', error);
-      alert('Error al crear el pago. Verifica las credenciales.');
+      console.error('Error:', error);
+      alert('Error de conexión. Verifica tu internet e intenta de nuevo.');
     } finally {
       setLoading(false);
     }
