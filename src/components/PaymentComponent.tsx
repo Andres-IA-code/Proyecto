@@ -20,7 +20,7 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
     setLoading(true);
     try {
       // Tu Access Token de MercadoPago
-      const ACCESS_TOKEN = 'APP_USR-3418322195445818-090922-a36386c142316bf9f3b9e994eaef5870-2678265045'; // ← Reemplaza con tu token
+      const ACCESS_TOKEN = process.env.VITE_MERCADOPAGO_ACCESS_TOKEN || 'TEST-token-aqui';
 
       const preferenceData = {
         items: [
