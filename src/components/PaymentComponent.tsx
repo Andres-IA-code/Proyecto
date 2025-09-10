@@ -20,9 +20,9 @@ const PaymentComponent: React.FC = () => {
         body: {
           items: [
             {
-              title: 'Mi producto',
+              title: 'Plan Premium Mensual',
               quantity: 1,
-              unit_price: 100
+              unit_price: 10000
             }
           ],
           back_urls: {
