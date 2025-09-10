@@ -22,7 +22,7 @@ serve(async (req) => {
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')}`,
+        'Authorization': `Bearer ${Deno.env.get('APP_USR-3418322195445818-090922-a36386c142316bf9f3b9e994eaef5870-2678265045')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(preference),
