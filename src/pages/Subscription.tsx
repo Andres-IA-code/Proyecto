@@ -36,7 +36,7 @@ const Subscription: React.FC = () => {
         {/* Plan Premium */}
         <div className="border rounded-lg p-6 border-blue-500">
           <h3 className="text-xl font-semibold mb-4">Plan Premium</h3>
-          <p className="text-3xl font-bold mb-4">$15.000 <span className="text-sm">ARS/mes</span></p>
+          <p className="text-3xl font-bold mb-4">$10.000 <span className="text-sm">ARS/mes</span></p>
           <ul className="mb-6">
             <li>✓ <strong>200 cotizaciones/mes</strong></li>
             <li>✓ Seguimiento avanzado</li>
