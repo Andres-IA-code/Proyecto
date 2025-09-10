@@ -1,5 +1,6 @@
 // src/components/PaymentComponent.tsx
 import React, { useState } from 'react';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
 
 interface PaymentComponentProps {
   title: string;
@@ -19,18 +20,20 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
   const createPayment = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mercadopago-preference`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Configurar MercadoPago directamente
+      const client = new MercadoPagoConfig({
+        accessToken: 'TEST-tu-access-token-aqui', // ← Pon tu token aquí
+      });
+
+      const preference = new Preference(client);
+
+      const response = await preference.create({
+        body: {
           items: [
             {
-              title: title, // Ahora usa el prop
+              title: title,
               quantity: 1,
-              unit_price: price, // Ahora usa el prop
+              unit_price: price,
               description: description
             }
           ],
@@ -40,28 +43,14 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
             pending: `${window.location.origin}/app/subscription?status=pending`
           },
           auto_return: 'approved'
-        })
+        }
       });
 
-      const data = await response.json();
-      
-      // Check for error in response
-      if (data.error) {
-        console.error('Payment error:', data.error);
-        alert(`Error: ${data.error}`);
-        return;
-      }
-
       // Redirigir al checkout de MercadoPago
-      if (data.init_point) {
-        window.open(data.init_point, '_blank');
-      } else {
-        console.error('No se pudo obtener el link de pago:', data);
-        alert('No se pudo obtener el link de pago. Por favor, intenta nuevamente.');
-      }
+      window.open(response.init_point, '_blank');
     } catch (error) {
-      console.error('Error creating payment:', error);
-      alert('Error al crear el pago. Por favor, verifica tu conexión e intenta nuevamente.');
+      console.error('Payment error:', error);
+      alert('Error al crear el pago. Verifica las credenciales.');
     } finally {
       setLoading(false);
     }
