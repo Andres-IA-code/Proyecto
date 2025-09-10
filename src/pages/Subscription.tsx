@@ -21,7 +21,7 @@ const Subscription: React.FC = () => {
           <h3 className="text-xl font-semibold mb-4">Plan Básico</h3>
           <p className="text-3xl font-bold mb-4 text-green-600">GRATIS</p>
           <ul className="mb-6">
-            <li>✓ <strong>5 cotizaciones/mes</strong></li>
+            <li>✓ <strong>5 cotizaciones unicas</strong></li>
             <li>✓ Seguimiento básico</li>
             <li>✓ Soporte por email</li>
           </ul>
