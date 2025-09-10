@@ -28,7 +28,34 @@ serve(async (req) => {
       body: JSON.stringify(preference),
     })
 
+    if (!response.ok) {
+      const errorData = await response.json()
+      return new Response(
+        JSON.stringify({ 
+          error: `MercadoPago API error: ${response.status} - ${errorData.message || 'Unknown error'}`,
+          details: errorData
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      )
+    }
+
     const data = await response.json()
+
+    if (!data.init_point) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'MercadoPago no devolvió un link de pago válido',
+          details: data
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      )
+    }
 
     return new Response(
       JSON.stringify(data),

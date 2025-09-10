@@ -31,14 +31,23 @@ const PaymentComponent: React.FC = () => {
 
       const data = await response.json();
 
+      // Check for error in response
+      if (data.error) {
+        console.error('Payment error:', data.error);
+        alert(`Error: ${data.error}`);
+        return;
+      }
+
       // Redirigir al checkout de MercadoPago
       if (data.init_point) {
         window.open(data.init_point, '_blank');
       } else {
-        console.error('No se pudo obtener el link de pago');
+        console.error('No se pudo obtener el link de pago:', data);
+        alert('No se pudo obtener el link de pago. Por favor, intenta nuevamente.');
       }
     } catch (error) {
       console.error('Error creating payment:', error);
+      alert('Error al crear el pago. Por favor, verifica tu conexión e intenta nuevamente.');
     } finally {
       setLoading(false);
     }
