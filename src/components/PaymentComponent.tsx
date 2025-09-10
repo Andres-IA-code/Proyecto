@@ -16,13 +16,17 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
 
-  const createPayment = async () => {
-    setLoading(true);
-    try {
-      // Tu Access Token de MercadoPago
-      const ACCESS_TOKEN = process.env.VITE_MERCADOPAGO_ACCESS_TOKEN || 'TEST-token-aqui';
-
-      const preferenceData = {
+ // src/components/PaymentComponent.tsx
+const createPayment = async () => {
+  setLoading(true);
+  try {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-mercadopago-preference`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         items: [
           {
             title: title,
@@ -35,43 +39,25 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
           success: `${window.location.origin}/app/subscription?status=success`,
           failure: `${window.location.origin}/app/subscription?status=failure`,
           pending: `${window.location.origin}/app/subscription?status=pending`
-        },
-        auto_return: 'approved'
-      };
+        }
+      })
+    });
 
-      // Llamada directa a la API de MercadoPago
-      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(preferenceData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('MercadoPago API Error:', data);
-        alert(`Error: ${data.message || 'Error al crear la preferencia'}`);
-        return;
-      }
-
-      // Redirigir al checkout de MercadoPago
-      if (data.init_point) {
-        window.open(data.init_point, '_blank');
-      } else {
-        console.error('No se recibió init_point:', data);
-        alert('Error: No se pudo obtener el link de pago');
-      }
-
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error de conexión. Verifica tu internet e intenta de nuevo.');
-    } finally {
-      setLoading(false);
+    const data = await response.json();
+    
+    if (data.init_point) {
+      window.open(data.init_point, '_blank');
+    } else {
+      console.error('Error:', data);
+      alert('Error al crear el pago');
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión');
+  } finally {
+    setLoading(false);
+  }
+}; 
 
   return (
     <button 
