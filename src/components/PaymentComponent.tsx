@@ -1,6 +1,5 @@
 // src/components/PaymentComponent.tsx
 import React, { useState } from 'react';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
 
 interface PaymentComponentProps {
   title: string;
