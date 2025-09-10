@@ -45,7 +45,7 @@ const Subscription: React.FC = () => {
           </ul>
           <PaymentComponent 
             title="Plan Premium Mensual"
-            price={15000}
+            price={10000}
             description="Suscripción mensual Plan Premium - 200 cotizaciones"
           />
         </div>
