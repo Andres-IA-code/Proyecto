@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PaymentComponent from '../../components/PaymentComponent';
+import { useOperadorQuoteLimit } from '../../hooks/useOperadorQuoteLimit';
 import { CheckCircle, CreditCard, Star, Truck, Package, BarChart } from 'lucide-react';
 
 type PlanType = 'basic' | 'premium' | 'enterprise' | null;
 
 const OperadorSuscripcion: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>(null);
-  const [quotesUsed, setQuotesUsed] = useState(0);
+  const { quotesUsed, quotesLimit, hasReachedLimit, refreshCount } = useOperadorQuoteLimit();
 
   useEffect(() => {
     // Load selected plan from localStorage
@@ -78,8 +79,11 @@ const OperadorSuscripcion: React.FC = () => {
   };
 
   const handleFreePlan = () => {
-    handlePlanSelection('basic');
-    alert('¡Plan Básico activado! Tienes 5 cotizaciones disponibles.');
+    // Reset the quote count for demonstration purposes
+    // In a real app, this would involve backend logic to reset monthly quotas
+    localStorage.removeItem('operadorQuoteCount');
+    refreshCount();
+    alert('¡Plan Básico activado! Tu contador de cotizaciones ha sido reiniciado.');
   };
 
   return (
