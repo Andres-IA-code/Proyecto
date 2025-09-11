@@ -73,11 +73,6 @@ const OperadorSuscripcion: React.FC = () => {
     return Math.min((quotesUsed / limit) * 100, 100);
   };
 
-  const hasReachedLimit = () => {
-    const limit = getQuotesLimit();
-    return limit !== null && quotesUsed >= limit;
-  };
-
   const handleFreePlan = () => {
     // Reset the quote count for demonstration purposes
     // In a real app, this would involve backend logic to reset monthly quotas
@@ -121,7 +116,7 @@ const OperadorSuscripcion: React.FC = () => {
       )}
 
       {/* Limit Warning Banner */}
-      {hasReachedLimit() && (
+      {hasReachedLimit && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center">
             <CheckCircle className="h-5 w-5 text-red-500 mr-3" />
@@ -143,7 +138,7 @@ const OperadorSuscripcion: React.FC = () => {
         <div className={`border rounded-lg p-6 transition-all ${
           selectedPlan === 'basic' 
             ? 'border-green-500 bg-green-50 shadow-lg' 
-            : hasReachedLimit() && selectedPlan !== 'basic'
+            : hasReachedLimit && selectedPlan !== 'basic'
               ? 'bg-gray-50 border-gray-300' 
               : 'border-gray-300 hover:border-green-400 hover:shadow-md'
         }`}>
@@ -166,7 +161,7 @@ const OperadorSuscripcion: React.FC = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    hasReachedLimit() ? 'bg-red-500' : 'bg-green-500'
+                    hasReachedLimit ? 'bg-red-500' : 'bg-green-500'
                   }`}
                   style={{ width: `${getUsagePercentage()}%` }}
                 ></div>
@@ -205,7 +200,7 @@ const OperadorSuscripcion: React.FC = () => {
         <div className={`border rounded-lg p-6 transition-all ${
           selectedPlan === 'premium' 
             ? 'border-blue-500 bg-blue-50 shadow-lg' 
-            : hasReachedLimit() && selectedPlan !== 'premium'
+            : hasReachedLimit && selectedPlan !== 'premium'
               ? 'border-blue-500 bg-blue-50 shadow-lg' 
               : 'border-gray-300 hover:border-blue-400 hover:shadow-md'
         }`}>
@@ -219,7 +214,7 @@ const OperadorSuscripcion: React.FC = () => {
           </div>
           <p className="text-3xl font-bold mb-4">$10.000 <span className="text-sm">ARS/mes</span></p>
           
-          {hasReachedLimit() && selectedPlan !== 'premium' && (
+          {hasReachedLimit && selectedPlan !== 'premium' && (
             <div className="mb-4 bg-blue-100 border border-blue-300 rounded-lg p-3">
               <p className="text-sm text-blue-800 font-medium">¡Recomendado!</p>
               <p className="text-xs text-blue-700">Perfecto para operadores medianos</p>
@@ -294,7 +289,7 @@ const OperadorSuscripcion: React.FC = () => {
           </div>
           <p className="text-3xl font-bold mb-4">$30.000 <span className="text-sm">ARS/mes</span></p>
           
-          {hasReachedLimit() && selectedPlan !== 'enterprise' && (
+          {hasReachedLimit && selectedPlan !== 'enterprise' && (
             <div className="mb-4 bg-purple-100 border border-purple-300 rounded-lg p-3">
               <p className="text-sm text-purple-800 font-medium">Sin límites</p>
               <p className="text-xs text-purple-700">Para operadores grandes</p>
