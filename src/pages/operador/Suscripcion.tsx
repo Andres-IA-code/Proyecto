@@ -354,68 +354,6 @@ const OperadorSuscripcion: React.FC = () => {
         </div>
       </div>
 
-      {/* Features Comparison */}
-      <div className="mt-12 bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Comparación de Características</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Característica</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-900">Básico</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-900">Premium</th>
-                <th className="text-center py-3 px-4 font-medium text-gray-900">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="py-3 px-4 text-gray-700">Cotizaciones por mes</td>
-                <td className="py-3 px-4 text-center">5</td>
-                <td className="py-3 px-4 text-center">200</td>
-                <td className="py-3 px-4 text-center">
-                  <span className="text-purple-600 font-medium">Ilimitadas</span>
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 text-gray-700">Seguimiento de envíos</td>
-                <td className="py-3 px-4 text-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 text-gray-700">Reportes avanzados</td>
-                <td className="py-3 px-4 text-center text-gray-400">-</td>
-                <td className="py-3 px-4 text-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 text-gray-700">API integración</td>
-                <td className="py-3 px-4 text-center text-gray-400">-</td>
-                <td className="py-3 px-4 text-center text-gray-400">-</td>
-                <td className="py-3 px-4 text-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 text-gray-700">Soporte</td>
-                <td className="py-3 px-4 text-center text-sm text-gray-600">Email</td>
-                <td className="py-3 px-4 text-center text-sm text-gray-600">Prioritario</td>
-                <td className="py-3 px-4 text-center text-sm text-gray-600">Dedicado</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       {/* Benefits Section */}
       <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
