@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Package, Truck, Route, User, Filter, Search, RefreshCw, Plus } from 'lucide-react';
 import { supabase, getCurrentUser } from '../../lib/supabase';
+import { useOperadorQuoteLimit } from '../../hooks/useOperadorQuoteLimit';
+import OperadorQuoteLimitModal from '../../components/OperadorQuoteLimitModal';
+import { useNavigate } from 'react-router-dom';
 
 interface Opportunity {
   id_Envio?: number;
@@ -32,6 +35,8 @@ interface Opportunity {
 }
 
 const OperadorOportunidades: React.FC = () => {
+  const navigate = useNavigate();
+  const { quotesUsed, quotesLimit, hasReachedLimit, isLoading: limitLoading, refreshCount, incrementCount } = useOperadorQuoteLimit();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +48,7 @@ const OperadorOportunidades: React.FC = () => {
   const [quoteAmount, setQuoteAmount] = useState('');
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
   const [quotedOpportunities, setQuotedOpportunities] = useState<Set<number>>(new Set());
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     // Load quoted opportunities from localStorage on component mount
@@ -130,6 +136,12 @@ const OperadorOportunidades: React.FC = () => {
   };
 
   const handleQuoteOpportunity = (opportunity: Opportunity) => {
+    // Check if user has reached the limit
+    if (hasReachedLimit) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setSelectedOpportunity(opportunity);
     setQuoteAmount('');
     setShowQuoteModal(true);
@@ -190,6 +202,9 @@ const OperadorOportunidades: React.FC = () => {
       if (opportunityId) {
         saveQuotedOpportunity(opportunityId);
       }
+      
+      // Increment the quote count
+      incrementCount();
       
       // Show success message with more details
       alert(`¡Cotización enviada exitosamente!\n\nMonto: $${parseFloat(quoteAmount).toLocaleString()}\nEnvío: ${selectedOpportunity.Origen} → ${selectedOpportunity.Destino}\nVigencia: 7 días`);
@@ -435,10 +450,15 @@ const OperadorOportunidades: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => handleQuoteOpportunity(opportunity)}
-                      className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center"
+                      disabled={hasReachedLimit}
+                      className={`w-full px-4 py-3 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center ${
+                        hasReachedLimit
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
                     >
                       <Plus size={20} className="mr-2" />
-                      Enviar Cotización
+                      {hasReachedLimit ? 'Límite Alcanzado' : 'Enviar Cotización'}
                     </button>
                   )}
                 </div>
@@ -482,6 +502,18 @@ const OperadorOportunidades: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Quote Limit Modal */}
+        <OperadorQuoteLimitModal
+          isOpen={showLimitModal}
+          onClose={() => setShowLimitModal(false)}
+          quotesUsed={quotesUsed}
+          quotesLimit={quotesLimit}
+          onGoToSubscription={() => {
+            setShowLimitModal(false);
+            navigate('/operador/suscripcion');
+          }}
+        />
 
         {/* Quote Modal */}
         {showQuoteModal && selectedOpportunity && (
