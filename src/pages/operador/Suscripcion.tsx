@@ -17,23 +17,6 @@ const OperadorSuscripcion: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    // Update quotes used based on selected plan
-    switch (selectedPlan) {
-      case 'basic':
-        setQuotesUsed(3);
-        break;
-      case 'premium':
-        setQuotesUsed(127);
-        break;
-      case 'enterprise':
-        setQuotesUsed(1250);
-        break;
-      default:
-        setQuotesUsed(0);
-    }
-  }, [selectedPlan]);
-
   const handlePlanSelection = (plan: PlanType) => {
     setSelectedPlan(plan);
     if (plan) {
