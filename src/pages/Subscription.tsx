@@ -63,14 +63,14 @@ const Subscription: React.FC = () => {
           </ul>
           <button 
             onClick={handleFreePlan}
-            disabled={!hasReachedLimit}
+            disabled={hasReachedLimit}
             className={`w-full font-bold py-2 px-4 rounded transition-colors ${
-              hasReachedLimit 
+              !hasReachedLimit 
                 ? 'bg-green-500 hover:bg-green-600 text-white' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            {hasReachedLimit ? 'Reiniciar Contador' : 'Plan Actual'}
+            {!hasReachedLimit ? 'Plan Actual' : 'Límite Alcanzado'}
           </button>
         </div>
 
