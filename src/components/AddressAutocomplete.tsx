@@ -63,25 +63,32 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   };
 
   const handleSelectPlace = async (prediction: any) => {
+    console.log('🎯 Lugar seleccionado:', prediction);
     setInputValue(prediction.description);
     setIsOpen(false);
     clearPredictions();
 
     // If coordinates are already in the prediction (from Nominatim), use them directly
     if (prediction.geometry?.location) {
+      console.log('✅ Usando coordenadas de la predicción:', prediction.geometry.location);
       onChange(prediction.description, {
         lat: prediction.geometry.location.lat,
         lng: prediction.geometry.location.lng,
       });
     } else {
       // Fallback: Get place details to extract coordinates
+      console.log('🔍 Obteniendo detalles del lugar con place_id:', prediction.place_id);
       const details = await getPlaceDetails(prediction.place_id);
+      console.log('📍 Detalles recibidos:', details);
+
       if (details?.geometry?.location) {
+        console.log('✅ Coordenadas obtenidas de detalles:', details.geometry.location);
         onChange(prediction.description, {
           lat: details.geometry.location.lat,
           lng: details.geometry.location.lng,
         });
       } else {
+        console.error('❌ No se pudieron obtener coordenadas para:', prediction.description);
         onChange(prediction.description);
       }
     }
