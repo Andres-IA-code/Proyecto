@@ -7,6 +7,12 @@ interface PlacePrediction {
     main_text: string;
     secondary_text: string;
   };
+  geometry?: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
 }
 
 interface PlaceDetails {

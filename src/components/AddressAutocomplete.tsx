@@ -67,15 +67,23 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     setIsOpen(false);
     clearPredictions();
 
-    // Get place details to extract coordinates
-    const details = await getPlaceDetails(prediction.place_id);
-    if (details?.geometry?.location) {
+    // If coordinates are already in the prediction (from Nominatim), use them directly
+    if (prediction.geometry?.location) {
       onChange(prediction.description, {
-        lat: details.geometry.location.lat,
-        lng: details.geometry.location.lng,
+        lat: prediction.geometry.location.lat,
+        lng: prediction.geometry.location.lng,
       });
     } else {
-      onChange(prediction.description);
+      // Fallback: Get place details to extract coordinates
+      const details = await getPlaceDetails(prediction.place_id);
+      if (details?.geometry?.location) {
+        onChange(prediction.description, {
+          lat: details.geometry.location.lat,
+          lng: details.geometry.location.lng,
+        });
+      } else {
+        onChange(prediction.description);
+      }
     }
   };
 

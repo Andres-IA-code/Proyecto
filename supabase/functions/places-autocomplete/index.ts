@@ -4,7 +4,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const GOOGLE_MAPS_API_KEY = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || 'AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw';
+const GOOGLE_MAPS_API_KEY = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
 
 Deno.serve(async (req: Request) => {
   try {
@@ -22,91 +22,81 @@ Deno.serve(async (req: Request) => {
 
     console.log('Request params:', { input, type, placeId });
 
-    // Place Details using new API
+    // Use Nominatim (OpenStreetMap) as primary service - no API key required
     if (type === 'details' && placeId) {
-      const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
-      console.log('Fetching place details (new API) for:', placeId);
+      // For Nominatim, placeId is actually a place_id from Nominatim
+      const detailsUrl = `https://nominatim.openstreetmap.org/lookup?osm_ids=${encodeURIComponent(placeId)}&format=json`;
+      console.log('Fetching place details from Nominatim');
 
       const response = await fetch(detailsUrl, {
         headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'location'
+          'User-Agent': 'LogisticsApp/1.0',
         }
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Place details error:', errorText);
         throw new Error(`Failed to get place details: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Place details response:', data);
-
-      // Transform to match old API format
-      const transformedData = {
-        result: {
-          geometry: {
-            location: {
-              lat: data.location?.latitude || 0,
-              lng: data.location?.longitude || 0
+      
+      if (data.length > 0) {
+        const place = data[0];
+        const transformedData = {
+          result: {
+            geometry: {
+              location: {
+                lat: parseFloat(place.lat),
+                lng: parseFloat(place.lon)
+              }
             }
           }
-        }
-      };
+        };
 
-      return new Response(
-        JSON.stringify(transformedData),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+        return new Response(
+          JSON.stringify(transformedData),
+          {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
     }
 
-    // Autocomplete using new API
-    if (!input) {
+    // Autocomplete using Nominatim
+    if (!input || input.length < 3) {
       return new Response(
-        JSON.stringify({ error: 'Missing input parameter' }),
+        JSON.stringify({ 
+          status: 'OK',
+          predictions: [] 
+        }),
         {
-          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    console.log('Searching places (new API) for:', input);
+    console.log('Searching places with Nominatim for:', input);
     
-    // Using new Places API (New) Autocomplete
-    const autocompleteUrl = 'https://places.googleapis.com/v1/places:autocomplete';
-    const requestBody = {
-      input: input,
-      languageCode: 'es'
-    };
+    // Nominatim search - focus on Latin America
+    const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=10&addressdetails=1&countrycodes=ar,mx,cl,co,pe,uy,py,bo,ec,ve`;
 
-    const response = await fetch(autocompleteUrl, {
-      method: 'POST',
+    const response = await fetch(searchUrl, {
       headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY
-      },
-      body: JSON.stringify(requestBody)
+        'User-Agent': 'LogisticsApp/1.0',
+      }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Autocomplete API error:', errorText);
+      console.error('Nominatim API error:', errorText);
       
       return new Response(
         JSON.stringify({ 
-          error: 'Google Maps API error',
+          error: 'Search service error',
           status: response.status,
-          message: response.status === 403 ? 'API key invalid or quota exceeded' :
-                  response.status === 429 ? 'Quota exceeded' :
-                  `HTTP ${response.status}: ${response.statusText}`,
           predictions: []
         }),
         {
@@ -120,17 +110,31 @@ Deno.serve(async (req: Request) => {
     }
 
     const data = await response.json();
-    console.log('Autocomplete response:', JSON.stringify(data).substring(0, 200));
+    console.log('Nominatim response count:', data.length);
 
-    // Transform new API response to match old API format
-    const predictions = (data.suggestions || []).map((suggestion: any) => ({
-      place_id: suggestion.placePrediction?.placeId || '',
-      description: suggestion.placePrediction?.text?.text || '',
-      structured_formatting: {
-        main_text: suggestion.placePrediction?.structuredFormat?.mainText?.text || '',
-        secondary_text: suggestion.placePrediction?.structuredFormat?.secondaryText?.text || ''
-      }
-    }));
+    // Transform Nominatim response to match Google Places API format
+    const predictions = data.map((place: any) => {
+      const mainText = place.address?.city || place.address?.town || place.address?.village || place.name;
+      const secondaryParts = [];
+      
+      if (place.address?.state) secondaryParts.push(place.address.state);
+      if (place.address?.country) secondaryParts.push(place.address.country);
+      
+      return {
+        place_id: place.osm_type.charAt(0).toUpperCase() + place.osm_id,
+        description: place.display_name,
+        structured_formatting: {
+          main_text: mainText || place.display_name.split(',')[0],
+          secondary_text: secondaryParts.join(', ') || place.display_name.split(',').slice(1).join(',').trim()
+        },
+        geometry: {
+          location: {
+            lat: parseFloat(place.lat),
+            lng: parseFloat(place.lon)
+          }
+        }
+      };
+    });
 
     console.log('Transformed predictions count:', predictions.length);
 
