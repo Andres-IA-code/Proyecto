@@ -82,6 +82,8 @@ const QuoteRequest: React.FC = () => {
 
   // Effect to calculate total distance including stops
   useEffect(() => {
+    console.log('🔄 useEffect triggered - coordinates changed:', coordinates);
+    console.log('🔄 Paradas programadas:', formData.scheduledStops);
     calculateTotalDistance();
   }, [coordinates.origin, coordinates.destination, formData.scheduledStops]);
 
