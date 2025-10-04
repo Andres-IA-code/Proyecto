@@ -42,6 +42,7 @@ export const useGooglePlaces = (): UseGooglePlacesReturn => {
     setError(null);
 
     try {
+      console.log('Searching for:', input);
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/places-autocomplete?input=${encodeURIComponent(input)}`,
         {
@@ -57,24 +58,25 @@ export const useGooglePlaces = (): UseGooglePlacesReturn => {
       }
 
       const data = await response.json();
+      console.log('API response:', data);
 
       if (data.error) {
-        // If Google Maps API fails, try fallback or show error
-        if (data.fallback_available) {
-          console.warn('Google Maps API error, using fallback:', data.message);
-          // You could implement a fallback here using Nominatim or another service
-          setPredictions([]);
-        } else {
-          throw new Error(data.message || 'Error searching places');
-        }
-      } else if (data.predictions) {
+        console.error('API returned error:', data.message);
+        setError(data.message || 'Error al buscar direcciones');
+        setPredictions([]);
+      } else if (data.status === 'ZERO_RESULTS') {
+        console.log('No results found for:', input);
+        setPredictions([]);
+      } else if (data.predictions && Array.isArray(data.predictions)) {
+        console.log('Found predictions:', data.predictions.length);
         setPredictions(data.predictions);
       } else {
+        console.log('Unexpected response format:', data);
         setPredictions([]);
       }
     } catch (err) {
       console.error('Error searching places:', err);
-      setError(err instanceof Error ? err.message : 'Error searching places');
+      setError(err instanceof Error ? err.message : 'Error al buscar direcciones');
       setPredictions([]);
     } finally {
       setIsLoading(false);
