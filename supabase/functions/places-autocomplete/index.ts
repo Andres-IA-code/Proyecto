@@ -145,21 +145,55 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('Searching places for:', input);
-    
-    // Using old Places API Autocomplete (more stable)
-    const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&language=es&components=country:ar|country:mx|country:cl|country:co|country:pe|country:uy|country:py|country:bo|country:ec|country:ve`;
 
-    const response = await fetch(autocompleteUrl);
+    // Try Google Maps first, fallback to Nominatim if it fails
+    try {
+      const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&language=es&components=country:ar|country:mx|country:cl|country:co|country:pe|country:uy|country:py|country:bo|country:ec|country:ve`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Autocomplete API error:', errorText);
-      
+      const response = await fetch(autocompleteUrl);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Google Maps status:', data.status);
+
+        if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+          console.log('Using Google Maps predictions:', data.predictions.length);
+          return new Response(
+            JSON.stringify({
+              status: data.status,
+              predictions: data.predictions
+            }),
+            {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+      }
+
+      console.log('Google Maps failed or returned no results, falling back to Nominatim');
+    } catch (error) {
+      console.log('Google Maps error, falling back to Nominatim:', error.message);
+    }
+
+    // Fallback to Nominatim (OpenStreetMap)
+    console.log('Using Nominatim for search:', input);
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(input)}&format=json&addressdetails=1&limit=5&countrycodes=ar,mx,cl,co,pe,uy,py,bo,ec,ve`;
+
+    const nominatimResponse = await fetch(nominatimUrl, {
+      headers: {
+        'User-Agent': 'LogisticsApp/1.0'
+      }
+    });
+
+    if (!nominatimResponse.ok) {
+      console.error('Nominatim error:', nominatimResponse.status);
       return new Response(
-        JSON.stringify({ 
-          error: 'Google Maps API error',
-          status: response.status,
-          message: `HTTP ${response.status}: ${response.statusText}`,
+        JSON.stringify({
+          error: 'Search service unavailable',
+          message: 'Both Google Maps and Nominatim are unavailable',
           predictions: []
         }),
         {
@@ -172,34 +206,28 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const data = await response.json();
-    console.log('Autocomplete status:', data.status);
-    console.log('Predictions count:', data.predictions?.length || 0);
+    const nominatimData = await nominatimResponse.json();
+    console.log('Nominatim results:', nominatimData.length);
 
-    if (data.status === 'REQUEST_DENIED' || data.status === 'OVER_QUERY_LIMIT') {
-      console.error('API Error:', data.status, data.error_message);
-      return new Response(
-        JSON.stringify({ 
-          error: data.error_message || data.status,
-          message: data.status === 'REQUEST_DENIED' ? 'API key invalid or Places API not enabled' :
-                  data.status === 'OVER_QUERY_LIMIT' ? 'Quota exceeded' :
-                  data.error_message,
-          predictions: []
-        }),
-        {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
+    const predictions = nominatimData.map((place: any) => ({
+      place_id: place.osm_type.charAt(0).toUpperCase() + place.osm_id,
+      description: place.display_name,
+      structured_formatting: {
+        main_text: place.name || place.display_name.split(',')[0],
+        secondary_text: place.display_name.split(',').slice(1).join(',').trim()
+      },
+      geometry: {
+        location: {
+          lat: parseFloat(place.lat),
+          lng: parseFloat(place.lon)
         }
-      );
-    }
+      }
+    }));
 
     return new Response(
       JSON.stringify({
-        status: data.status,
-        predictions: data.predictions || []
+        status: 'OK',
+        predictions: predictions
       }),
       {
         headers: {
