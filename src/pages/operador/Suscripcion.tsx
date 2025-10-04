@@ -169,17 +169,10 @@ const OperadorSuscripcion: React.FC = () => {
               <span>Soporte por email</span>
             </li>
           </ul>
-          {selectedPlan === 'basic' ? (
+          {selectedPlan === 'basic' && (
             <h3 className="w-full text-center font-bold py-2 px-4 rounded bg-green-500 text-white">
               Plan Actual
             </h3>
-          ) : (
-            <button
-              onClick={handleFreePlan}
-              className="w-full font-bold py-2 px-4 rounded transition-colors bg-green-500 hover:bg-green-600 text-white"
-            >
-              Seleccionar Plan
-            </button>
           )}
         </div>
 
