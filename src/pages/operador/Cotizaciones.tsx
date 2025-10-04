@@ -153,10 +153,16 @@ const OperadorCotizaciones: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      
-      console.log('Buscando todas las cotizaciones...');
 
-      // Buscar TODAS las cotizaciones para ver qué datos hay disponibles
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        setError('Usuario no autenticado');
+        return;
+      }
+
+      console.log('Buscando cotizaciones del operador...');
+
+      // Buscar cotizaciones del operador actual
       const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
@@ -179,6 +185,7 @@ const OperadorCotizaciones: React.FC = () => {
             Distancia
           )
         `)
+        .eq('id_Operador', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
@@ -204,14 +211,13 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
         envio_distancia: quote.General?.Distancia,
-        // ID del usuario dador para buscar información después
         dador_id_usuario: quote.General?.id_Usuario,
       }));
 
       setQuotes(transformedData);
       console.log('Cotizaciones encontradas:', transformedData.length);
       console.log('Datos de cotizaciones:', transformedData);
-      
+
     } catch (err) {
       console.error('Error inesperado:', err);
       setError('Error inesperado al cargar las cotizaciones');
