@@ -22,47 +22,112 @@ Deno.serve(async (req: Request) => {
 
     console.log('Request params:', { input, type, placeId });
 
-    // Place Details using old stable API
+    // Place Details
     if (type === 'details' && placeId) {
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&key=${GOOGLE_MAPS_API_KEY}`;
       console.log('Fetching place details for:', placeId);
 
-      const response = await fetch(detailsUrl);
+      // Check if it's a Nominatim place_id (starts with N, W, R, or is numeric)
+      const isNominatimId = /^[NWR]\d+$/.test(placeId) || /^\d+$/.test(placeId);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Place details error:', errorText);
-        throw new Error(`Failed to get place details: ${response.status}`);
-      }
+      if (isNominatimId) {
+        console.log('Using Nominatim lookup for place_id:', placeId);
 
-      const data = await response.json();
-      console.log('Place details status:', data.status);
+        // Extract numeric ID from Nominatim place_id
+        const numericId = placeId.replace(/^[NWR]/, '');
+        const nominatimUrl = `https://nominatim.openstreetmap.org/lookup?osm_ids=${placeId}&format=json&addressdetails=1`;
 
-      if (data.status === 'OK') {
-        return new Response(
-          JSON.stringify(data),
-          {
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
+        const response = await fetch(nominatimUrl, {
+          headers: {
+            'User-Agent': 'LogisticsApp/1.0'
           }
-        );
+        });
+
+        if (!response.ok) {
+          throw new Error(`Nominatim lookup failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Nominatim lookup response:', data);
+
+        if (data && data.length > 0) {
+          const place = data[0];
+          return new Response(
+            JSON.stringify({
+              status: 'OK',
+              result: {
+                geometry: {
+                  location: {
+                    lat: parseFloat(place.lat),
+                    lng: parseFloat(place.lon)
+                  }
+                },
+                formatted_address: place.display_name
+              }
+            }),
+            {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        } else {
+          return new Response(
+            JSON.stringify({
+              error: 'Place not found',
+              message: 'No details found for this place'
+            }),
+            {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
       } else {
-        console.error('Place details API status:', data.status, data.error_message);
-        return new Response(
-          JSON.stringify({ 
-            error: data.error_message || data.status,
-            predictions: []
-          }),
-          {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        // Use Google Maps API for Google place_ids
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&key=${GOOGLE_MAPS_API_KEY}`;
+        console.log('Using Google Maps API for place_id:', placeId);
+
+        const response = await fetch(detailsUrl);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Place details error:', errorText);
+          throw new Error(`Failed to get place details: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Place details status:', data.status);
+
+        if (data.status === 'OK') {
+          return new Response(
+            JSON.stringify(data),
+            {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        } else {
+          console.error('Place details API status:', data.status, data.error_message);
+          return new Response(
+            JSON.stringify({
+              error: data.error_message || data.status,
+              message: data.error_message || 'Place not found'
+            }),
+            {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
       }
     }
 
