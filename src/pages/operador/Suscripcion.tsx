@@ -167,9 +167,9 @@ const OperadorSuscripcion: React.FC = () => {
             </li>
           </ul>
           {selectedPlan === 'basic' ? (
-            <div className="w-full text-center font-bold py-2 px-4 rounded bg-green-500 text-white">
+            <h3 className="w-full text-center font-bold py-2 px-4 rounded bg-green-500 text-white">
               Plan Actual
-            </div>
+            </h3>
           ) : (
             <button
               onClick={handleFreePlan}
@@ -240,9 +240,9 @@ const OperadorSuscripcion: React.FC = () => {
           </ul>
           
           {selectedPlan === 'premium' ? (
-            <div className="w-full text-center font-bold py-2 px-4 rounded bg-blue-500 text-white">
+            <h3 className="w-full text-center font-bold py-2 px-4 rounded bg-blue-500 text-white">
               Plan Actual
-            </div>
+            </h3>
           ) : (
             <PaymentComponent
               title="Plan Premium Mensual - Operador"
@@ -315,9 +315,9 @@ const OperadorSuscripcion: React.FC = () => {
           </ul>
           
           {selectedPlan === 'enterprise' ? (
-            <div className="w-full text-center font-bold py-2 px-4 rounded bg-purple-500 text-white">
+            <h3 className="w-full text-center font-bold py-2 px-4 rounded bg-purple-500 text-white">
               Plan Actual
-            </div>
+            </h3>
           ) : (
             <PaymentComponent
               title="Plan Enterprise Mensual - Operador"
