@@ -4,7 +4,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const GOOGLE_MAPS_API_KEY = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || 'AIzaSyCWVGYicwnsxGb9dl0A0yDufh4AYnwjsuA';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCWVGYicwnsxGb9dl0A0yDufh4AYnwjsuA';
 
 Deno.serve(async (req: Request) => {
   try {
@@ -21,20 +21,13 @@ Deno.serve(async (req: Request) => {
     const placeId = url.searchParams.get('place_id');
 
     console.log('Request params:', { input, type, placeId });
-    console.log('Using Google Maps API Key:', GOOGLE_MAPS_API_KEY ? 'Present' : 'Missing');
 
-    // Place Details using new API
+    // Place Details using old stable API
     if (type === 'details' && placeId) {
-      const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
-      console.log('Fetching place details (new API) for:', placeId);
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&key=${GOOGLE_MAPS_API_KEY}`;
+      console.log('Fetching place details for:', placeId);
 
-      const response = await fetch(detailsUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'location'
-        }
-      });
+      const response = await fetch(detailsUrl);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -43,60 +36,55 @@ Deno.serve(async (req: Request) => {
       }
 
       const data = await response.json();
-      console.log('Place details response:', data);
+      console.log('Place details status:', data.status);
 
-      // Transform to match old API format
-      const transformedData = {
-        result: {
-          geometry: {
-            location: {
-              lat: data.location?.latitude || 0,
-              lng: data.location?.longitude || 0
-            }
+      if (data.status === 'OK') {
+        return new Response(
+          JSON.stringify(data),
+          {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
           }
-        }
-      };
-
-      return new Response(
-        JSON.stringify(transformedData),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+        );
+      } else {
+        console.error('Place details API status:', data.status, data.error_message);
+        return new Response(
+          JSON.stringify({ 
+            error: data.error_message || data.status,
+            predictions: []
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
     }
 
-    // Autocomplete using new API
+    // Autocomplete using old stable API
     if (!input) {
       return new Response(
-        JSON.stringify({ error: 'Missing input parameter' }),
+        JSON.stringify({ 
+          status: 'OK',
+          predictions: [] 
+        }),
         {
-          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    console.log('Searching places (new API) for:', input);
+    console.log('Searching places for:', input);
     
-    // Using new Places API (New) Autocomplete
-    const autocompleteUrl = 'https://places.googleapis.com/v1/places:autocomplete';
-    const requestBody = {
-      input: input,
-      languageCode: 'es',
-      includedRegionCodes: ['AR', 'MX', 'CL', 'CO', 'PE', 'UY', 'PY', 'BO', 'EC', 'VE']
-    };
+    // Using old Places API Autocomplete (more stable)
+    const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&language=es&components=country:ar|country:mx|country:cl|country:co|country:pe|country:uy|country:py|country:bo|country:ec|country:ve`;
 
-    const response = await fetch(autocompleteUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY
-      },
-      body: JSON.stringify(requestBody)
-    });
+    const response = await fetch(autocompleteUrl);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -106,9 +94,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ 
           error: 'Google Maps API error',
           status: response.status,
-          message: response.status === 403 ? 'API key invalid or quota exceeded' :
-                  response.status === 429 ? 'Quota exceeded' :
-                  `HTTP ${response.status}: ${response.statusText}`,
+          message: `HTTP ${response.status}: ${response.statusText}`,
           predictions: []
         }),
         {
@@ -122,24 +108,33 @@ Deno.serve(async (req: Request) => {
     }
 
     const data = await response.json();
-    console.log('Autocomplete response:', JSON.stringify(data).substring(0, 200));
+    console.log('Autocomplete status:', data.status);
+    console.log('Predictions count:', data.predictions?.length || 0);
 
-    // Transform new API response to match old API format
-    const predictions = (data.suggestions || []).map((suggestion: any) => ({
-      place_id: suggestion.placePrediction?.placeId || '',
-      description: suggestion.placePrediction?.text?.text || '',
-      structured_formatting: {
-        main_text: suggestion.placePrediction?.structuredFormat?.mainText?.text || '',
-        secondary_text: suggestion.placePrediction?.structuredFormat?.secondaryText?.text || ''
-      }
-    }));
-
-    console.log('Transformed predictions count:', predictions.length);
+    if (data.status === 'REQUEST_DENIED' || data.status === 'OVER_QUERY_LIMIT') {
+      console.error('API Error:', data.status, data.error_message);
+      return new Response(
+        JSON.stringify({ 
+          error: data.error_message || data.status,
+          message: data.status === 'REQUEST_DENIED' ? 'API key invalid or Places API not enabled' :
+                  data.status === 'OVER_QUERY_LIMIT' ? 'Quota exceeded' :
+                  data.error_message,
+          predictions: []
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify({
-        status: predictions.length > 0 ? 'OK' : 'ZERO_RESULTS',
-        predictions: predictions
+        status: data.status,
+        predictions: data.predictions || []
       }),
       {
         headers: {
