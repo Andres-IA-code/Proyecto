@@ -69,6 +69,7 @@ const QuoteRequest: React.FC = () => {
   }>({});
 
   const [newStop, setNewStop] = useState('');
+  const [newStopCoords, setNewStopCoords] = useState<Coordinates | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
 
@@ -198,11 +199,19 @@ const QuoteRequest: React.FC = () => {
     value: string,
     coords?: Coordinates
   ) => {
+    console.log(`📍 ${field} cambiado:`, { value, coords });
+
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     if (coords) {
-      setCoordinates(prev => ({ ...prev, [field]: coords }));
+      console.log(`✅ Guardando coordenadas de ${field}:`, coords);
+      setCoordinates(prev => {
+        const newCoords = { ...prev, [field]: coords };
+        console.log('📍 Estado completo de coordenadas:', newCoords);
+        return newCoords;
+      });
     } else {
+      console.log(`⚠️ No hay coordenadas para ${field}, limpiando...`);
       // Clear coordinates if address is cleared
       setCoordinates(prev => {
         const newCoords = { ...prev };
@@ -213,7 +222,14 @@ const QuoteRequest: React.FC = () => {
   };
 
   const handleStopAddressChange = (value: string, coords?: Coordinates) => {
+    console.log('🛑 Parada cambiada:', { value, coords });
     setNewStop(value);
+    if (coords) {
+      setNewStopCoords(coords);
+      console.log('✅ Coordenadas de parada guardadas:', coords);
+    } else {
+      setNewStopCoords(undefined);
+    }
   };
 
   const addScheduledStop = (stopAddress?: string, stopCoords?: Coordinates) => {
@@ -223,16 +239,19 @@ const QuoteRequest: React.FC = () => {
     }
 
     const addressToAdd = stopAddress || newStop.trim();
-    
+    const coordsToAdd = stopCoords || newStopCoords;
+
     if (addressToAdd) {
+      console.log('➕ Agregando parada:', { address: addressToAdd, coords: coordsToAdd });
       setFormData(prev => ({
         ...prev,
         scheduledStops: [...prev.scheduledStops, {
           address: addressToAdd,
-          coordinates: stopCoords
+          coordinates: coordsToAdd
         }],
       }));
       setNewStop('');
+      setNewStopCoords(undefined);
     }
   };
 
