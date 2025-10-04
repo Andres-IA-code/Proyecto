@@ -166,17 +166,18 @@ const OperadorSuscripcion: React.FC = () => {
               <span>Soporte por email</span>
             </li>
           </ul>
-          <button 
-            onClick={handleFreePlan}
-            disabled={selectedPlan === 'basic'}
-            className={`w-full font-bold py-2 px-4 rounded transition-colors ${
-              selectedPlan === 'basic'
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-green-500 hover:bg-green-600 text-white'
-            }`}
-          >
-            {selectedPlan === 'basic' ? 'Plan Actual' : 'Seleccionar Plan'}
-          </button>
+          {selectedPlan === 'basic' ? (
+            <div className="w-full text-center font-bold py-2 px-4 rounded bg-green-500 text-white">
+              Plan Actual
+            </div>
+          ) : (
+            <button
+              onClick={handleFreePlan}
+              className="w-full font-bold py-2 px-4 rounded transition-colors bg-green-500 hover:bg-green-600 text-white"
+            >
+              Seleccionar Plan
+            </button>
+          )}
         </div>
 
         {/* Plan Premium */}
@@ -239,15 +240,11 @@ const OperadorSuscripcion: React.FC = () => {
           </ul>
           
           {selectedPlan === 'premium' ? (
-            <button 
-              onClick={() => handlePlanSelection(null)}
-              className="w-full bg-gray-300 text-gray-500 font-bold py-2 px-4 rounded cursor-not-allowed"
-              disabled
-            >
+            <div className="w-full text-center font-bold py-2 px-4 rounded bg-blue-500 text-white">
               Plan Actual
-            </button>
+            </div>
           ) : (
-            <PaymentComponent 
+            <PaymentComponent
               title="Plan Premium Mensual - Operador"
               price={10000}
               description="Suscripción mensual Plan Premium para Operador Logístico - 200 cotizaciones"
@@ -318,15 +315,11 @@ const OperadorSuscripcion: React.FC = () => {
           </ul>
           
           {selectedPlan === 'enterprise' ? (
-            <button 
-              onClick={() => handlePlanSelection(null)}
-              className="w-full bg-gray-300 text-gray-500 font-bold py-2 px-4 rounded cursor-not-allowed"
-              disabled
-            >
+            <div className="w-full text-center font-bold py-2 px-4 rounded bg-purple-500 text-white">
               Plan Actual
-            </button>
+            </div>
           ) : (
-            <PaymentComponent 
+            <PaymentComponent
               title="Plan Enterprise Mensual - Operador"
               price={30000}
               description="Suscripción mensual Plan Enterprise para Operador Logístico - Cotizaciones ilimitadas"
