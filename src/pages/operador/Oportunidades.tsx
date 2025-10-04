@@ -107,17 +107,16 @@ const OperadorOportunidades: React.FC = () => {
         return;
       }
 
-      // Fetch opportunities from General table where Estado is 'Pendiente' or similar
+      // Fetch opportunities from General table
       let query = supabase
         .from('General')
-        .select('*')
-        .neq('id_Usuario', currentUser.profile.id_Usuario); // Exclude own shipments
-      
+        .select('*');
+
       // If not showing all records, filter by specific states
       if (!showAllRecords) {
-        query = query.in('Estado', ['Pendiente', 'Activo', 'Disponible']);
+        query = query.in('Estado', ['Pendiente', 'Activo', 'Disponible', 'Solicitado']);
       }
-      
+
       const { data, error: fetchError } = await query.order('Fecha_Retiro', { ascending: true });
 
       if (fetchError) {
