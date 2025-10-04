@@ -90,12 +90,20 @@ const QuoteRequest: React.FC = () => {
       return;
     }
 
+    console.log('🚀 Calculando distancia...', {
+      origin: coordinates.origin,
+      destination: coordinates.destination,
+      stops: formData.scheduledStops.length
+    });
+
     try {
       const waypoints = formData.scheduledStops
         .filter(stop => stop.coordinates)
         .map(stop => stop.coordinates!);
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-distance`;
+
+      console.log('📡 Llamando a la API:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -110,20 +118,28 @@ const QuoteRequest: React.FC = () => {
         }),
       });
 
+      console.log('📥 Respuesta recibida:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to calculate distance');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('📊 Datos recibidos:', data);
 
       if (data.distance) {
+        console.log('✅ Distancia calculada:', data.distance, 'km');
         setFormData(prev => ({
           ...prev,
           estimatedDistance: data.distance.toString()
         }));
+      } else if (data.error) {
+        console.warn('⚠️ Error en la API de Google Maps, usando cálculo alternativo');
+        throw new Error(data.error);
       }
     } catch (error) {
-      console.error('Error calculating distance:', error);
+      console.error('❌ Error al calcular con Google Maps:', error);
+      console.log('🔄 Usando cálculo de distancia alternativo (Haversine)...');
 
       let totalDistance = 0;
       const waypoints = [coordinates.origin];
@@ -146,9 +162,12 @@ const QuoteRequest: React.FC = () => {
         totalDistance += distance;
       }
 
+      const roundedDistance = Math.round(totalDistance);
+      console.log('✅ Distancia calculada (Haversine):', roundedDistance, 'km');
+
       setFormData(prev => ({
         ...prev,
-        estimatedDistance: Math.round(totalDistance).toString()
+        estimatedDistance: roundedDistance.toString()
       }));
     }
   };
