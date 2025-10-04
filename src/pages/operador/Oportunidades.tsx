@@ -42,7 +42,7 @@ const OperadorOportunidades: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCargoType, setFilterCargoType] = useState('all');
-  const [showAllRecords, setShowAllRecords] = useState(false);
+  const [showAllRecords, setShowAllRecords] = useState(true);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [quoteAmount, setQuoteAmount] = useState('');
