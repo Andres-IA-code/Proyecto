@@ -15,7 +15,14 @@ const OperadorSuscripcion: React.FC = () => {
     if (savedPlan) {
       setSelectedPlan(savedPlan);
     }
-  }, []);
+
+    // Set up polling to refresh count every 5 seconds
+    const intervalId = setInterval(() => {
+      refreshCount();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [refreshCount]);
 
   const handlePlanSelection = (plan: PlanType) => {
     setSelectedPlan(plan);

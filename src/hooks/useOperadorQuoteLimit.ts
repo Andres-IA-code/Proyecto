@@ -33,20 +33,21 @@ export const useOperadorQuoteLimit = (): OperadorQuoteLimitHook => {
         ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
         : currentUser.profile.Nombre;
 
-      // Count quotes sent by this operator
+      // Count ACCEPTED quotes sent by this operator
       const { count, error: countError } = await supabase
         .from('Cotizaciones')
         .select('*', { count: 'exact', head: true })
-        .eq('Nombre_Operador', nombreOperador);
+        .eq('Nombre_Operador', nombreOperador)
+        .eq('Estado', 'Aceptada');
 
       if (countError) {
-        console.error('Error counting quotes:', countError);
+        console.error('Error counting accepted quotes:', countError);
         setError('Error al obtener el conteo de cotizaciones');
         return;
       }
 
       setQuotesUsed(count || 0);
-      console.log('Quotes used by operator:', count);
+      console.log('Accepted quotes by operator:', count);
       
     } catch (err) {
       console.error('Error in refreshCount:', err);
