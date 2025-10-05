@@ -160,14 +160,14 @@ const OperadorCotizaciones: React.FC = () => {
         return;
       }
 
-      console.log('Buscando cotizaciones del operador...');
+      console.log('Buscando cotizaciones del operador con ID:', currentUser.profile.id_Usuario);
 
       // Buscar cotizaciones del operador actual
       const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          General!inner(
+          General(
             id_Usuario,
             Origen,
             Destino,
