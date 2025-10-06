@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { CircleUser as UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { getCurrentUser, updateUserProfile, deleteUserAccount } from '../lib/supabase';
 import { formatPhoneNumber, validatePhone } from '../utils/validation';
 import { useNavigate } from 'react-router-dom';
