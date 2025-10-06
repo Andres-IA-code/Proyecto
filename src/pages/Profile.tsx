@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import { getCurrentUser, updateUserProfile } from '../lib/supabase';
+import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { getCurrentUser, updateUserProfile, deleteUserAccount } from '../lib/supabase';
 import { formatPhoneNumber, validatePhone } from '../utils/validation';
+import { useNavigate } from 'react-router-dom';
 
 interface UserData {
   id_Usuario: number;
@@ -21,6 +22,7 @@ interface UserData {
 }
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('profile');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,8 @@ const Profile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [phoneError, setPhoneError] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -293,6 +297,27 @@ const Profile: React.FC = () => {
         return 'Error al guardar los cambios';
       default:
         return '';
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteUserAccount();
+
+      // Clear all user data from localStorage
+      localStorage.clear();
+
+      // Redirect to home page
+      navigate('/');
+
+      alert('Tu cuenta ha sido eliminada exitosamente');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      alert(`Error al eliminar la cuenta: ${error.message || 'Por favor intenta nuevamente'}`);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -587,29 +612,52 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-between items-center border-t">
-                <div className="flex items-center space-x-2">
-                  {saveStatus !== 'idle' && (
-                    <>
-                      {getSaveStatusIcon()}
-                      <span className={`text-sm ${
-                        saveStatus === 'success' ? 'text-green-600' : 
-                        saveStatus === 'error' ? 'text-red-600' : 
-                        'text-blue-600'
-                      }`}>
-                        {getSaveStatusText()}
-                      </span>
-                    </>
-                  )}
+              <div className="pt-4 space-y-4 border-t">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    {saveStatus !== 'idle' && (
+                      <>
+                        {getSaveStatusIcon()}
+                        <span className={`text-sm ${
+                          saveStatus === 'success' ? 'text-green-600' :
+                          saveStatus === 'error' ? 'text-red-600' :
+                          'text-blue-600'
+                        }`}>
+                          {getSaveStatusText()}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleSaveChanges}
+                    disabled={saving}
+                    className="px-4 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {saving ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
                 </div>
-                
-                <button 
-                  onClick={handleSaveChanges}
-                  disabled={saving}
-                  className="px-4 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {saving ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
+
+                {/* Danger Zone - Delete Account */}
+                <div className="pt-4 border-t border-red-200">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-red-800 mb-1">Zona de Peligro</h3>
+                        <p className="text-xs text-red-700">
+                          Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor asegúrate de que realmente quieres hacer esto.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="ml-4 inline-flex items-center px-3 py-1.5 border border-red-600 rounded-md text-xs font-medium text-red-600 bg-white hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={14} className="mr-1" />
+                        Eliminar Cuenta
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -711,6 +759,68 @@ const Profile: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+              <AlertCircle className="h-6 w-6 text-red-600" />
+            </div>
+
+            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+              ¿Estás seguro de eliminar tu cuenta?
+            </h3>
+
+            <p className="text-sm text-gray-600 text-center mb-6">
+              Esta acción es permanente y no se puede deshacer. Se eliminarán todos tus datos, incluidos:
+            </p>
+
+            <ul className="text-sm text-gray-600 mb-6 space-y-2">
+              <li className="flex items-start">
+                <span className="text-red-500 mr-2">•</span>
+                <span>Tu información de perfil</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-red-500 mr-2">•</span>
+                <span>Todas tus cotizaciones y envíos</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-red-500 mr-2">•</span>
+                <span>Tu historial de actividad</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-red-500 mr-2">•</span>
+                <span>Acceso a la plataforma</span>
+              </li>
+            </ul>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isDeleting ? (
+                  <span className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Eliminando...
+                  </span>
+                ) : (
+                  'Sí, eliminar mi cuenta'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
