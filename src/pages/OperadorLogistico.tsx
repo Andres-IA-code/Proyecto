@@ -186,13 +186,6 @@ const OperadorLogistico: React.FC = () => {
               <span>Gestión de Viajes</span>
             </button>
             <button
-              disabled
-              className="w-full text-left px-4 py-2 flex items-center space-x-2 bg-gray-700 text-gray-500 cursor-not-allowed opacity-50"
-            >
-              <FileCheck size={20} />
-              <span>Gestión de Flota</span>
-            </button>
-            <button
               onClick={() => handleNavigation('configuracion')}
               disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
