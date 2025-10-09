@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Package, Truck, FileText, Plus, X, Upload } from 'lucide-react';
 import AddressAutocomplete from '../components/AddressAutocomplete';
-import QuoteLimitModal from '../components/QuoteLimitModal';
 import { calculateDistance } from '../utils/distanceCalculator';
-import { supabase, getCurrentUser } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
-import { useQuoteLimit } from '../hooks/useQuoteLimit';
 
 interface FormData {
   origin: string;
@@ -23,8 +19,6 @@ interface FormData {
   pickupDate: string;
   pickupTime: string;
   shipmentType: string;
-  bodyType: string;
-  flexibleDate: boolean;
   observations: string;
   scheduledStops: Array<{
     address: string;
@@ -38,9 +32,6 @@ interface Coordinates {
 }
 
 const QuoteRequest: React.FC = () => {
-  const navigate = useNavigate();
-  const { quotesUsed, quotesLimit, hasReachedLimit, isLoading: limitLoading, refreshCount, incrementCount } = useQuoteLimit();
-  const [showLimitModal, setShowLimitModal] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     origin: '',
     destination: '',
@@ -57,8 +48,6 @@ const QuoteRequest: React.FC = () => {
     pickupDate: '',
     pickupTime: '',
     shipmentType: '',
-    bodyType: '',
-    flexibleDate: false,
     observations: '',
     scheduledStops: [],
   });
@@ -69,110 +58,45 @@ const QuoteRequest: React.FC = () => {
   }>({});
 
   const [newStop, setNewStop] = useState('');
-  const [newStopCoords, setNewStopCoords] = useState<Coordinates | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string>('');
-
-  // Check if user has reached limit when component mounts
-  useEffect(() => {
-    if (!limitLoading && hasReachedLimit) {
-      setShowLimitModal(true);
-    }
-  }, [limitLoading, hasReachedLimit]);
 
   // Effect to calculate total distance including stops
   useEffect(() => {
-    console.log('🔄 useEffect triggered - coordinates changed:', coordinates);
-    console.log('🔄 Paradas programadas:', formData.scheduledStops);
     calculateTotalDistance();
   }, [coordinates.origin, coordinates.destination, formData.scheduledStops]);
 
-  const calculateTotalDistance = async () => {
+  const calculateTotalDistance = () => {
     if (!coordinates.origin || !coordinates.destination) {
       setFormData(prev => ({ ...prev, estimatedDistance: '' }));
       return;
     }
 
-    console.log('🚀 Calculando distancia...', {
-      origin: coordinates.origin,
-      destination: coordinates.destination,
-      stops: formData.scheduledStops.length
+    let totalDistance = 0;
+    const waypoints = [coordinates.origin];
+
+    // Add scheduled stops with coordinates
+    formData.scheduledStops.forEach(stop => {
+      if (stop.coordinates) {
+        waypoints.push(stop.coordinates);
+      }
     });
 
-    try {
-      const waypoints = formData.scheduledStops
-        .filter(stop => stop.coordinates)
-        .map(stop => stop.coordinates!);
+    waypoints.push(coordinates.destination);
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-distance`;
-
-      console.log('📡 Llamando a la API:', apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          origin: coordinates.origin,
-          destination: coordinates.destination,
-          waypoints: waypoints.length > 0 ? waypoints : undefined,
-        }),
-      });
-
-      console.log('📥 Respuesta recibida:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('📊 Datos recibidos:', data);
-
-      if (data.distance) {
-        console.log('✅ Distancia calculada:', data.distance, 'km');
-        setFormData(prev => ({
-          ...prev,
-          estimatedDistance: data.distance.toString()
-        }));
-      } else if (data.error) {
-        console.warn('⚠️ Error en la API de Google Maps, usando cálculo alternativo');
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      console.error('❌ Error al calcular con Google Maps:', error);
-      console.log('🔄 Usando cálculo de distancia alternativo (Haversine)...');
-
-      let totalDistance = 0;
-      const waypoints = [coordinates.origin];
-
-      formData.scheduledStops.forEach(stop => {
-        if (stop.coordinates) {
-          waypoints.push(stop.coordinates);
-        }
-      });
-
-      waypoints.push(coordinates.destination);
-
-      for (let i = 0; i < waypoints.length - 1; i++) {
-        const distance = calculateDistance(
-          waypoints[i].lat,
-          waypoints[i].lng,
-          waypoints[i + 1].lat,
-          waypoints[i + 1].lng
-        );
-        totalDistance += distance;
-      }
-
-      const roundedDistance = Math.round(totalDistance);
-      console.log('✅ Distancia calculada (Haversine):', roundedDistance, 'km');
-
-      setFormData(prev => ({
-        ...prev,
-        estimatedDistance: roundedDistance.toString()
-      }));
+    // Calculate distance between consecutive waypoints
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const distance = calculateDistance(
+        waypoints[i].lat,
+        waypoints[i].lng,
+        waypoints[i + 1].lat,
+        waypoints[i + 1].lng
+      );
+      totalDistance += distance;
     }
+
+    setFormData(prev => ({ 
+      ...prev, 
+      estimatedDistance: Math.round(totalDistance).toString()
+    }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -192,28 +116,15 @@ const QuoteRequest: React.FC = () => {
     }
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-
   const handleAddressChange = (field: 'origin' | 'destination') => (
     value: string,
     coords?: Coordinates
   ) => {
-    console.log(`📍 ${field} cambiado:`, { value, coords });
-
     setFormData(prev => ({ ...prev, [field]: value }));
-
+    
     if (coords) {
-      console.log(`✅ Guardando coordenadas de ${field}:`, coords);
-      setCoordinates(prev => {
-        const newCoords = { ...prev, [field]: coords };
-        console.log('📍 Estado completo de coordenadas:', newCoords);
-        return newCoords;
-      });
+      setCoordinates(prev => ({ ...prev, [field]: coords }));
     } else {
-      console.log(`⚠️ No hay coordenadas para ${field}, limpiando...`);
       // Clear coordinates if address is cleared
       setCoordinates(prev => {
         const newCoords = { ...prev };
@@ -224,14 +135,7 @@ const QuoteRequest: React.FC = () => {
   };
 
   const handleStopAddressChange = (value: string, coords?: Coordinates) => {
-    console.log('🛑 Parada cambiada:', { value, coords });
     setNewStop(value);
-    if (coords) {
-      setNewStopCoords(coords);
-      console.log('✅ Coordenadas de parada guardadas:', coords);
-    } else {
-      setNewStopCoords(undefined);
-    }
   };
 
   const addScheduledStop = (stopAddress?: string, stopCoords?: Coordinates) => {
@@ -241,19 +145,16 @@ const QuoteRequest: React.FC = () => {
     }
 
     const addressToAdd = stopAddress || newStop.trim();
-    const coordsToAdd = stopCoords || newStopCoords;
-
+    
     if (addressToAdd) {
-      console.log('➕ Agregando parada:', { address: addressToAdd, coords: coordsToAdd });
       setFormData(prev => ({
         ...prev,
         scheduledStops: [...prev.scheduledStops, {
           address: addressToAdd,
-          coordinates: coordsToAdd
+          coordinates: stopCoords
         }],
       }));
       setNewStop('');
-      setNewStopCoords(undefined);
     }
   };
 
@@ -264,160 +165,10 @@ const QuoteRequest: React.FC = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check quote limit before submitting
-    if (hasReachedLimit) {
-      setShowLimitModal(true);
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setSubmitError('');
-
-    try {
-      // Check if Supabase is properly configured
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        setSubmitError('La base de datos no está configurada. Por favor contacta al administrador del sistema.');
-        return;
-      }
-
-      // Get current user
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        setSubmitError('No se pudo obtener la información del usuario. Por favor, inicia sesión nuevamente.');
-        return;
-      }
-
-      // Validate required fields
-      if (!formData.origin.trim()) {
-        setSubmitError('El origen es obligatorio');
-        return;
-      }
-      if (!formData.destination.trim()) {
-        setSubmitError('El destino es obligatorio');
-        return;
-      }
-      if (!formData.weight.trim()) {
-        setSubmitError('El peso es obligatorio');
-        return;
-      }
-      if (!formData.pickupDate) {
-        setSubmitError('La fecha de retiro es obligatoria');
-        return;
-      }
-      if (!formData.pickupTime) {
-        setSubmitError('La hora de retiro es obligatoria');
-        return;
-      }
-
-      // Prepare data for insertion
-      const shipmentData = {
-        id_Usuario: currentUser.profile.id_Usuario,
-        Estado: 'Solicitado',
-        Origen: formData.origin.trim(),
-        Destino: formData.destination.trim(),
-        Distancia: formData.estimatedDistance ? parseFloat(formData.estimatedDistance) : null,
-        Tipo_Carga: formData.cargoType || null,
-        Tipo_Vehiculo: formData.vehicleType || null,
-        Peso: formData.weight.trim(),
-        Dimension_Largo: formData.dimensions.length ? parseInt(formData.dimensions.length) : null,
-        Dimension_Ancho: formData.dimensions.width ? parseInt(formData.dimensions.width) : null,
-        Dimension_Alto: formData.dimensions.height ? parseInt(formData.dimensions.height) : null,
-        Tipo_Carroceria: formData.bodyType || null,
-        Fecha_Retiro: formData.pickupDate && formData.pickupTime 
-          ? `${formData.pickupDate}T${formData.pickupTime}:00+00:00` 
-          : null,
-        Horario_Retiro: formData.pickupTime || null,
-        Observaciones: formData.observations.trim() || null,
-        Tiempo_Estimado_Operacion: formData.estimatedTime.trim() || null,
-        Parada_Programada: formData.scheduledStops.length > 0 
-          ? formData.scheduledStops.map(stop => stop.address).join('\n') 
-          : null,
-        Nombre_Dador: currentUser.profile.Tipo_Persona === 'Física' 
-          ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
-          : currentUser.profile.Nombre,
-        Email: currentUser.profile.Correo
-      };
-
-      console.log('Guardando datos del envío:', shipmentData);
-
-      // Insert into General table
-      const { data, error } = await supabase
-        .from('General')
-        .insert([shipmentData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error al guardar el envío:', error);
-        
-        // Handle specific database errors
-        if (error.message?.includes('JWT')) {
-          setSubmitError('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        } else if (error.message?.includes('permission')) {
-          setSubmitError('No tienes permisos para realizar esta acción. Contacta al administrador.');
-        } else if (error.message?.includes('connection')) {
-          setSubmitError('Error de conexión con la base de datos. Verifica tu conexión a internet.');
-        } else {
-          setSubmitError('Error al guardar el envío. Por favor intenta nuevamente o contacta al administrador.');
-        }
-        return;
-      }
-
-      console.log('Envío guardado exitosamente:', data);
-
-      // Increment the quote count
-      incrementCount();
-
-      // Reset form
-      setFormData({
-        origin: '',
-        destination: '',
-        estimatedDistance: '',
-        estimatedTime: '',
-        cargoType: '',
-        weight: '',
-        dimensions: {
-          length: '',
-          width: '',
-          height: '',
-        },
-        vehicleType: '',
-        pickupDate: '',
-        pickupTime: '',
-        shipmentType: '',
-        bodyType: '',
-        flexibleDate: false,
-        observations: '',
-        scheduledStops: [],
-      });
-      setCoordinates({});
-      setNewStop('');
-
-      // Show success message and redirect
-      alert('¡Solicitud de envío creada exitosamente! Serás redirigido a la página de cotizaciones.');
-      
-      // Use setTimeout to ensure the alert is shown before navigation
-      setTimeout(() => {
-        navigate('/app/quotes', { replace: true });
-      }, 1000);
-
-    } catch (error: any) {
-      console.error('Error inesperado:', error);
-      
-      // Handle different types of errors
-      if (error.message?.includes('Base de datos no configurada')) {
-        setSubmitError('La aplicación no está configurada correctamente. Por favor contacta al administrador del sistema.');
-      } else if (error.message?.includes('Network')) {
-        setSubmitError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
-      } else {
-        setSubmitError('Error inesperado. Por favor intenta nuevamente o contacta al administrador.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    console.log('Form submitted:', formData);
+    console.log('Coordinates:', coordinates);
   };
 
   const getStopsCount = () => {
@@ -627,7 +378,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Largo(cm)
+                  Largo
                 </label>
                 <input
                   type="number"
@@ -641,7 +392,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ancho(cm)
+                  Ancho
                 </label>
                 <input
                   type="number"
@@ -655,7 +406,7 @@ const QuoteRequest: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alto(cm)
+                  Alto
                 </label>
                 <input
                   type="number"
@@ -703,39 +454,6 @@ const QuoteRequest: React.FC = () => {
               </div>
             </div>
 
-            {/* Tipo de Carrocería */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Carrocería
-              </label>
-              <select
-                name="bodyType"
-                value={formData.bodyType}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleccionar tipo de carrocería</option>
-                <option value="BATAN CERRADO">BATAN CERRADO</option>
-                <option value="CAJA ABIERTA">CAJA ABIERTA</option>
-                <option value="CARGA REFRIGERADA">CARGA REFRIGERADA</option>
-                <option value="CON BARANDAS">CON BARANDAS</option>
-                <option value="DOLLY">DOLLY</option>
-                <option value="ESTANQUE">ESTANQUE</option>
-                <option value="FURGÓN">FURGÓN</option>
-                <option value="PLAYO">PLAYO</option>
-                <option value="PORTA CONTENEDOR">PORTA CONTENEDOR</option>
-                <option value="SIDER">SIDER</option>
-                <option value="TANQUE/CISTERNA">TANQUE/CISTERNA</option>
-                <option value="TANQUE ABIERTA">TANQUE ABIERTA</option>
-                <option value="TOLVA">TOLVA</option>
-                <option value="VOLCADOR">VOLCADOR</option>
-                <option value="EXTENSIBLE">EXTENSIBLE</option>
-                <option value="GRANELERO">GRANELERO</option>
-                <option value="JAULA">JAULA</option>
-                <option value="SILO">SILO</option>
-              </select>
-            </div>
-
             {/* Séptima fila: Fecha y Hora de Retiro */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -768,52 +486,35 @@ const QuoteRequest: React.FC = () => {
 
             {/* Octava fila: Tipo de Envío */}
             <div>
-              <div className="flex justify-between items-center mb-3">
-                {formData.flexibleDate && (
-                  <div className="block text-sm font-medium text-gray-700">
-                    Tipo de Envío
-                  </div>
-                )}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="flexibleDate"
-                    checked={formData.flexibleDate}
-                    onChange={handleCheckboxChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
-                  />
-                  <label className="text-sm text-gray-700">
-                    Fecha Flexible
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Tipo de Envío
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { value: 'express', label: 'Express', subtitle: '< 6 días' },
+                  { value: 'normal', label: 'Normal', subtitle: '7-15 días' },
+                  { value: 'urgente', label: 'Urgente', subtitle: 'Mismo día' },
+                ].map((shipment) => (
+                  <label key={shipment.value} className="relative">
+                    <input
+                      type="radio"
+                      name="shipmentType"
+                      value={shipment.value}
+                      checked={formData.shipmentType === shipment.value}
+                      onChange={handleInputChange}
+                      className="sr-only"
+                    />
+                    <div className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all ${
+                      formData.shipmentType === shipment.value
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <div className="font-medium text-sm">{shipment.label}</div>
+                      <div className="text-xs text-gray-500">{shipment.subtitle}</div>
+                    </div>
                   </label>
-                </div>
+                ))}
               </div>
-              {formData.flexibleDate && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { value: 'express', label: 'Express', subtitle: 'hasta 3 dias' },
-                    { value: 'normal', label: 'Normal', subtitle: 'entre 3 y 7 dias' },
-                  ].map((shipment) => (
-                    <label key={shipment.value} className="relative">
-                      <input
-                        type="radio"
-                        name="shipmentType"
-                        value={shipment.value}
-                        checked={formData.shipmentType === shipment.value}
-                        onChange={handleInputChange}
-                        className="sr-only"
-                      />
-                      <div className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all ${
-                        formData.shipmentType === shipment.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <div className="font-medium text-sm">{shipment.label}</div>
-                        <div className="text-xs text-gray-500">{shipment.subtitle}</div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Novena fila: Observaciones */}
@@ -831,63 +532,41 @@ const QuoteRequest: React.FC = () => {
               />
             </div>
 
-            {/* Error Message */}
-            {submitError && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <X className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-red-800">
-                      {submitError}
-                    </p>
-                  </div>
-                </div>
+            {/* Décima fila: Documentación */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Documentación
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-600 mb-2">Adjunta y sube las imágenes aquí o haz clic para seleccionar</p>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Seleccionar Archivos
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Botones */}
             <div className="flex justify-end space-x-4 pt-6 border-t">
               <button
                 type="button"
                 className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isSubmitting}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || hasReachedLimit}
-                className={`px-6 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center ${
-                  hasReachedLimit 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Guardando...
-                  </>
-                ) : hasReachedLimit ? (
-                  'Límite Alcanzado'
-                ) : (
-                  'Enviar'
-                )}
+                Enviar
               </button>
             </div>
           </form>
         </div>
       </div>
-
-      {/* Quote Limit Modal */}
-      <QuoteLimitModal
-        isOpen={showLimitModal}
-        onClose={() => setShowLimitModal(false)}
-        quotesUsed={quotesUsed}
-        quotesLimit={quotesLimit}
-      />
     </div>
   );
 };

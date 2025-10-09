@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Truck, Package, DollarSign, MapPin, Users, BarChart, Settings, MessageSquare, FileText, Bell, Star, Droplet, Calculator, FileCheck, Clock, BarChart as ChartBar, LogOut, ChevronLeft, ChevronRight, User, CreditCard } from 'lucide-react';
+import { Truck, Package, DollarSign, MapPin, Users, BarChart, Settings, MessageSquare, FileText, Bell, Star, Droplet, Calculator, FileCheck, Clock, BarChart as ChartBar, LogOut, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useOperadorQuoteLimit } from '../hooks/useOperadorQuoteLimit';
 
 interface UserData {
   id_Usuario: number;
@@ -15,7 +14,6 @@ interface UserData {
 
 const OperadorLogistico: React.FC = () => {
   const navigate = useNavigate();
-  const { hasReachedLimit } = useOperadorQuoteLimit();
   const [selectedSection, setSelectedSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -132,18 +130,15 @@ const OperadorLogistico: React.FC = () => {
     <div className="min-h-screen bg-gray-100">
       <div className="flex">
         {/* Sidebar */}
-        <div className={`fixed top-0 left-0 h-full transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'} bg-black text-white flex flex-col overflow-hidden z-40`}>
+        <div className={`transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'} bg-black text-white min-h-screen flex flex-col overflow-hidden`}>
           <div className="p-4">
             <h1 className="text-xl font-bold">Panel Operador</h1>
           </div>
           <nav className="flex-1 overflow-y-auto py-4">
             <button
               onClick={() => handleNavigation('dashboard')}
-              disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                hasReachedLimit 
-                  ? 'text-gray-500 cursor-not-allowed opacity-50'
-                  : selectedSection === 'dashboard' ? 'bg-gray-800' : 'hover:bg-gray-800'
+                selectedSection === 'dashboard' ? 'bg-gray-800' : 'hover:bg-gray-800'
               }`}
             >
               <BarChart size={20} />
@@ -151,11 +146,8 @@ const OperadorLogistico: React.FC = () => {
             </button>
             <button
               onClick={() => handleNavigation('oportunidades')}
-              disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                hasReachedLimit 
-                  ? 'text-gray-500 cursor-not-allowed opacity-50'
-                  : selectedSection === 'oportunidades' ? 'bg-gray-800' : 'hover:bg-gray-800'
+                selectedSection === 'oportunidades' ? 'bg-gray-800' : 'hover:bg-gray-800'
               }`}
             >
               <Package size={20} />
@@ -163,11 +155,8 @@ const OperadorLogistico: React.FC = () => {
             </button>
             <button
               onClick={() => handleNavigation('cotizaciones')}
-              disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                hasReachedLimit 
-                  ? 'text-gray-500 cursor-not-allowed opacity-50'
-                  : selectedSection === 'cotizaciones' ? 'bg-gray-800' : 'hover:bg-gray-800'
+                selectedSection === 'cotizaciones' ? 'bg-gray-800' : 'hover:bg-gray-800'
               }`}
             >
               <Calculator size={20} />
@@ -175,11 +164,8 @@ const OperadorLogistico: React.FC = () => {
             </button>
             <button
               onClick={() => handleNavigation('viajes')}
-              disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                hasReachedLimit 
-                  ? 'text-gray-500 cursor-not-allowed opacity-50'
-                  : selectedSection === 'viajes' ? 'bg-gray-800' : 'hover:bg-gray-800'
+                selectedSection === 'viajes' ? 'bg-gray-800' : 'hover:bg-gray-800'
               }`}
             >
               <Truck size={20} />
@@ -187,11 +173,8 @@ const OperadorLogistico: React.FC = () => {
             </button>
             <button
               onClick={() => handleNavigation('documentos')}
-              disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                hasReachedLimit 
-                  ? 'text-gray-500 cursor-not-allowed opacity-50'
-                  : selectedSection === 'documentos' ? 'bg-gray-800' : 'hover:bg-gray-800'
+                selectedSection === 'documentos' ? 'bg-gray-800' : 'hover:bg-gray-800'
               }`}
             >
               <FileCheck size={20} />
@@ -199,24 +182,12 @@ const OperadorLogistico: React.FC = () => {
             </button>
             <button
               onClick={() => handleNavigation('configuracion')}
-              disabled={hasReachedLimit}
               className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                hasReachedLimit 
-                  ? 'text-gray-500 cursor-not-allowed opacity-50'
-                  : selectedSection === 'configuracion' ? 'bg-gray-800' : 'hover:bg-gray-800'
+                selectedSection === 'configuracion' ? 'bg-gray-800' : 'hover:bg-gray-800'
               }`}
             >
               <User size={20} />
               <span>Perfil</span>
-            </button>
-            <button
-              onClick={() => handleNavigation('suscripcion')}
-              className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
-                selectedSection === 'suscripcion' ? 'bg-gray-800' : 'hover:bg-gray-800'
-              }`}
-            >
-              <CreditCard size={20} />
-              <span>Suscripción</span>
             </button>
           </nav>
           
@@ -262,16 +233,13 @@ const OperadorLogistico: React.FC = () => {
 
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`fixed top-1/2 transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 transition-all duration-300 ${
-            sidebarOpen ? 'left-64' : 'left-0'
-          }`}
-          style={{ zIndex: 1001 }}
+          className="fixed left-0 top-[70%] transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 z-50"
         >
           {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </button>
 
         {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className="flex-1">
           <Outlet />
         </div>
       </div>

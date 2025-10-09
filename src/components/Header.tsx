@@ -18,9 +18,7 @@ const Header: React.FC = () => {
     } else if (path === '/app/tracking') {
       return { title: 'Seguimiento', subtitle: 'Rastrear envíos en tiempo real' };
     } else if (path === '/app/history') {
-      return { title: '', subtitle: 'Historial de envíos y facturas' };
-    } else if (path === '/app/subscription') {
-      return { title: 'Suscripción', subtitle: 'Gestionar plan y facturación' };
+      return { title: 'Seguimientos', subtitle: 'Historial de envíos y facturas' };
     } else if (path === '/app/profile') {
       return { title: 'Perfil', subtitle: 'Gestionar información personal' };
     }
@@ -69,8 +67,15 @@ const Header: React.FC = () => {
     <header className="bg-white border-b border-gray-200 py-3 px-6 flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
+        <p className="text-gray-500 mt-1">{subtitle}</p>
       </div>
       <div className="flex items-center space-x-4">
+        <button className="relative p-1 rounded-full hover:bg-gray-100 transition-colors">
+          <Bell size={20} className="text-gray-500" />
+          <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
+            3
+          </span>
+        </button>
       </div>
     </header>
   );
