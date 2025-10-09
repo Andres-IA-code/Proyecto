@@ -18,7 +18,6 @@ import OperadorLogistico from './pages/OperadorLogistico';
 import BrokerLogistico from './pages/BrokerLogistico';
 import Solutions from './pages/Solutions';
 import Legal from './pages/Legal';
-import Privacy from './pages/Privacy';
 
 
 // Operador Logístico Pages
@@ -52,7 +51,6 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/legal" element={<Legal />} />
-        <Route path="/privacy" element={<Privacy />} />
         
         {/* Operador Logístico Routes */}
         <Route path="/operador" element={<OperadorLogistico />}>
