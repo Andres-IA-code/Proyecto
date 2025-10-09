@@ -28,14 +28,14 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div className="flex items-center justify-center mb-8">
-          <Truck className="w-12 h-12 text-orange-600 mr-3" />
-          <h1 className="text-3xl font-bold text-slate-800">ShipConnect</h1>
+          <Truck className="w-12 h-12 text-blue-600 mr-3" />
+          <h1 className="text-3xl font-bold text-gray-900">ShipConnect</h1>
         </div>
 
-        <h2 className="text-2xl font-semibold text-slate-800 mb-6 text-center">
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
           Iniciar Sesión
         </h2>
 
@@ -47,27 +47,27 @@ export function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Correo Electrónico
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Contraseña
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
@@ -75,7 +75,7 @@ export function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50"
           >
             <LogIn className="w-5 h-5 mr-2" />
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -85,7 +85,7 @@ export function Login() {
         <div className="mt-6 text-center">
           <button
             onClick={() => navigate('/register')}
-            className="text-orange-600 hover:text-orange-700 text-sm font-medium"
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
           >
             ¿No tienes cuenta? Regístrate
           </button>
