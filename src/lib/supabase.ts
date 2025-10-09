@@ -275,16 +275,6 @@ export const signOut = async () => {
     if (error) {
       throw error;
     }
-    
-    // Clear any Supabase-related entries from localStorage to prevent stale tokens
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('sb-')) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
   } catch (error) {
     console.error('Error in signOut:', error);
     throw error;
