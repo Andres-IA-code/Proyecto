@@ -245,8 +245,6 @@ const Profile: React.FC = () => {
         return 'Empresa';
       case 'addresses':
         return 'Direcciones';
-      case 'notifications':
-        return 'Notificaciones';
       default:
         return 'Perfil';
     }
@@ -371,28 +369,6 @@ const Profile: React.FC = () => {
             >
               <Building size={20} className="mx-auto mb-1" />
               Empresa
-            </button>
-            <button
-              onClick={() => setSelectedTab('addresses')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                selectedTab === 'addresses'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <MapPin size={20} className="mx-auto mb-1" />
-              Direcciones
-            </button>
-            <button
-              onClick={() => setSelectedTab('notifications')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                selectedTab === 'notifications'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Bell size={20} className="mx-auto mb-1" />
-              Notificaciones
             </button>
           </nav>
         </div>
@@ -733,51 +709,6 @@ const Profile: React.FC = () => {
             </div>
           )}
 
-          {selectedTab === 'addresses' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">Dirección Principal</h3>
-                        <p className="text-gray-500 text-sm mt-1">
-                          {userData.Domicilio} {userData.Numero}
-                          {userData.Piso && `, Piso ${userData.Piso}`}
-                          {userData.Departamento && `, Depto ${userData.Departamento}`}
-                          <br />
-                          {userData.Localidad}
-                        </p>
-                        <div className="mt-2 flex items-center text-sm text-gray-500">
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                            Principal
-                          </span>
-                          <span className="mx-2">•</span>
-                          <span>{userData.Tipo_Persona === 'Física' ? 'Domicilio Real' : 'Domicilio Legal'}</span>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button className="text-gray-400 hover:text-gray-500">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {selectedTab === 'notifications' && (
-            <div className="py-12 text-center">
-              <h2 className="text-lg font-medium text-gray-900">Configuración de notificaciones</h2>
-              <p className="mt-2 text-sm text-gray-500">
-                Esta sección está en desarrollo y estará disponible próximamente.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
