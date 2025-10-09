@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import { getCurrentUser, updateUserProfile } from '../lib/supabase';
-import { formatPhoneNumber, validatePhone } from '../utils/validation';
+import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle, Truck, Package } from 'lucide-react';
+import { getCurrentUser, updateUserProfile } from '../../lib/supabase';
+import { formatPhoneNumber, validatePhone } from '../../utils/validation';
 
 interface UserData {
   id_Usuario: number;
@@ -20,7 +20,7 @@ interface UserData {
   auth_user_id?: string;
 }
 
-const Profile: React.FC = () => {
+const OperadorConfiguracion: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('profile');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -240,13 +240,15 @@ const Profile: React.FC = () => {
   const getTitle = () => {
     switch (selectedTab) {
       case 'profile':
-        return 'Perfil';
+        return 'Perfil del Operador';
       case 'company':
-        return 'Empresa';
-      case 'addresses':
-        return 'Direcciones';
+        return 'Información de la Empresa';
+      case 'fleet':
+        return 'Gestión de Flota';
+      case 'notifications':
+        return 'Notificaciones';
       default:
-        return 'Perfil';
+        return 'Perfil del Operador';
     }
   };
 
@@ -298,10 +300,10 @@ const Profile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="text-gray-500">Cargando datos del usuario...</div>
+            <div className="text-gray-500">Cargando datos del operador...</div>
           </div>
         </div>
       </div>
@@ -310,10 +312,10 @@ const Profile: React.FC = () => {
 
   if (!userData) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="text-red-500">Error al cargar los datos del usuario</div>
+            <div className="text-red-500">Error al cargar los datos del operador</div>
           </div>
         </div>
       </div>
@@ -321,13 +323,13 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="p-6 border-b">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
               <h1 className="text-2xl font-bold">{getTitle()}</h1>
-              <p className="text-gray-500 mt-1">Gestiona tu información personal</p>
+              <p className="text-gray-500 mt-1">Gestiona tu información como operador logístico</p>
             </div>
             
             {/* Save status indicator */}
@@ -370,6 +372,28 @@ const Profile: React.FC = () => {
               <Building size={20} className="mx-auto mb-1" />
               Empresa
             </button>
+            <button
+              onClick={() => setSelectedTab('fleet')}
+              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                selectedTab === 'fleet'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Truck size={20} className="mx-auto mb-1" />
+              Flota
+            </button>
+            <button
+              onClick={() => setSelectedTab('notifications')}
+              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                selectedTab === 'notifications'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Bell size={20} className="mx-auto mb-1" />
+              Notificaciones
+            </button>
           </nav>
         </div>
 
@@ -378,7 +402,7 @@ const Profile: React.FC = () => {
             <div className="space-y-6">
               <div className="flex items-center">
                 <div className="relative group">
-                  <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-6 overflow-hidden shadow-lg">
+                  <div className="h-24 w-24 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center mr-6 overflow-hidden shadow-lg">
                     {profileImage ? (
                       <img
                         src={profileImage}
@@ -407,7 +431,7 @@ const Profile: React.FC = () => {
                 
                 <div>
                   <h1 className="text-2xl font-bold">{getDisplayName()}</h1>
-                  <p className="text-gray-500">{userData.Rol_Operativo || 'Usuario'}</p>
+                  <p className="text-gray-500">Operador Logístico</p>
                   <p className="text-sm text-gray-400">
                     {userData.Tipo_Persona === 'Física' ? 'Persona Física' : 'Persona Jurídica'}
                     {userData.DNI && ` • DNI: ${userData.DNI}`}
@@ -514,7 +538,7 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div>
-                  <h2 className="text-lg font-medium mb-4">Dirección</h2>
+                  <h2 className="text-lg font-medium mb-4">Dirección de la Empresa</h2>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -709,10 +733,49 @@ const Profile: React.FC = () => {
             </div>
           )}
 
+          {selectedTab === 'fleet' && (
+            <div className="space-y-6">
+              <div className="text-center py-12">
+                <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gray-100">
+                  <Truck size={36} className="text-gray-400" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium text-gray-900">Gestión de Flota</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Administra tu flota de vehículos y equipos de transporte.
+                </p>
+                <div className="mt-6">
+                  <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
+                    Agregar Vehículo
+                  </button>
+                </div>
+                <div className="mt-6 text-left max-w-md mx-auto">
+                  <p className="text-sm text-gray-500 mb-2">
+                    Funcionalidades disponibles:
+                  </p>
+                  <ul className="text-sm text-gray-500 space-y-1">
+                    <li>• Registro de vehículos</li>
+                    <li>• Control de documentación</li>
+                    <li>• Seguimiento de mantenimiento</li>
+                    <li>• Asignación de conductores</li>
+                    <li>• Historial de servicios</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedTab === 'notifications' && (
+            <div className="py-12 text-center">
+              <h2 className="text-lg font-medium text-gray-900">Configuración de notificaciones</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Esta sección está en desarrollo y estará disponible próximamente.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default Profile;
+export default OperadorConfiguracion;
