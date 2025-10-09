@@ -30,7 +30,6 @@ import OperadorCotizaciones from './pages/operador/Cotizaciones';
 import OperadorViajes from './pages/operador/Viajes';
 import OperadorDocumentos from './pages/operador/Documentos';
 import OperadorConfiguracion from './pages/operador/Configuracion';
-import OperadorSuscripcion from './pages/operador/Suscripcion';
 
 // Broker Logístico Pages
 import BrokerDashboard from './pages/broker/Dashboard';
@@ -66,7 +65,6 @@ function App() {
           <Route path="viajes" element={<OperadorViajes />} />
           <Route path="documentos" element={<OperadorDocumentos />} />
           <Route path="configuracion" element={<OperadorConfiguracion />} />
-          <Route path="suscripcion" element={<OperadorSuscripcion />} />
         </Route>
 
         {/* Broker Logístico Routes */}
