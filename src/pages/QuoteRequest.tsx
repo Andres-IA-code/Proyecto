@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Package, Truck, FileText, Plus, X, Upload } from 'lucide-react';
 import AddressAutocomplete from '../components/AddressAutocomplete';
-import QuoteLimitModal from '../components/QuoteLimitModal';
 import { calculateDistance } from '../utils/distanceCalculator';
 import { supabase, getCurrentUser } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { useQuoteLimit } from '../hooks/useQuoteLimit';
 
 interface FormData {
   origin: string;
@@ -39,8 +37,6 @@ interface Coordinates {
 
 const QuoteRequest: React.FC = () => {
   const navigate = useNavigate();
-  const { quotesUsed, quotesLimit, hasReachedLimit, isLoading: limitLoading, refreshCount, incrementCount } = useQuoteLimit();
-  const [showLimitModal, setShowLimitModal] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     origin: '',
     destination: '',
@@ -71,13 +67,6 @@ const QuoteRequest: React.FC = () => {
   const [newStop, setNewStop] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
-
-  // Check if user has reached limit when component mounts
-  useEffect(() => {
-    if (!limitLoading && hasReachedLimit) {
-      setShowLimitModal(true);
-    }
-  }, [limitLoading, hasReachedLimit]);
 
   // Effect to calculate total distance including stops
   useEffect(() => {
@@ -192,13 +181,6 @@ const QuoteRequest: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check quote limit before submitting
-    if (hasReachedLimit) {
-      setShowLimitModal(true);
-      return;
-    }
-    
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -293,9 +275,6 @@ const QuoteRequest: React.FC = () => {
       }
 
       console.log('Envío guardado exitosamente:', data);
-
-      // Increment the quote count
-      incrementCount();
 
       // Reset form
       setFormData({
@@ -784,20 +763,14 @@ const QuoteRequest: React.FC = () => {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || hasReachedLimit}
-                className={`px-6 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center ${
-                  hasReachedLimit 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isSubmitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Guardando...
                   </>
-                ) : hasReachedLimit ? (
-                  'Límite Alcanzado'
                 ) : (
                   'Enviar'
                 )}
@@ -806,14 +779,6 @@ const QuoteRequest: React.FC = () => {
           </form>
         </div>
       </div>
-
-      {/* Quote Limit Modal */}
-      <QuoteLimitModal
-        isOpen={showLimitModal}
-        onClose={() => setShowLimitModal(false)}
-        quotesUsed={quotesUsed}
-        quotesLimit={quotesLimit}
-      />
     </div>
   );
 };
