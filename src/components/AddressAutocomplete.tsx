@@ -53,6 +53,9 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     if (newValue.length >= 3) {
       setIsOpen(true);
       await searchPlaces(newValue);
+    } else if (newValue.length > 0) {
+      setIsOpen(true);
+      clearPredictions();
     } else {
       setIsOpen(false);
       clearPredictions();
@@ -60,19 +63,34 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   };
 
   const handleSelectPlace = async (prediction: any) => {
+    console.log('🎯 Lugar seleccionado:', prediction);
     setInputValue(prediction.description);
     setIsOpen(false);
     clearPredictions();
 
-    // Get place details to extract coordinates
-    const details = await getPlaceDetails(prediction.place_id);
-    if (details?.geometry?.location) {
+    // If coordinates are already in the prediction (from Nominatim), use them directly
+    if (prediction.geometry?.location) {
+      console.log('✅ Usando coordenadas de la predicción:', prediction.geometry.location);
       onChange(prediction.description, {
-        lat: details.geometry.location.lat,
-        lng: details.geometry.location.lng,
+        lat: prediction.geometry.location.lat,
+        lng: prediction.geometry.location.lng,
       });
     } else {
-      onChange(prediction.description);
+      // Fallback: Get place details to extract coordinates
+      console.log('🔍 Obteniendo detalles del lugar con place_id:', prediction.place_id);
+      const details = await getPlaceDetails(prediction.place_id);
+      console.log('📍 Detalles recibidos:', details);
+
+      if (details?.geometry?.location) {
+        console.log('✅ Coordenadas obtenidas de detalles:', details.geometry.location);
+        onChange(prediction.description, {
+          lat: details.geometry.location.lat,
+          lng: details.geometry.location.lng,
+        });
+      } else {
+        console.error('❌ No se pudieron obtener coordenadas para:', prediction.description);
+        onChange(prediction.description);
+      }
     }
   };
 
@@ -92,54 +110,77 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           value={inputValue}
           onChange={handleInputChange}
           onFocus={handleFocus}
-          className={`w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${className}`}
+          className={`w-full pl-10 pr-10 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${className}`}
           placeholder={placeholder}
           required={required}
           autoComplete="off"
         />
-        <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-        
+        <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-blue-500" />
+
         {isLoading && (
-          <Loader2 className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 animate-spin" />
+          <Loader2 className="absolute right-3 top-2.5 h-5 w-5 text-blue-500 animate-spin" />
         )}
-        
+
         {error && (
-          <AlertCircle className="absolute right-3 top-2.5 h-5 w-5 text-red-400" />
+          <AlertCircle className="absolute right-3 top-2.5 h-5 w-5 text-red-500" />
         )}
       </div>
 
-      {isOpen && (predictions.length > 0 || error) && (
+      {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-64 overflow-y-auto"
         >
-          {error ? (
+          {isLoading && predictions.length === 0 ? (
+            <div className="p-4 text-sm text-gray-500 flex items-center justify-center">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Buscando direcciones...
+            </div>
+          ) : error ? (
             <div className="p-3 text-sm text-red-600 flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />
               {error}
             </div>
-          ) : (
-            predictions.map((prediction) => (
-              <button
-                key={prediction.place_id}
-                type="button"
-                className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
-                onClick={() => handleSelectPlace(prediction)}
-              >
-                <div className="flex items-start">
-                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {prediction.structured_formatting.main_text}
+          ) : predictions.length > 0 ? (
+            <>
+              <div className="px-3 py-2 bg-blue-50 border-b border-blue-100">
+                <p className="text-xs font-medium text-blue-700">
+                  {predictions.length} {predictions.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
+                </p>
+              </div>
+              {predictions.map((prediction, index) => (
+                <button
+                  key={prediction.place_id}
+                  type="button"
+                  className="w-full text-left px-4 py-3 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0 transition-colors duration-150"
+                  onClick={() => handleSelectPlace(prediction)}
+                >
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                      <MapPin className="h-4 w-4 text-blue-600" />
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {prediction.structured_formatting.secondary_text}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-900 mb-1">
+                        {prediction.structured_formatting.main_text}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {prediction.structured_formatting.secondary_text}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))
-          )}
+                </button>
+              ))}
+            </>
+          ) : inputValue.length < 3 && inputValue.length > 0 ? (
+            <div className="p-4 text-sm text-gray-500 text-center flex items-center justify-center">
+              <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />
+              Escribe al menos 3 caracteres para buscar
+            </div>
+          ) : inputValue.length >= 3 ? (
+            <div className="p-4 text-sm text-gray-500 text-center">
+              No se encontraron resultados
+            </div>
+          ) : null}
         </div>
       )}
     </div>
