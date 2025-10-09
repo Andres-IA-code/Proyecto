@@ -243,10 +243,6 @@ const OperadorConfiguracion: React.FC = () => {
         return 'Perfil del Operador';
       case 'company':
         return 'Información de la Empresa';
-      case 'fleet':
-        return 'Gestión de Flota';
-      case 'notifications':
-        return 'Notificaciones';
       default:
         return 'Perfil del Operador';
     }
@@ -371,28 +367,6 @@ const OperadorConfiguracion: React.FC = () => {
             >
               <Building size={20} className="mx-auto mb-1" />
               Empresa
-            </button>
-            <button
-              onClick={() => setSelectedTab('fleet')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                selectedTab === 'fleet'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Truck size={20} className="mx-auto mb-1" />
-              Flota
-            </button>
-            <button
-              onClick={() => setSelectedTab('notifications')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                selectedTab === 'notifications'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Bell size={20} className="mx-auto mb-1" />
-              Notificaciones
             </button>
           </nav>
         </div>
@@ -764,14 +738,6 @@ const OperadorConfiguracion: React.FC = () => {
             </div>
           )}
 
-          {selectedTab === 'notifications' && (
-            <div className="py-12 text-center">
-              <h2 className="text-lg font-medium text-gray-900">Configuración de notificaciones</h2>
-              <p className="mt-2 text-sm text-gray-500">
-                Esta sección está en desarrollo y estará disponible próximamente.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
