@@ -136,23 +136,6 @@ const Tutorial: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-blue-600 text-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-bold mb-3">¿Necesitas más ayuda?</h3>
-        <p className="text-blue-100 mb-4">
-          Si tienes dudas adicionales o necesitas asistencia técnica, no dudes en contactar con nuestro equipo de soporte.
-        </p>
-        <div className="flex gap-4 flex-wrap">
-          <a
-            href="mailto:soporte@logistica.com"
-            className="inline-flex items-center px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
-          >
-            Contactar Soporte
-          </a>
-          <button className="inline-flex items-center px-4 py-2 bg-blue-700 text-white rounded-lg font-medium hover:bg-blue-800 transition-colors">
-            Ver Video Tutorial
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
