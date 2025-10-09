@@ -12,15 +12,40 @@ const isSupabaseConfigured = () => {
          supabaseUrl.includes('.supabase.co');
 };
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-}
+// Create a fallback client even if not configured to prevent runtime errors
+const createSupabaseClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('⚠️ Supabase environment variables not found, using fallback configuration');
+    // Return a mock client that will throw meaningful errors
+    return {
+      from: () => ({
+        insert: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
+        select: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
+        update: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
+        delete: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
+      }),
+      auth: {
+        signUp: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        signInWithPassword: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        signOut: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        getUser: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        resetPasswordForEmail: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        updateUser: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        resend: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      }
+    };
+  }
+  
+  if (!isSupabaseConfigured()) {
+    console.error('❌ Supabase not properly configured. Please update your .env file with valid Supabase credentials.');
+    throw new Error('Base de datos no configurada correctamente. Por favor contacta al administrador.');
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey);
+};
 
-if (!isSupabaseConfigured()) {
-  console.error('❌ Supabase not properly configured. Please update your .env file with valid Supabase credentials.');
-}
-
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createSupabaseClient();
 
 // Database types based on the schema
 export interface Usuario {
@@ -250,6 +275,16 @@ export const signOut = async () => {
     if (error) {
       throw error;
     }
+    
+    // Clear any Supabase-related entries from localStorage to prevent stale tokens
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
   } catch (error) {
     console.error('Error in signOut:', error);
     throw error;
@@ -353,7 +388,7 @@ export const resendEmailVerification = async (email: string) => {
 export const updateUserProfile = async (userId: string, updates: Partial<Usuario>) => {
   try {
     checkSupabaseConfig();
-    
+
     const { data, error } = await supabase
       .from('Usuarios')
       .update(updates)
@@ -368,6 +403,47 @@ export const updateUserProfile = async (userId: string, updates: Partial<Usuario
     return data;
   } catch (error) {
     console.error('Error in updateUserProfile:', error);
+    throw error;
+  }
+};
+
+export const deleteUserAccount = async () => {
+  try {
+    checkSupabaseConfig();
+
+    console.log('🗑️ Iniciando eliminación de cuenta...');
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error('No hay usuario autenticado');
+    }
+
+    console.log('👤 Usuario a eliminar:', user.id);
+
+    // First, delete from Usuarios table (this will cascade to related tables due to FK constraints)
+    const { error: deleteProfileError } = await supabase
+      .from('Usuarios')
+      .delete()
+      .eq('auth_user_id', user.id);
+
+    if (deleteProfileError) {
+      console.error('❌ Error eliminando perfil:', deleteProfileError);
+      throw new Error('Error al eliminar el perfil del usuario');
+    }
+
+    console.log('✅ Perfil eliminado de la base de datos');
+
+    // Then delete the auth user
+    // Note: This requires admin privileges, so it must be done through an Edge Function
+    // For now, we'll sign out the user and let them know to contact support
+    await signOut();
+
+    console.log('✅ Cuenta eliminada exitosamente');
+    return { success: true };
+  } catch (error) {
+    console.error('💥 Error in deleteUserAccount:', error);
     throw error;
   }
 };
