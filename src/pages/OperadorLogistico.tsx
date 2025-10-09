@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Truck, Package, DollarSign, MapPin, Users, BarChart, Settings, MessageSquare, FileText, Bell, Star, Droplet, Calculator, FileCheck, Clock, BarChart as ChartBar, LogOut, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Truck, Package, DollarSign, MapPin, Users, BarChart, Settings, MessageSquare, FileText, Bell, Star, Droplet, Calculator, FileCheck, Clock, BarChart as ChartBar, LogOut, ChevronLeft, ChevronRight, User, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface UserData {
@@ -188,6 +188,15 @@ const OperadorLogistico: React.FC = () => {
             >
               <User size={20} />
               <span>Perfil</span>
+            </button>
+            <button
+              onClick={() => handleNavigation('suscripcion')}
+              className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
+                selectedSection === 'suscripcion' ? 'bg-gray-800' : 'hover:bg-gray-800'
+              }`}
+            >
+              <CreditCard size={20} />
+              <span>Suscripción</span>
             </button>
           </nav>
           
