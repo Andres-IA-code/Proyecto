@@ -12,40 +12,15 @@ const isSupabaseConfigured = () => {
          supabaseUrl.includes('.supabase.co');
 };
 
-// Create a fallback client even if not configured to prevent runtime errors
-const createSupabaseClient = () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('⚠️ Supabase environment variables not found, using fallback configuration');
-    // Return a mock client that will throw meaningful errors
-    return {
-      from: () => ({
-        insert: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
-        select: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
-        update: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
-        delete: () => Promise.reject(new Error('Base de datos no configurada. Por favor contacta al administrador.')),
-      }),
-      auth: {
-        signUp: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        signInWithPassword: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        signOut: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        getUser: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        resetPasswordForEmail: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        updateUser: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        resend: () => Promise.reject(new Error('Autenticación no configurada. Por favor contacta al administrador.')),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      }
-    };
-  }
-  
-  if (!isSupabaseConfigured()) {
-    console.error('❌ Supabase not properly configured. Please update your .env file with valid Supabase credentials.');
-    throw new Error('Base de datos no configurada correctamente. Por favor contacta al administrador.');
-  }
-  
-  return createClient(supabaseUrl, supabaseAnonKey);
-};
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Missing Supabase environment variables');
+}
 
-export const supabase = createSupabaseClient();
+if (!isSupabaseConfigured()) {
+  console.error('❌ Supabase not properly configured. Please update your .env file with valid Supabase credentials.');
+}
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
 // Database types based on the schema
 export interface Usuario {

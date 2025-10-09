@@ -1,16 +1,14 @@
 import React from 'react';
 
-export function OperadorCotizaciones() {
+const OperadorCotizaciones = () => {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Mis Cotizaciones</h1>
-        <p className="text-gray-600 mt-2">Gestiona tus cotizaciones enviadas</p>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <p className="text-gray-600">No tienes cotizaciones pendientes</p>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Cotizaciones</h1>
+      <div className="bg-white rounded-lg shadow p-6">
+        <p className="text-gray-600">Gestión de cotizaciones del operador logístico</p>
       </div>
     </div>
   );
-}
+};
+
+export default OperadorCotizaciones;
