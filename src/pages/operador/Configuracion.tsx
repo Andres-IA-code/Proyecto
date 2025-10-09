@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle, Truck, Package } from 'lucide-react';
-import { getCurrentUser, updateUserProfile } from '../../lib/supabase';
+import { UserCircle, Building, MapPin, Bell, User, Camera, Upload, CheckCircle, AlertCircle, Truck, Package, Trash2 } from 'lucide-react';
+import { getCurrentUser, updateUserProfile, deleteUserAccount } from '../../lib/supabase';
 import { formatPhoneNumber, validatePhone } from '../../utils/validation';
+import { useNavigate } from 'react-router-dom';
 
 interface UserData {
   id_Usuario: number;
@@ -21,6 +22,7 @@ interface UserData {
 }
 
 const OperadorConfiguracion: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('profile');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,9 @@ const OperadorConfiguracion: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [phoneError, setPhoneError] = useState<string>('');
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -243,10 +248,6 @@ const OperadorConfiguracion: React.FC = () => {
         return 'Perfil del Operador';
       case 'company':
         return 'Información de la Empresa';
-      case 'fleet':
-        return 'Gestión de Flota';
-      case 'notifications':
-        return 'Notificaciones';
       default:
         return 'Perfil del Operador';
     }
@@ -295,6 +296,31 @@ const OperadorConfiguracion: React.FC = () => {
         return 'Error al guardar los cambios';
       default:
         return '';
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmationText !== 'ELIMINAR') {
+      alert('Por favor escribe "ELIMINAR" para confirmar');
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      await deleteUserAccount();
+
+      localStorage.clear();
+
+      alert('Tu cuenta ha sido eliminada exitosamente.');
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      alert('Error al eliminar la cuenta. Por favor intenta nuevamente.');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirmation(false);
+      setDeleteConfirmationText('');
     }
   };
 
@@ -371,28 +397,6 @@ const OperadorConfiguracion: React.FC = () => {
             >
               <Building size={20} className="mx-auto mb-1" />
               Empresa
-            </button>
-            <button
-              onClick={() => setSelectedTab('fleet')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                selectedTab === 'fleet'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Truck size={20} className="mx-auto mb-1" />
-              Flota
-            </button>
-            <button
-              onClick={() => setSelectedTab('notifications')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                selectedTab === 'notifications'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Bell size={20} className="mx-auto mb-1" />
-              Notificaciones
             </button>
           </nav>
         </div>
@@ -617,8 +621,8 @@ const OperadorConfiguracion: React.FC = () => {
                     <>
                       {getSaveStatusIcon()}
                       <span className={`text-sm ${
-                        saveStatus === 'success' ? 'text-green-600' : 
-                        saveStatus === 'error' ? 'text-red-600' : 
+                        saveStatus === 'success' ? 'text-green-600' :
+                        saveStatus === 'error' ? 'text-red-600' :
                         'text-blue-600'
                       }`}>
                         {getSaveStatusText()}
@@ -626,14 +630,39 @@ const OperadorConfiguracion: React.FC = () => {
                     </>
                   )}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={handleSaveChanges}
                   disabled={saving}
                   className="px-4 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-red-200">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <h3 className="text-lg font-semibold text-red-900 mb-2">
+                        Zona de Peligro
+                      </h3>
+                      <p className="text-sm text-red-700 mb-4">
+                        Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate de que deseas hacer esto.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteConfirmation(true)}
+                        className="inline-flex items-center px-4 py-2 border border-red-600 rounded-md text-sm font-medium text-red-600 bg-white hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar Cuenta
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -764,16 +793,71 @@ const OperadorConfiguracion: React.FC = () => {
             </div>
           )}
 
-          {selectedTab === 'notifications' && (
-            <div className="py-12 text-center">
-              <h2 className="text-lg font-medium text-gray-900">Configuración de notificaciones</h2>
-              <p className="mt-2 text-sm text-gray-500">
-                Esta sección está en desarrollo y estará disponible próximamente.
-              </p>
-            </div>
-          )}
         </div>
       </div>
+
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-start mb-4">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-8 w-8 text-red-600" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Confirmar Eliminación de Cuenta
+                </h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  Esta acción eliminará permanentemente tu cuenta y todos los datos asociados, incluyendo:
+                </p>
+                <ul className="text-sm text-gray-700 space-y-1 mb-4 list-disc list-inside">
+                  <li>Información de perfil</li>
+                  <li>Cotizaciones enviadas y recibidas</li>
+                  <li>Historial de envíos</li>
+                  <li>Información de flota</li>
+                  <li>Calificaciones y reseñas</li>
+                  <li>Viajes programados y completados</li>
+                </ul>
+                <p className="text-sm text-red-700 font-semibold mb-4">
+                  Esta acción no se puede deshacer.
+                </p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Escribe "ELIMINAR" para confirmar:
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmationText}
+                    onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+                    placeholder="ELIMINAR"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setDeleteConfirmationText('');
+                }}
+                disabled={deleting}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirmationText !== 'ELIMINAR'}
+                className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar Cuenta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
