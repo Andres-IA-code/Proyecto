@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Truck, Package, History, User, LogOut } from 'lucide-react';
+import { Home, Truck, Package, History, User, LogOut, CreditCard } from 'lucide-react';
 import { supabase, getCurrentUser, signOut } from '../lib/supabase';
+import { useQuoteLimit } from '../hooks/useQuoteLimit';
 
 interface UserData {
   id_Usuario: number;
@@ -14,6 +15,7 @@ interface UserData {
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
+  const { hasReachedLimit } = useQuoteLimit();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -110,10 +112,11 @@ const Sidebar: React.FC = () => {
 
   const navItems = [
     { name: 'Inicio', path: '/app', icon: <Home size={20} /> },
-    { name: 'Solicitar Viaje', path: '/app/quote-request', icon: <Truck size={20} /> },
-    { name: 'Cotizaciones', path: '/app/quotes', icon: <Package size={20} /> },
-    { name: 'Seguimientos', path: '/app/history', icon: <History size={20} /> },
-    { name: 'Perfil', path: '/app/profile', icon: <User size={20} /> },
+    { name: 'Solicitar Viaje', path: '/app/quote-request', icon: <Truck size={20} />, disabled: hasReachedLimit },
+    { name: 'Cotizaciones', path: '/app/quotes', icon: <Package size={20} />, disabled: hasReachedLimit },
+    { name: 'Historial', path: '/app/history', icon: <History size={20} />, disabled: hasReachedLimit },
+    { name: 'Suscripción', path: '/app/subscription', icon: <CreditCard size={20} /> },
+    { name: 'Perfil', path: '/app/profile', icon: <User size={20} />, disabled: hasReachedLimit },
   ];
 
   return (
@@ -125,17 +128,24 @@ const Sidebar: React.FC = () => {
         <ul className="space-y-1">
           {navItems.map((item) => (
             <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-2.5 ${
-                    isActive ? 'bg-white text-[#0F172A]' : 'hover:bg-white/10'
-                  } transition-colors`
-                }
-              >
-                {item.icon}
-                <span className="ml-3">{item.name}</span>
-              </NavLink>
+              {item.disabled ? (
+                <div className="flex items-center px-4 py-2.5 text-gray-500 cursor-not-allowed opacity-50">
+                  {item.icon}
+                  <span className="ml-3">{item.name}</span>
+                </div>
+              ) : (
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-2.5 ${
+                      isActive ? 'bg-white text-[#0F172A]' : 'hover:bg-white/10'
+                    } transition-colors`
+                  }
+                >
+                  {item.icon}
+                  <span className="ml-3">{item.name}</span>
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>
