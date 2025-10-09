@@ -166,10 +166,10 @@ const OperadorOportunidades: React.FC = () => {
       // Preparar todos los datos posibles para la cotización
       const quoteData = {
         // IDs y referencias principales
-        id_Usuario: selectedOpportunity.id_Usuario, // ID del dador de carga (quien recibe la cotización)
+        id_Usuario: currentUser.profile.id_Usuario,
         id_Envio: selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id,
         id_Operador: currentUser.profile.id_Usuario, // El operador que cotiza
-
+        
         // Datos de la cotización
         Oferta: parseFloat(quoteAmount),
         Fecha: new Date().toISOString(),
