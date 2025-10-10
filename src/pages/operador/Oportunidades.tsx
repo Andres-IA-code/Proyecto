@@ -166,10 +166,10 @@ const OperadorOportunidades: React.FC = () => {
       // Preparar todos los datos posibles para la cotización
       const quoteData = {
         // IDs y referencias principales
-        id_Usuario: currentUser.profile.id_Usuario,
+        id_Usuario: selectedOpportunity.id_Usuario, // ID del dador de carga (quien recibe la cotización)
         id_Envio: selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id,
         id_Operador: currentUser.profile.id_Usuario, // El operador que cotiza
-        
+
         // Datos de la cotización
         Oferta: parseFloat(quoteAmount),
         Fecha: new Date().toISOString(),
@@ -195,16 +195,16 @@ const OperadorOportunidades: React.FC = () => {
       setShowQuoteModal(false);
       setSelectedOpportunity(null);
       setQuoteAmount('');
-      
+
       // Mark this opportunity as quoted permanently
       const opportunityId = selectedOpportunity.id_Envio || selectedOpportunity.id_envio || selectedOpportunity.id;
       if (opportunityId) {
         saveQuotedOpportunity(opportunityId);
       }
-      
-      // Increment the quote count
-      incrementCount();
-      
+
+      // Refresh opportunities list
+      await fetchOpportunities();
+
       // Show success message with more details
       alert(`¡Cotización enviada exitosamente!\n\nMonto: $${parseFloat(quoteAmount).toLocaleString()}\nEnvío: ${selectedOpportunity.Origen} → ${selectedOpportunity.Destino}\nVigencia: 7 días`);
       
