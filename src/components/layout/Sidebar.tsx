@@ -45,10 +45,10 @@ export function Sidebar({ userRole }: SidebarProps) {
   const links = userRole === 'dador' ? dadorLinks : userRole === 'operador' ? operadorLinks : brokerLinks;
 
   return (
-    <div className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 flex flex-col">
-      <div className="p-6 border-b border-gray-700">
+    <div className="w-64 bg-slate-800 text-white h-screen fixed left-0 top-0 flex flex-col">
+      <div className="p-6 border-b border-slate-700">
         <div className="flex items-center space-x-3">
-          <Truck className="w-8 h-8 text-blue-500" />
+          <Truck className="w-8 h-8 text-orange-500" />
           <h1 className="text-xl font-bold">ShipConnect</h1>
         </div>
       </div>
@@ -61,8 +61,8 @@ export function Sidebar({ userRole }: SidebarProps) {
             className={({ isActive }) =>
               `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-orange-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
               }`
             }
           >
@@ -72,10 +72,10 @@ export function Sidebar({ userRole }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-700">
+      <div className="p-4 border-t border-slate-700">
         <button
           onClick={() => signOut()}
-          className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors w-full"
+          className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors w-full"
         >
           <LogOut className="w-5 h-5" />
           <span>Cerrar Sesión</span>
