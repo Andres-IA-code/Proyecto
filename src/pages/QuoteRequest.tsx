@@ -69,6 +69,7 @@ const QuoteRequest: React.FC = () => {
   }>({});
 
   const [newStop, setNewStop] = useState('');
+  const [newStopCoords, setNewStopCoords] = useState<Coordinates | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
 
@@ -81,6 +82,8 @@ const QuoteRequest: React.FC = () => {
 
   // Effect to calculate total distance including stops
   useEffect(() => {
+    console.log('🔄 useEffect triggered - coordinates changed:', coordinates);
+    console.log('🔄 Paradas programadas:', formData.scheduledStops);
     calculateTotalDistance();
   }, [coordinates.origin, coordinates.destination, formData.scheduledStops]);
 
@@ -90,12 +93,20 @@ const QuoteRequest: React.FC = () => {
       return;
     }
 
+    console.log('🚀 Calculando distancia...', {
+      origin: coordinates.origin,
+      destination: coordinates.destination,
+      stops: formData.scheduledStops.length
+    });
+
     try {
       const waypoints = formData.scheduledStops
         .filter(stop => stop.coordinates)
         .map(stop => stop.coordinates!);
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-distance`;
+
+      console.log('📡 Llamando a la API:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -110,20 +121,28 @@ const QuoteRequest: React.FC = () => {
         }),
       });
 
+      console.log('📥 Respuesta recibida:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to calculate distance');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('📊 Datos recibidos:', data);
 
       if (data.distance) {
+        console.log('✅ Distancia calculada:', data.distance, 'km');
         setFormData(prev => ({
           ...prev,
           estimatedDistance: data.distance.toString()
         }));
+      } else if (data.error) {
+        console.warn('⚠️ Error en la API de Google Maps, usando cálculo alternativo');
+        throw new Error(data.error);
       }
     } catch (error) {
-      console.error('Error calculating distance:', error);
+      console.error('❌ Error al calcular con Google Maps:', error);
+      console.log('🔄 Usando cálculo de distancia alternativo (Haversine)...');
 
       let totalDistance = 0;
       const waypoints = [coordinates.origin];
@@ -146,9 +165,12 @@ const QuoteRequest: React.FC = () => {
         totalDistance += distance;
       }
 
+      const roundedDistance = Math.round(totalDistance);
+      console.log('✅ Distancia calculada (Haversine):', roundedDistance, 'km');
+
       setFormData(prev => ({
         ...prev,
-        estimatedDistance: Math.round(totalDistance).toString()
+        estimatedDistance: roundedDistance.toString()
       }));
     }
   };
@@ -179,11 +201,19 @@ const QuoteRequest: React.FC = () => {
     value: string,
     coords?: Coordinates
   ) => {
+    console.log(`📍 ${field} cambiado:`, { value, coords });
+
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     if (coords) {
-      setCoordinates(prev => ({ ...prev, [field]: coords }));
+      console.log(`✅ Guardando coordenadas de ${field}:`, coords);
+      setCoordinates(prev => {
+        const newCoords = { ...prev, [field]: coords };
+        console.log('📍 Estado completo de coordenadas:', newCoords);
+        return newCoords;
+      });
     } else {
+      console.log(`⚠️ No hay coordenadas para ${field}, limpiando...`);
       // Clear coordinates if address is cleared
       setCoordinates(prev => {
         const newCoords = { ...prev };
@@ -194,7 +224,14 @@ const QuoteRequest: React.FC = () => {
   };
 
   const handleStopAddressChange = (value: string, coords?: Coordinates) => {
+    console.log('🛑 Parada cambiada:', { value, coords });
     setNewStop(value);
+    if (coords) {
+      setNewStopCoords(coords);
+      console.log('✅ Coordenadas de parada guardadas:', coords);
+    } else {
+      setNewStopCoords(undefined);
+    }
   };
 
   const addScheduledStop = (stopAddress?: string, stopCoords?: Coordinates) => {
@@ -204,16 +241,19 @@ const QuoteRequest: React.FC = () => {
     }
 
     const addressToAdd = stopAddress || newStop.trim();
-    
+    const coordsToAdd = stopCoords || newStopCoords;
+
     if (addressToAdd) {
+      console.log('➕ Agregando parada:', { address: addressToAdd, coords: coordsToAdd });
       setFormData(prev => ({
         ...prev,
         scheduledStops: [...prev.scheduledStops, {
           address: addressToAdd,
-          coordinates: stopCoords
+          coordinates: coordsToAdd
         }],
       }));
       setNewStop('');
+      setNewStopCoords(undefined);
     }
   };
 

@@ -48,7 +48,7 @@ const Subscription: React.FC = () => {
               <span>{quotesUsed}/{quotesLimit}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${
                   hasReachedLimit ? 'bg-red-500' : 'bg-green-500'
                 }`}
@@ -61,17 +61,13 @@ const Subscription: React.FC = () => {
             <li>✓ Seguimiento básico</li>
             <li>✓ Soporte por email</li>
           </ul>
-          <button 
-            onClick={handleFreePlan}
-            disabled={hasReachedLimit}
-            className={`w-full font-bold py-2 px-4 rounded transition-colors ${
-              !hasReachedLimit 
-                ? 'bg-green-500 hover:bg-green-600 text-white' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
+          <div className={`w-full text-center font-bold py-2 px-4 rounded ${
+            !hasReachedLimit
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-300 text-gray-500'
+          }`}>
             {!hasReachedLimit ? 'Plan Actual' : 'Límite Alcanzado'}
-          </button>
+          </div>
         </div>
 
         {/* Plan Premium */}
