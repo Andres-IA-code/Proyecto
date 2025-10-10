@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Truck, Package, DollarSign, MapPin, Users, BarChart, Settings, MessageSquare, FileText, Bell, Star, Droplet, Calculator, FileCheck, Clock, BarChart as ChartBar, LogOut, ChevronLeft, ChevronRight, User, CreditCard } from 'lucide-react';
+import { Truck, Package, DollarSign, MapPin, Users, BarChart, Settings, MessageSquare, FileText, Bell, Star, Droplet, Calculator, FileCheck, Clock, BarChart as ChartBar, LogOut, ChevronLeft, ChevronRight, User, CreditCard, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useOperadorQuoteLimit } from '../hooks/useOperadorQuoteLimit';
 
@@ -205,6 +205,15 @@ const OperadorLogistico: React.FC = () => {
             >
               <CreditCard size={20} />
               <span>Suscripción</span>
+            </button>
+            <button
+              onClick={() => handleNavigation('tutorial')}
+              className={`w-full text-left px-4 py-2 flex items-center space-x-2 ${
+                selectedSection === 'tutorial' ? 'bg-gray-800' : 'hover:bg-gray-800'
+              }`}
+            >
+              <BookOpen size={20} />
+              <span>Tutorial</span>
             </button>
           </nav>
           
