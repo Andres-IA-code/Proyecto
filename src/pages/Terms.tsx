@@ -249,6 +249,29 @@ const Terms: React.FC = () => {
             </div>
           </div>
 
+          {/* 6. Cancelaciones y Reembolsos */}
+          <div className="mb-12">
+            <div className="flex items-center mb-6">
+              <Clock className="h-8 w-8 text-black mr-3" />
+              <h2 className="text-3xl font-bold text-gray-900">6. Cancelaciones y Reembolsos</h2>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-8">
+              <ul className="space-y-4 text-gray-800">
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Las cancelaciones deben realizarse con al menos [X] horas de anticipación</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Se aplicarán cargos por cancelación según la política establecida</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                  <span>Los reembolsos se procesan según las circunstancias específicas</span>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           {/* 7. Calificaciones y Comentarios */}
           <div className="mb-12">
