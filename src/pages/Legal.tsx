@@ -70,6 +70,18 @@ const Legal: React.FC = () => {
                   </div>
                   <p className="text-gray-700 ml-7">[DIRECCIÓN COMPLETA]</p>
                 </div>
+                
+                <div>
+                  <div className="flex items-center mb-2">
+                    <Phone className="h-5 w-5 text-gray-600 mr-2" />
+                    <span className="font-semibold text-gray-800">Teléfono:</span>
+                  </div>
+                  <p className="text-gray-700 ml-7">
+                    <a href="tel:[NÚMERO DE CONTACTO]" className="text-blue-600 hover:text-blue-800 underline">
+                      [NÚMERO DE CONTACTO]
+                    </a>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -137,9 +149,15 @@ const Legal: React.FC = () => {
           {/* Contact Information */}
           <div className="bg-black text-white rounded-lg p-8">
             <h3 className="text-xl font-bold mb-4">Información de Contacto</h3>
-            <div className="flex items-center">
-              <Mail className="h-5 w-5 mr-2" />
-              <span>timetruck@gmail.com</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center">
+                <Mail className="h-5 w-5 mr-2" />
+                <span>timetruck@gmail.com</span>
+              </div>
+              <div className="flex items-center">
+                <Phone className="h-5 w-5 mr-2" />
+                <span>[NÚMERO DE CONTACTO]</span>
+              </div>
             </div>
             <div className="mt-4 text-gray-300 text-sm">
               Para consultas legales o información adicional, no dudes en contactarnos.
