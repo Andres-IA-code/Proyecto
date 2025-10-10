@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Shield, TrendingUp } from 'lucide-react';
-import logoImage from '../Captura.png';
 
 const LandingPage: React.FC = () => {
   return (
@@ -13,9 +12,9 @@ const LandingPage: React.FC = () => {
             <div className="flex items-center">
               <div className="flex items-center">
                 <img
-                  src={logoImage}
+                  src="/Captura.png"
                   alt="Time Truck Logo"
-                  className="h-14 w-14 mr-3"
+                  className="h-auto w-48 mr-3"
                 />
                 <span className="text-xl font-bold">Time Truck</span>
               </div>
