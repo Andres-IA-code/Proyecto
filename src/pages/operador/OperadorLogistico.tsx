@@ -130,7 +130,7 @@ const OperadorLogistico: React.FC = () => {
     <div className="min-h-screen bg-gray-100">
       <div className="flex">
         {/* Sidebar */}
-        <div className={`fixed top-0 left-0 h-full transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'} bg-black text-white flex flex-col overflow-hidden z-40`}>
+        <div className={`transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'} bg-black text-white min-h-screen flex flex-col overflow-hidden`}>
           <div className="p-4">
             <h1 className="text-xl font-bold">Panel Operador</h1>
           </div>
@@ -151,7 +151,7 @@ const OperadorLogistico: React.FC = () => {
               }`}
             >
               <Package size={20} />
-              <span>Planificar Envío</span>
+              <span>Solicitar Viajes</span>
             </button>
             <button
               onClick={() => handleNavigation('cotizaciones')}
@@ -233,16 +233,13 @@ const OperadorLogistico: React.FC = () => {
 
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`fixed top-1/2 transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 transition-all duration-300 ${
-            sidebarOpen ? 'left-64' : 'left-0'
-          }`}
-          style={{ zIndex: 1001 }}
+          className="fixed left-0 top-[70%] transform -translate-y-1/2 bg-black text-white p-2 rounded-r-md hover:bg-gray-800 z-50"
         >
           {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </button>
 
         {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className="flex-1">
           <Outlet />
         </div>
       </div>

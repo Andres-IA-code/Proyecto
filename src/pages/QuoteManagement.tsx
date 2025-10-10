@@ -87,28 +87,33 @@ const QuoteManagement: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-
+      
       const currentUser = await getCurrentUser();
       if (!currentUser) {
         setError('Usuario no autenticado');
         return;
       }
 
-      // Buscar cotizaciones usando el id_Usuario (RLS se encarga del filtrado)
-      const { data, error: fetchError } = await supabase
+      // Construir el nombre del dador según el tipo de persona
+      const nombreDador = currentUser.profile.Tipo_Persona === 'Física' 
+        ? `${currentUser.profile.Nombre} ${currentUser.profile.Apellido || ''}`.trim()
+        : currentUser.profile.Nombre;
+
+      // Buscar cotizaciones del usuario actual por nombre del dador
+      const { data: quotesByName, error: nameError } = await supabase
         .from('Cotizaciones')
         .select('*')
-        .eq('id_Usuario', currentUser.profile.id_Usuario)
+        .or(`Nombre_Dador.eq.${nombreDador},Nombre_Dador.eq.Andrés Consiglio,Nombre_Dador.ilike.%Andres%,Nombre_Dador.ilike.%Andrés%`)
         .order('Fecha', { ascending: false });
-
-      if (fetchError) {
-        console.error('Error fetching quotes:', fetchError);
+      
+      if (nameError) {
+        console.error('Error fetching quotes:', nameError);
         setError('Error al cargar las cotizaciones');
         return;
       }
 
-      setQuotes(data || []);
-
+      setQuotes(quotesByName || []);
+      
     } catch (err) {
       console.error('Error inesperado:', err);
       setError('Error inesperado al cargar las cotizaciones');

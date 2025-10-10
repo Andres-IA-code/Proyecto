@@ -4,7 +4,6 @@ import {
   Mail, Star, Filter, RefreshCw, AlertCircle, X, CheckCircle, XCircle 
 } from 'lucide-react';
 import { supabase, getCurrentUser } from '../../lib/supabase';
-import { useOperadorQuoteLimit } from '../../hooks/useOperadorQuoteLimit';
 
 interface Quote {
   id_Cotizaciones: number;
@@ -137,7 +136,6 @@ const DadorInfo: React.FC<{ idEnvio?: number }> = ({ idEnvio }) => {
 };
 
 const OperadorCotizaciones: React.FC = () => {
-  const { quotesUsed, quotesLimit, hasReachedLimit } = useOperadorQuoteLimit();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -153,21 +151,15 @@ const OperadorCotizaciones: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      
+      console.log('Buscando todas las cotizaciones...');
 
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        setError('Usuario no autenticado');
-        return;
-      }
-
-      console.log('Buscando cotizaciones del operador con ID:', currentUser.profile.id_Usuario);
-
-      // Buscar cotizaciones del operador actual
+      // Buscar TODAS las cotizaciones para ver qué datos hay disponibles
       const { data, error: fetchError } = await supabase
         .from('Cotizaciones')
         .select(`
           *,
-          General(
+          General!inner(
             id_Usuario,
             Origen,
             Destino,
@@ -185,7 +177,6 @@ const OperadorCotizaciones: React.FC = () => {
             Distancia
           )
         `)
-        .eq('id_Operador', currentUser.profile.id_Usuario)
         .order('Fecha', { ascending: false });
 
       if (fetchError) {
@@ -211,13 +202,14 @@ const OperadorCotizaciones: React.FC = () => {
         envio_dimension_ancho: quote.General?.Dimension_Ancho,
         envio_dimension_alto: quote.General?.Dimension_Alto,
         envio_distancia: quote.General?.Distancia,
+        // ID del usuario dador para buscar información después
         dador_id_usuario: quote.General?.id_Usuario,
       }));
 
       setQuotes(transformedData);
       console.log('Cotizaciones encontradas:', transformedData.length);
       console.log('Datos de cotizaciones:', transformedData);
-
+      
     } catch (err) {
       console.error('Error inesperado:', err);
       setError('Error inesperado al cargar las cotizaciones');
@@ -362,32 +354,12 @@ const OperadorCotizaciones: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Limit Warning Banner */}
-      {hasReachedLimit && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 text-red-500 mr-3" />
-            <div>
-              <h3 className="text-sm font-medium text-red-800">
-                Límite de Cotizaciones Alcanzado
-              </h3>
-              <p className="text-sm text-red-700 mt-1">
-                Has enviado {quotesUsed} de {quotesLimit} cotizaciones disponibles. 
-                Actualiza tu plan para continuar enviando cotizaciones.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
               <h1 className="text-2xl font-bold">Mis Cotizaciones</h1>
-              <p className="text-gray-500 mt-1">
-                Gestiona las cotizaciones que has enviado ({quotesUsed}/{quotesLimit} utilizadas)
-              </p>
+              <p className="text-gray-500 mt-1">Gestiona las cotizaciones que has enviado</p>
             </div>
             <div className="flex space-x-2 mt-4 md:mt-0">
               <button
