@@ -15,7 +15,6 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import History from './pages/History';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
-import Tutorial from './pages/Tutorial';
 import OperadorLogistico from './pages/OperadorLogistico';
 import BrokerLogistico from './pages/BrokerLogistico';
 import Solutions from './pages/Solutions';
@@ -93,7 +92,6 @@ function App() {
           <Route path="history" element={<History />} />
           <Route path="subscription" element={<Subscription />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="tutorial" element={<Tutorial />} />
         </Route>
       </Routes>
     </Router>
