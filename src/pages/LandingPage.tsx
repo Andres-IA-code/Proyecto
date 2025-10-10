@@ -14,7 +14,7 @@ const LandingPage: React.FC = () => {
                 <img
                   src="/Captura.png"
                   alt="Time Truck Logo"
-                  className="h-10 w-auto mr-3"
+                  className="h-12 w-auto mr-3"
                 />
                 <span className="text-xl font-bold">Time Truck</span>
               </div>
