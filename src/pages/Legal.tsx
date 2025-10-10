@@ -62,14 +62,6 @@ const Legal: React.FC = () => {
                     </a>
                   </p>
                 </div>
-                
-                <div>
-                  <div className="flex items-center mb-2">
-                    <MapPin className="h-5 w-5 text-gray-600 mr-2" />
-                    <span className="font-semibold text-gray-800">Domicilio:</span>
-                  </div>
-                  <p className="text-gray-700 ml-7">[DIRECCIÓN COMPLETA]</p>
-                </div>
               </div>
             </div>
           </div>
