@@ -1,51 +1,100 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Layout } from './components/layout/Layout';
-import { Login } from './components/auth/Login';
-import { Register } from './components/auth/Register';
-import { ProtectedRoute } from './components/common/ProtectedRoute';
-import { LoadingSpinner } from './components/common/LoadingSpinner';
-import { DashboardDador } from './pages/dador/DashboardDador';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import AuthListener from './components/AuthListener'; // <- Nueva importación
+import LandingPage from './pages/LandingPage';
+import About from './pages/About';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import DadorDeCarga from './pages/DadorDeCarga';
+import QuoteRequest from './pages/QuoteRequest';
+import QuoteManagement from './pages/QuoteManagement';
+import ShipmentTracking from './pages/ShipmentTracking';
+import History from './pages/History';
+import Profile from './pages/Profile';
+import Subscription from './pages/Subscription';
+import OperadorLogistico from './pages/OperadorLogistico';
+import BrokerLogistico from './pages/BrokerLogistico';
+import Solutions from './pages/Solutions';
+import Legal from './pages/Legal';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
-function AppRoutes() {
-  const { usuario, loading } = useAuth();
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+// Operador Logístico Pages
+import OperadorDashboard from './pages/operador/Dashboard';
+import OperadorOportunidades from './pages/operador/Oportunidades';
+import OperadorCotizaciones from './pages/operador/Cotizaciones';
+import OperadorViajes from './pages/operador/Viajes';
+import OperadorDocumentos from './pages/operador/Documentos';
+import OperadorConfiguracion from './pages/operador/Configuracion';
+import OperadorSuscripcion from './pages/operador/Suscripcion';
+import OperadorTutorial from './pages/operador/Tutorial';
 
-  const getDashboard = () => {
-    if (!usuario) return <Navigate to="/login" replace />;
-    return <DashboardDador />;
-  };
-
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout>{getDashboard()}</Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
+// Broker Logístico Pages
+import BrokerDashboard from './pages/broker/Dashboard';
+import BrokerClientes from './pages/broker/Clientes';
+import BrokerTransportistas from './pages/broker/Transportistas';
+import BrokerMarketplace from './pages/broker/Marketplace';
+import BrokerOperaciones from './pages/broker/Operaciones';
+import BrokerAnalytics from './pages/broker/Analytics';
+import BrokerFacturacion from './pages/broker/Facturacion';
+import BrokerConfiguracion from './pages/broker/Configuracion';
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <Router>
+      <AuthListener /> {/* <- AuthListener agregado aquí */}
+      <Routes>
+        <Route index element={<LandingPage />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/solutions" element={<Solutions />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/legal" element={<Legal />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        
+        {/* Operador Logístico Routes */}
+        <Route path="/operador" element={<OperadorLogistico />}>
+          <Route index element={<OperadorDashboard />} />
+          <Route path="oportunidades" element={<OperadorOportunidades />} />
+          <Route path="cotizaciones" element={<OperadorCotizaciones />} />
+          <Route path="viajes" element={<OperadorViajes />} />
+          <Route path="documentos" element={<OperadorDocumentos />} />
+          <Route path="configuracion" element={<OperadorConfiguracion />} />
+          <Route path="suscripcion" element={<OperadorSuscripcion />} />
+          <Route path="tutorial" element={<OperadorTutorial />} />
+        </Route>
+
+        {/* Broker Logístico Routes */}
+        <Route path="/broker" element={<BrokerLogistico />}>
+          <Route index element={<BrokerDashboard />} />
+          <Route path="clientes" element={<BrokerClientes />} />
+          <Route path="transportistas" element={<BrokerTransportistas />} />
+          <Route path="marketplace" element={<BrokerMarketplace />} />
+          <Route path="operaciones" element={<BrokerOperaciones />} />
+          <Route path="analytics" element={<BrokerAnalytics />} />
+          <Route path="facturacion" element={<BrokerFacturacion />} />
+          <Route path="configuracion" element={<BrokerConfiguracion />} />
+        </Route>
+
+        {/* Dador de Carga Routes */}
+        <Route path="/app" element={<Layout />}>
+          <Route index element={<DadorDeCarga />} />
+          <Route path="quote-request" element={<QuoteRequest />} />
+          <Route path="quotes" element={<QuoteManagement />} />
+          <Route path="tracking" element={<ShipmentTracking />} />
+          <Route path="history" element={<History />} />
+          <Route path="subscription" element={<Subscription />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 
