@@ -15,6 +15,7 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import History from './pages/History';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
+import Tutorial from './pages/Tutorial';
 import OperadorLogistico from './pages/OperadorLogistico';
 import BrokerLogistico from './pages/BrokerLogistico';
 import Solutions from './pages/Solutions';
@@ -30,6 +31,8 @@ import OperadorCotizaciones from './pages/operador/Cotizaciones';
 import OperadorViajes from './pages/operador/Viajes';
 import OperadorDocumentos from './pages/operador/Documentos';
 import OperadorConfiguracion from './pages/operador/Configuracion';
+import OperadorSuscripcion from './pages/operador/Suscripcion';
+import OperadorTutorial from './pages/operador/Tutorial';
 
 // Broker Logístico Pages
 import BrokerDashboard from './pages/broker/Dashboard';
@@ -65,6 +68,8 @@ function App() {
           <Route path="viajes" element={<OperadorViajes />} />
           <Route path="documentos" element={<OperadorDocumentos />} />
           <Route path="configuracion" element={<OperadorConfiguracion />} />
+          <Route path="suscripcion" element={<OperadorSuscripcion />} />
+          <Route path="tutorial" element={<OperadorTutorial />} />
         </Route>
 
         {/* Broker Logístico Routes */}
@@ -88,6 +93,7 @@ function App() {
           <Route path="history" element={<History />} />
           <Route path="subscription" element={<Subscription />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="tutorial" element={<Tutorial />} />
         </Route>
       </Routes>
     </Router>
