@@ -84,39 +84,73 @@ const QuoteRequest: React.FC = () => {
     calculateTotalDistance();
   }, [coordinates.origin, coordinates.destination, formData.scheduledStops]);
 
-  const calculateTotalDistance = () => {
+  const calculateTotalDistance = async () => {
     if (!coordinates.origin || !coordinates.destination) {
       setFormData(prev => ({ ...prev, estimatedDistance: '' }));
       return;
     }
 
-    let totalDistance = 0;
-    const waypoints = [coordinates.origin];
+    try {
+      const waypoints = formData.scheduledStops
+        .filter(stop => stop.coordinates)
+        .map(stop => stop.coordinates!);
 
-    // Add scheduled stops with coordinates
-    formData.scheduledStops.forEach(stop => {
-      if (stop.coordinates) {
-        waypoints.push(stop.coordinates);
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calculate-distance`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          origin: coordinates.origin,
+          destination: coordinates.destination,
+          waypoints: waypoints.length > 0 ? waypoints : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to calculate distance');
       }
-    });
 
-    waypoints.push(coordinates.destination);
+      const data = await response.json();
 
-    // Calculate distance between consecutive waypoints
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const distance = calculateDistance(
-        waypoints[i].lat,
-        waypoints[i].lng,
-        waypoints[i + 1].lat,
-        waypoints[i + 1].lng
-      );
-      totalDistance += distance;
+      if (data.distance) {
+        setFormData(prev => ({
+          ...prev,
+          estimatedDistance: data.distance.toString()
+        }));
+      }
+    } catch (error) {
+      console.error('Error calculating distance:', error);
+
+      let totalDistance = 0;
+      const waypoints = [coordinates.origin];
+
+      formData.scheduledStops.forEach(stop => {
+        if (stop.coordinates) {
+          waypoints.push(stop.coordinates);
+        }
+      });
+
+      waypoints.push(coordinates.destination);
+
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        const distance = calculateDistance(
+          waypoints[i].lat,
+          waypoints[i].lng,
+          waypoints[i + 1].lat,
+          waypoints[i + 1].lng
+        );
+        totalDistance += distance;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        estimatedDistance: Math.round(totalDistance).toString()
+      }));
     }
-
-    setFormData(prev => ({ 
-      ...prev, 
-      estimatedDistance: Math.round(totalDistance).toString()
-    }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
