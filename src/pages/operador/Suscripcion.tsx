@@ -134,27 +134,24 @@ const OperadorSuscripcion: React.FC = () => {
             )}
           </div>
           <p className="text-3xl font-bold mb-4 text-green-600">GRATIS</p>
-
-          <div className="mb-4 bg-white rounded-lg p-4 border border-green-200">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-700">Cotizaciones aceptadas</span>
-              <span className="text-lg font-bold text-green-600">{quotesUsed}/5</span>
+          
+          {selectedPlan === 'basic' && (
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-gray-600 mb-1">
+                <span>Cotizaciones utilizadas</span>
+                <span>{getUsageDisplay()}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    hasReachedLimit ? 'bg-red-500' : 'bg-green-500'
+                  }`}
+                  style={{ width: `${getUsagePercentage()}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full transition-all duration-300 ${
-                  hasReachedLimit ? 'bg-red-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${getUsagePercentage()}%` }}
-              ></div>
-            </div>
-            {hasReachedLimit && (
-              <p className="text-xs text-red-600 mt-2 font-medium">
-                Has alcanzado el límite de cotizaciones
-              </p>
-            )}
-          </div>
-
+          )}
+          
           <ul className="mb-6 space-y-2">
             <li className="flex items-center">
               <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
